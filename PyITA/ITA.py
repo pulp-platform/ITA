@@ -254,6 +254,7 @@ class Transformer:
             print(f"{'Matrix Sequence Length ' :<{text_align}}: {self.S}")
             print(f"{'Matrix Projection Space' :<{text_align}}: {self.P}")
             print(f"{'Matrix Embedding Size  ' :<{text_align}}: {self.E}")
+            print(f"{'Matrix Feedforward Size' :<{text_align}}: {self.F}")
             print(f"{'Matrix Number of Heads ' :<{text_align}}: {self.H}")
             print(f"{'Bias ' :<{text_align}}: {bool(self.bias)}")
             print(f"{'Requant Mult ' :<{text_align}}: {list(self.requant_eps_mult)}")
