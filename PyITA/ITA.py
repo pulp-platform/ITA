@@ -36,6 +36,7 @@ class Transformer:
                  S: int,
                  P: int,
                  E: int,
+                 F: int,
                  H: int,
                  path: Union[str, os.PathLike],
                  bias: bool = True,
@@ -69,6 +70,7 @@ class Transformer:
         self.S = S
         self.P = P
         self.E = E
+        self.F = F
         self.H = H
         self.bias = bias
 
@@ -100,6 +102,7 @@ class Transformer:
         assert (self.S % self.ITA_M == 0), "Sequence length must be divisible by ITA_M"
         assert (self.P % self.ITA_M == 0), "Projection space must be divisible by ITA_M"
         assert (self.E % self.ITA_M == 0), "Embedding size must be divisible by ITA_M"
+        assert (self.F % self.ITA_M == 0), "Feedforward size must be divisible by ITA_M"
 
         assert (
             self.E <= 512
@@ -110,6 +113,9 @@ class Transformer:
         assert (
             self.S <= 512
         ), f"Sequence length must be less than {int(2**(self.WO-17))} because the internal bit width is {self.WO} bits"
+        assert (
+            self.F <= 512
+        ), f"Feedforward size must be less than {int(2**(self.WO-17))} because the internal bit width is {self.WO} bits"
 
         # assert (self.H % self.H_ITA == 0 or self.H == 1), "Number of heads must be one or divisible by H_ITA"
 
@@ -801,10 +807,11 @@ def generateTestVectors(path, **kwargs):
     s = kwargs['S']
     p = kwargs['P']
     e = kwargs['E']
+    f = kwargs['F']
     h = kwargs['H']
     bias = int(not kwargs['no_bias'])
 
-    acc1 = Transformer(s, p, e, h, bias = bias, path = path)
+    acc1 = Transformer(s, p, e, f, h, bias = bias, path = path)
 
     if kwargs['verbose']:
         print("=> Generating test vectors...")
