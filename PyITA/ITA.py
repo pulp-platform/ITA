@@ -803,11 +803,15 @@ class Transformer:
                  rqs_shift = self.requant_right_shift,
                  rqs_add = self.requant_add)
 
-def i_poly(q: np.int8, S: np.int8, a: np.float32, b: np.float32, c: np.float32) -> np.int8:
+def i_poly(q: np.int8, q_b: np.float32, q_c: np.float32) -> np.int8:
+    q_out = (q + q_b)**2 + q_c
+    return q_out
+
+def i_poly_wrapper(q: np.int8, S: np.int8, a: np.float32, b: np.float32, c: np.float32) -> np.int8:
     q_b = b / S
     q_c = c / a * S**2
     S_out = a * S**2
-    q_out = (q + q_b)**2 + q_c
+    q_out = i_poly(q, q_b, q_c)
     return q_out, S_out
 
 def generateTestVectors(path, **kwargs):
