@@ -803,6 +803,12 @@ class Transformer:
                  rqs_shift = self.requant_right_shift,
                  rqs_add = self.requant_add)
 
+def i_poly(q: np.int8, S: np.int8, a: np.float32, b: np.float32, c: np.float32) -> np.int8:
+    q_b = b / S
+    q_c = c / a * S**2
+    S_out = a * S**2
+    q_out = (q + q_b)**2 + q_c
+    return q_out, S_out
 
 def generateTestVectors(path, **kwargs):
     s = kwargs['S']
