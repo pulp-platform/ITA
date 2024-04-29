@@ -803,11 +803,35 @@ class Transformer:
                  rqs_shift = self.requant_right_shift,
                  rqs_add = self.requant_add)
 
-def i_poly(q: np.int8, q_b: np.float32, q_c: np.float32) -> np.int8:
-    q_out = (q + q_b)**2 + q_c
+def round(x: np.float32) -> np.int8:
+    return np.floor(x + 0.5 + np.finfo(np.float32).eps).astype(np.int8)
+
+def i_erf(q: np.int8, q_b: np.int8, q_c: np.int8) -> np.int8:
+    q_sgn = np.sign(q)
+    q_abs = np.abs(q)
+    q = np.clip(q_abs, 0, -q_b)
+    q_L = i_poly(q, q_b, q_c)
+    q_out = q_sgn * q_L
+    print(f"q_sgn: {q_sgn}, q_abs: {q_abs}, q_b: {q_b}, q: {q}, q_L: {q_L}, q_out: {q_out}")
     return q_out
 
-def i_poly_wrapper(q: np.int8, S: np.int8, a: np.float32, b: np.float32, c: np.float32) -> np.int8:
+def i_erf_wrapper(q: np.int8, S: np.int8) -> np.int8:
+    a, b, c = -0.2888, -1.769, 1
+    q_b = b / S
+    q_c = c / (a * S**2)
+    S_out = a * S**2
+    q_out = i_erf(q, q_b, q_c)
+    return q_out, S_out
+
+def i_poly(q: np.int8, q_b: np.int8, q_c: np.int8) -> np.int8:
+    # q = q.astype(np.int32)
+    # q_b = q_b.astype(np.int32)
+    # q_c = q_c.astype(np.int32)
+    q_out = (q + q_b)**2 + q_c
+    print(f"q: {q}, q_b: {q_b}, q_c: {q_c}, q_out: {q_out}")
+    return q_out
+
+def i_poly_wrapper(q: np.int8, S: np.float32, a: np.float32, b: np.float32, c: np.float32) -> (np.int8, np.float32):
     q_b = b / S
     q_c = c / a * S**2
     S_out = a * S**2
