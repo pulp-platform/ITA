@@ -833,7 +833,7 @@ def i_poly(q: np.int8, q_b: np.int8, q_c: np.int8) -> np.int8:
 
 def i_poly_wrapper(q: np.int8, S: np.float32, a: np.float32, b: np.float32, c: np.float32) -> (np.int8, np.float32):
     q_b = b / S
-    q_c = c / a * S**2
+    q_c = c / (a * S**2)
     S_out = a * S**2
     q_out = i_poly(q, q_b, q_c)
     return q_out, S_out
