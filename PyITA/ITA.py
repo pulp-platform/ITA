@@ -806,6 +806,21 @@ class Transformer:
 def round(x: np.float32) -> np.int8:
     return np.floor(x + 0.5 + np.finfo(np.float32).eps).astype(np.int8)
 
+def i_gelu(q: np.int8, q_1: np.int8, q_b: np.int8, q_c: np.int8) -> np.int8:
+    q_erf = i_erf(q, q_b, q_c)
+    q_out = q * (q_erf + q_1)
+    return q_out
+
+def i_gelu_wrapper(q: np.int8, S: np.int8) -> np.int8:
+    a, b, c = -0.2888, -1.769, 1
+    S_2 = S / np.sqrt(2)
+    q_1 = 1 / (a * S_2 ** 2)
+    q_b = b / S_2
+    q_c = c / (a * S_2**2)
+    q_out = i_gelu(q, q_1, q_b, q_c)
+    S_out = S * a * S_2**2 / 2
+    return q_out, S_out
+
 def i_erf(q: np.int8, q_b: np.int8, q_c: np.int8) -> np.int8:
     q_sgn = np.sign(q)
     q_abs = np.abs(q)
