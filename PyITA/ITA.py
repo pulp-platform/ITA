@@ -814,6 +814,22 @@ def i_poly_wrapper(q: np.int8, S: np.int8, a: np.float32, b: np.float32, c: np.f
     q_out = i_poly(q, q_b, q_c)
     return q_out, S_out
 
+def get_scaling_factor(alpha: float, n_bits: int = 8) -> float:
+    S = alpha / (2**(n_bits-1) - 1)
+    return S
+
+def quantize(activations: np.ndarray, alpha: float, n_bits: int = 8, S: float = None) -> np.ndarray:
+    x_q = np.clip(activations, -alpha, alpha)
+    if S is None:
+        S = get_scaling_factor(alpha, n_bits)
+    x_q = round(x_q / S)
+    return x_q, S
+
+def dequantize(quantized_activations: np.ndarray, alpha: float, n_bits: int = 8) -> np.ndarray:
+    S = get_scaling_factor(alpha, n_bits)
+    activations = quantized_activations * S
+    return activations
+
 def generateTestVectors(path, **kwargs):
     s = kwargs['S']
     p = kwargs['P']
