@@ -10,3 +10,4 @@ seaborn
 matplotlib
 torch
 pytest
+pytest-check
