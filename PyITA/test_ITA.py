@@ -10,7 +10,7 @@ def pretty_print(x, x_q, S, res_q, res_S, deq_res, exp_res):
 
 def test_gelu():
     n_bits = 8
-    xs = np.linspace(0, 1.769, 10)
+    xs = np.linspace(-1.769, 1.769, 10)
     alpha = np.abs(xs).max()**2
     x_qs, S = quantize(xs, alpha, n_bits)
 
