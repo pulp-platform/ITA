@@ -49,7 +49,7 @@ def generateMHA(**args):
     NO_PARTIAL_SOFTMAX = args['no_partial_softmax']
 
     if NO_PARTIAL_SOFTMAX:
-        path = f'{current_dir}/simvectors/data_S{S}_E{E}_P{P}_F_{F}_H{H}_B{int(not NO_BIAS)}_noPartialSoftmax/'
+        path = f'{current_dir}/simvectors/data_S{S}_E{E}_P{P}_F{F}_H{H}_B{int(not NO_BIAS)}_noPartialSoftmax/'
     else:
         path = f'{current_dir}/simvectors/data_S{S}_E{E}_P{P}_F_{F}_H{H}_B{int(not NO_BIAS)}/'
     os.makedirs(path, exist_ok = True)
