@@ -811,7 +811,7 @@ def round(x: f32, n_bits: int = 8):
 def clip(x: f32, n_bits: int = 8) -> f32:
     return np.clip(x, -2**(n_bits-1), 2**(n_bits-1) - 1)
 
-def round_to_8(x: f32) -> i8:
+def round_to_i8(x: f32) -> i8:
     x_clipped = clip(x, 8)
     x_rounded: f32 = np.floor(x_clipped + 0.5 + np.finfo(f32).eps)
     return x_rounded.astype(i8)
