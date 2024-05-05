@@ -9,6 +9,7 @@ export SEQUENCE_LEN=$2
 export EMBEDDING_SIZE=$3
 export PROJECTION_SIZE=$4
 export FEEDFORWARD_SIZE=$5
+export TEST_BENCH=$6
 
 # Number of dot product units
 export ITA_N=16
@@ -46,7 +47,7 @@ check_n_outputs() {
 
 # ITA TB
 # Check if the simulation log has finished successfully by checking the number of outputs
-if [ ${ENTRY_POINT} == "ita_tb" ]
+if [ ${TEST_BENCH} == "ita_tb" ]
 then
     check_n_outputs "${exp_n_outputs_Q}" 0
     check_n_outputs "${exp_n_outputs_K}" 1
@@ -56,7 +57,7 @@ then
     n_error_lines=$(grep -c "Wrong value" "${SIM_LOG}")
 # HWPE TB
 # Check if the simulation log has finished successfully
-elif [ ${ENTRY_POINT} == "hwpe_tb" ]
+elif [ ${TEST_BENCH} == "hwpe_tb" ]
 then
     if ! grep -q "Comparing output" $1 && grep -q "\$finish" $1
     then

@@ -26,8 +26,8 @@ generate_testvectors:
   stage: test
   script:
     - !reference [.setup_test, script]
-    - python testGenerator.py -H 1 -S 64 -E 64 -P 64
-    - python testGenerator.py -H 1 -S 128 -E 192 -P 256
+    - python testGenerator.py -H 1 -S 64 -E 64 -P 64 -F 64
+    - python testGenerator.py -H 1 -S 128 -E 192 -P 256 -F 256
   artifacts:
     paths:
       - simvectors
@@ -42,13 +42,15 @@ run_sim:
     - S: 64
       E: 64
       P: 64
+      F: 64
     - S: 128
       E: 192
       P: 256
+      F: 256
   script:
     - make bender
-    - make sim VSIM_FLAGS=-c s=$S e=$E p=$P bias=1
-    - ./modelsim/return_status.sh modelsim/build/transcript $S $E ita_tb
+    - make sim VSIM_FLAGS=-c s=$S e=$E p=$P f=$F bias=1
+    - ./modelsim/return_status.sh modelsim/build/transcript $S $E $P $F ita_tb
 
 run_hwpe_sim:
   stage: sim
@@ -59,10 +61,12 @@ run_hwpe_sim:
     - S: 64
       E: 64
       P: 64
+      F: 64
     - S: 128
       E: 192
       P: 256
+      F: 256
   script:
     - make bender
-    - make sim VSIM_FLAGS=-c DEBUG=OFF target=sim_ita_hwpe_tb s=$S e=$E p=$P bias=1
-    - ./modelsim/return_status.sh modelsim/build/transcript $S $E hwpe_tb
+    - make sim VSIM_FLAGS=-c DEBUG=OFF target=sim_ita_hwpe_tb s=$S e=$E p=$P f=$F bias=1
+    - ./modelsim/return_status.sh modelsim/build/transcript $S $E $P $F hwpe_tb
