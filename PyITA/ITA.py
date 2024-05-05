@@ -842,8 +842,8 @@ def i_gelu_wrapper(q: i8, S: i8) -> Tuple[i32, f32]:
 def i_erf(q: i8, q_b: i16, q_c: i16) -> i32:
     q_sgn: i8 = np.sign(q)
     q_abs: i8 = np.abs(q)
-    q: i8 = np.clip(q_abs, 0, -q_b)
-    q_L: i32 = i_poly(q, q_b, q_c)
+    q_clipped: i8 = np.clip(q_abs, 0, -q_b)
+    q_L: i32 = i_poly(q_clipped, q_b, q_c)
     q_out: i32 = q_sgn * q_L
     return q_out
 
