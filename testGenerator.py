@@ -47,11 +47,12 @@ def generateMHA(**args):
     H = args['H']
     NO_BIAS = args['no_bias']
     NO_PARTIAL_SOFTMAX = args['no_partial_softmax']
+    base_path = f'{current_dir}/simvectors/data_S{S}_E{E}_P{P}_F{F}_H{H}_B{int(not NO_BIAS)}'
 
     if NO_PARTIAL_SOFTMAX:
-        path = f'{current_dir}/simvectors/data_S{S}_E{E}_P{P}_F{F}_H{H}_B{int(not NO_BIAS)}_noPartialSoftmax/'
+        path = f'{base_path}_noPartialSoftmax/'
     else:
-        path = f'{current_dir}/simvectors/data_S{S}_E{E}_P{P}_F_{F}_H{H}_B{int(not NO_BIAS)}/'
+        path = f'{base_path}/'
     os.makedirs(path, exist_ok = True)
 
     ITA.generateTestVectors(path, **args)
