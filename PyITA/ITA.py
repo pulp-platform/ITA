@@ -26,6 +26,8 @@ from .softmax import fastSoftmax, realSoftmax, streamingPartialSoftmax
 from .util import (generate_matrix_mem, pack_8b_to_word, pack_array_8b_to_word, pack_hex_24b, pack_multihead_8b_to_word,
                    pack_multihead_24b_to_word, random_shuffled_tensor, requantize, split_matrix, to_hex, write_matrix,
                    write_matrix_mem, write_matrix_mem_hex, write_vector_mem_hex)
+from typing import Optional, Tuple
+from numpy import int8 as i8, int16 as i16, int32 as i32, float32 as f32
 
 
 class Transformer:
