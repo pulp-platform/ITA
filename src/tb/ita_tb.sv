@@ -29,7 +29,7 @@ module ita_tb;
   // Parameters
   integer N_PE, M_TILE_LEN;
   integer N_ENTRIES_PER_TILE;
-  integer SEQUENCE_LEN, PROJECTION_SPACE, EMBEDDING_SIZE;
+  integer SEQUENCE_LEN, PROJECTION_SIZE, EMBEDDING_SIZE, FEEDFORWARD_SIZE;
   integer N_TILES_SEQUENCE_DIM, N_TILES_EMBEDDING_DIM, N_TILES_PROJECTION_DIM;
   integer N_TILES_LINEAR_PROJECTION, N_TILES_ATTENTION;
   integer N_TILES_LINEAR_OUTPUT;
@@ -57,21 +57,24 @@ module ita_tb;
     N_PE = `ifdef ITA_N `ITA_N `else 16 `endif;
     M_TILE_LEN = `ifdef ITA_M `ITA_M `else 64 `endif;
     SEQUENCE_LEN = `ifdef SEQ_LENGTH `SEQ_LENGTH `else M_TILE_LEN `endif;
-    PROJECTION_SPACE = `ifdef PROJ_SPACE `PROJ_SPACE `else M_TILE_LEN `endif;
+    PROJECTION_SIZE = `ifdef PROJ_SPACE `PROJ_SPACE `else M_TILE_LEN `endif;
     EMBEDDING_SIZE = `ifdef EMBED_SIZE `EMBED_SIZE `else M_TILE_LEN `endif;
+    FEEDFORWARD_SIZE = `ifdef FF_SIZE `FF_SIZE `else M_TILE_LEN `endif;
     simdir = {
       "../../simvectors/data_S",
       $sformatf("%0d", SEQUENCE_LEN),
       "_E",
       $sformatf("%0d", EMBEDDING_SIZE),
       "_P",
-      $sformatf("%0d", PROJECTION_SPACE),
+      $sformatf("%0d", PROJECTION_SIZE),
+      "_F",
+      $sformatf("%0d", FEEDFORWARD_SIZE),
       "_H1_B",
       $sformatf("%0d", `ifdef BIAS `BIAS `else 0 `endif)
     };
     N_TILES_SEQUENCE_DIM = SEQUENCE_LEN / M_TILE_LEN;
     N_TILES_EMBEDDING_DIM = EMBEDDING_SIZE / M_TILE_LEN;
-    N_TILES_PROJECTION_DIM = PROJECTION_SPACE / M_TILE_LEN;
+    N_TILES_PROJECTION_DIM = PROJECTION_SIZE / M_TILE_LEN;
     N_TILES_LINEAR_PROJECTION = N_TILES_SEQUENCE_DIM * N_TILES_EMBEDDING_DIM * N_TILES_PROJECTION_DIM;
     N_TILES_ATTENTION = N_TILES_SEQUENCE_DIM * N_TILES_PROJECTION_DIM;
     N_ENTRIES_PER_TILE = M_TILE_LEN * M_TILE_LEN / N_PE;
