@@ -821,36 +821,41 @@ def round_to_i16(x: f32) -> i16:
     x_rounded: f32 = np.floor(x_clipped + 0.5 + np.finfo(f32).eps)
     return x_rounded.astype(i16)
 
-def i_gelu(q: np.int8, q_1: np.int8, q_b: np.int8, q_c: np.int8) -> np.int8:
-    q_erf = i_erf(q, q_b, q_c)
-    q_out = q * (q_erf + q_1)
+def i_gelu(q: i8, q_1: i16, q_b: i16, q_c: i16) -> i32:
+    q_erf: i32 = i_erf(q, q_b, q_c)
+    q_out: i32 = q * (q_erf + q_1)
     return q_out
 
-def i_gelu_wrapper(q: np.int8, S: np.int8) -> np.int8:
-    a, b, c = -0.2888, -1.769, 1
-    S_2 = S / np.sqrt(2)
-    q_1 = 1 / (a * S_2 ** 2)
-    q_b = b / S_2
-    q_c = c / (a * S_2**2)
-    q_out = i_gelu(q, q_1, q_b, q_c)
-    S_out = S * a * S_2**2 / 2
+
+def i_gelu_wrapper(q: i8, S: i8) -> Tuple[i32, f32]:
+    a: float = -0.2888
+    b: float = -1.769
+    c: float = 1
+    S_2: f32 = S / np.sqrt(2)
+    q_1: i16 = round_to_i16(1 / (a * S_2**2))
+    q_b: i16 = round_to_i16(b / S_2)
+    q_c: i16 = round_to_i16(c / (a * S_2**2))
+    q_out: i32 = i_gelu(q, q_1, q_b, q_c)
+    S_out: f32 = S * a * S_2**2 / 2
     return q_out, S_out
 
-def i_erf(q: np.int8, q_b: np.int8, q_c: np.int8) -> np.int8:
-    q_sgn = np.sign(q)
-    q_abs = np.abs(q)
-    q = np.clip(q_abs, 0, -q_b)
-    q_L = i_poly(q, q_b, q_c)
-    q_out = q_sgn * q_L
-    print(f"q_sgn: {q_sgn}, q_abs: {q_abs}, q_b: {q_b}, q: {q}, q_L: {q_L}, q_out: {q_out}")
+def i_erf(q: i8, q_b: i16, q_c: i16) -> i32:
+    q_sgn: i8 = np.sign(q)
+    q_abs: i8 = np.abs(q)
+    q: i8 = np.clip(q_abs, 0, -q_b)
+    q_L: i32 = i_poly(q, q_b, q_c)
+    q_out: i32 = q_sgn * q_L
     return q_out
 
-def i_erf_wrapper(q: np.int8, S: np.int8) -> np.int8:
-    a, b, c = -0.2888, -1.769, 1
-    q_b = b / S
-    q_c = c / (a * S**2)
-    S_out = a * S**2
-    q_out = i_erf(q, q_b, q_c)
+
+def i_erf_wrapper(q: i8, S: i8) -> Tuple[i32, f32]:
+    a: float = -0.2888
+    b: float = -1.769
+    c: float = 1
+    q_b: i16 = round_to_i16(b / S)
+    q_c: i16 = round_to_i16(c / (a * S**2))
+    S_out: f32 = a * S**2
+    q_out: i32 = i_erf(q, q_b, q_c)
     return q_out, S_out
 
 
