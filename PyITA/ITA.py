@@ -803,8 +803,23 @@ class Transformer:
                  rqs_shift = self.requant_right_shift,
                  rqs_add = self.requant_add)
 
-def round(x: np.float32) -> np.int8:
-    return np.floor(x + 0.5 + np.finfo(np.float32).eps).astype(np.int8)
+
+def round(x: f32, n_bits: int = 8):
+    x_clip = np.clip(x, -2**(n_bits-1), 2**(n_bits-1) - 1)
+    return np.floor(x_clip + 0.5 + np.finfo(f32).eps).astype(int)
+
+def clip(x: f32, n_bits: int = 8) -> f32:
+    return np.clip(x, -2**(n_bits-1), 2**(n_bits-1) - 1)
+
+def round_to_8(x: f32) -> i8:
+    x_clipped = clip(x, 8)
+    x_rounded: f32 = np.floor(x_clipped + 0.5 + np.finfo(f32).eps)
+    return x_rounded.astype(i8)
+
+def round_to_i16(x: f32) -> i16:
+    x_clipped: f32 = clip(x, 16)
+    x_rounded: f32 = np.floor(x_clipped + 0.5 + np.finfo(f32).eps)
+    return x_rounded.astype(i16)
 
 def i_gelu(q: np.int8, q_1: np.int8, q_b: np.int8, q_c: np.int8) -> np.int8:
     q_erf = i_erf(q, q_b, q_c)
@@ -838,33 +853,38 @@ def i_erf_wrapper(q: np.int8, S: np.int8) -> np.int8:
     q_out = i_erf(q, q_b, q_c)
     return q_out, S_out
 
-def i_poly(q: np.int8, q_b: np.int8, q_c: np.int8) -> np.int8:
-    # q = q.astype(np.int32)
-    # q_b = q_b.astype(np.int32)
-    # q_c = q_c.astype(np.int32)
-    q_out = (q + q_b)**2 + q_c
-    print(f"q: {q}, q_b: {q_b}, q_c: {q_c}, q_out: {q_out}")
-    return q_out
 
-def i_poly_wrapper(q: np.int8, S: np.float32, a: np.float32, b: np.float32, c: np.float32) -> (np.int8, np.float32):
-    q_b = b / S
-    q_c = c / (a * S**2)
-    S_out = a * S**2
-    q_out = i_poly(q, q_b, q_c)
+def i_poly(q: i8, q_b: i16, q_c: i16) -> i32:
+    q16: i16 = q.astype(i16)
+    q_c32: i32 = q_c.astype(i32)
+    d: i16 = q16 + q_b
+    d_sq: i16 = d**2
+    q_out: i32 = d_sq + q_c32
+    return q_out.astype(i32)
+
+
+def i_poly_wrapper(q: i8, S: f32, a: f32, b: f32,
+                   c: f32) -> Tuple[i32, f32]:
+    q_b: i16 = round_to_i16(b / S)
+    q_c: i16 = round_to_i16(c / (a * S**2))
+    S_out: f32 = a * S**2
+    q_out: i32 = i_poly(q, q_b, q_c)
     return q_out, S_out
 
-def get_scaling_factor(alpha: float, n_bits: int = 8) -> float:
-    S = alpha / (2**(n_bits-1) - 1)
+def get_scaling_factor(alpha: f32, n_bits: int = 8) -> f32:
+    S: f32 = alpha / (2**(n_bits-1) - 1)
     return S
 
-def quantize(activations: np.ndarray, alpha: float, n_bits: int = 8, S: float = None) -> np.ndarray:
+
+def quantize(activations: np.ndarray, alpha: f32, n_bits: int = 8, S: Optional[f32] = None) -> Tuple[np.ndarray, f32]:
     x_q = np.clip(activations, -alpha, alpha)
     if S is None:
         S = get_scaling_factor(alpha, n_bits)
-    x_q = round(x_q / S)
+    x_q = x_q / S
+    x_q = np.array(list(map(round, x_q)))
     return x_q, S
 
-def dequantize(quantized_activations: np.ndarray, alpha: float, n_bits: int = 8) -> np.ndarray:
+def dequantize(quantized_activations: np.ndarray, alpha: f32, n_bits: int = 8) -> np.ndarray:
     S = get_scaling_factor(alpha, n_bits)
     activations = quantized_activations * S
     return activations
