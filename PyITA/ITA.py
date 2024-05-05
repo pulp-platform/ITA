@@ -204,6 +204,9 @@ class Transformer:
         self.Out_soft_sum = None
         self.Out_soft_sum_requant = None
 
+        self.preactivation = np.random.randint(-128, 127, size = (S, F), dtype = np.int8)
+        self.postactivation = None
+
     def _initialize_quantization_parameters(self):
         # WIESEP: 6 steps for attention layer and one to requantize the accumulated output
         self.requant_eps_mult = np.zeros((7, self.H), dtype = np.uint8)
@@ -501,6 +504,17 @@ class Transformer:
         self.Out_soft_sum = np.sum(self.Out_soft_requant, axis = 0, dtype = np.int32, keepdims = True)
         self.Out_soft_sum_requant = requantize(self.Out_soft_sum, self.requant_eps_mult[6], self.requant_right_shift[6],
                                                self.requant_add[6])
+
+    def gelu(self):
+        self.postactivation = np.zeros(self.preactivation.shape, dtype = np.int32)
+        alpha = 4
+        S = get_scaling_factor(alpha)
+        q_1, q_b, q_c, _, _, _ = get_i_gelu_constants(S)
+        for i in range(self.preactivation.shape[0]):
+            for j in range(self.preactivation.shape[1]):
+                self.postactivation[i, j] = i_gelu(self.preactivation[i, j], q_1, q_b, q_c)
+        self.write_matrix(self.preactivation, "preactivation", self.path)
+        self.write_matrix(self.postactivation, "postactivation", self.path)
 
     def export_hwpe(self):
         path = self.paths["hwpe"]
@@ -828,8 +842,7 @@ def i_gelu(q: i8, q_1: i16, q_b: i16, q_c: i16) -> i32:
     q_out: i32 = q * (q_erf + q_1)
     return q_out
 
-
-def i_gelu_wrapper(q: i8, S: i8) -> Tuple[i32, f32]:
+def get_i_gelu_constants(S: f32) -> Tuple[i16, i16, i16, float, float, float]:
     a: float = -0.2888
     b: float = -1.769
     c: float = 1
@@ -837,6 +850,12 @@ def i_gelu_wrapper(q: i8, S: i8) -> Tuple[i32, f32]:
     q_1: i16 = round_to_i16(1 / (a * S_2**2))
     q_b: i16 = round_to_i16(b / S_2)
     q_c: i16 = round_to_i16(c / (a * S_2**2))
+    return q_1, q_b, q_c, a, b, c
+
+
+def i_gelu_wrapper(q: i8, S: f32) -> Tuple[i32, f32]:
+    S_2: f32 = S / np.sqrt(2)
+    q_1, q_b, q_c, a, _, _ = get_i_gelu_constants(S)
     q_out: i32 = i_gelu(q, q_1, q_b, q_c)
     S_out: f32 = S * a * S_2**2 / 2
     return q_out, S_out
@@ -916,6 +935,7 @@ def generateTestVectors(path, **kwargs):
     acc1.step5_AV()
     acc1.step6_O()
     acc1.step7_Osum()
+    acc1.gelu()
 
     acc1.export_mempool(kwargs['mem_path'])
     acc1.export_snitch_cluster(kwargs['mem_path'])
