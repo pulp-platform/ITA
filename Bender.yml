@@ -50,6 +50,7 @@ sources:
   - src/ita_weight_controller.sv
   - src/ita.sv
   - src/ita_max_finder.sv
+  - src/ita_gelu.sv
 
   # HWPE sources
   - target: ita_hwpe
@@ -72,6 +73,7 @@ sources:
       - src/tb/ita_tb.sv
       - src/tb/clk_rst_gen.sv
       - src/tb/rst_gen.sv
+      - src/tb/gelu_tb.sv
 
   # HWPE TB sources
   - target: ita_hwpe_test
