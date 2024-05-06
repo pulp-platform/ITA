@@ -17,6 +17,9 @@ package ita_package;
   localparam int unsigned WO      = 26                                 ;
   localparam int unsigned EMS     = 8                                  ;
   localparam int unsigned Latency = 7                                  ;
+  localparam int unsigned GELU_CONSTANTS_WIDTH = 16                    ;
+  localparam int unsigned GELU_OUT_WIDTH = 32                          ;
+
 
   parameter  int unsigned InputAddrWidth = idx_width(S)                                                      ;
   parameter  int unsigned MAddrWidth     = idx_width(H*S)                                                    ;
