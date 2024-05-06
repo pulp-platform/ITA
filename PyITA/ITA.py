@@ -82,6 +82,7 @@ class Transformer:
 
         self._validate_matrix_constraints(K, V)
         self._initialize_quantization_parameters()
+        self._init_gelu_constants()
         self._initialize_tensors(Q, V, Wq, Wk, Wv, Wo, Bq, Bk, Bv, Bo)
 
     def split_multihead_m_m(self, multihead_array: np.ndarray):
@@ -238,6 +239,15 @@ class Transformer:
         write_matrix([self.requant_eps_mult.T], "RQS_MUL", self.paths["base"])
         write_matrix([self.requant_right_shift.T], "RQS_SHIFT", self.paths["base"])
         write_matrix([self.requant_add.T], "RQS_ADD", self.paths["base"])
+
+    def _init_gelu_constants(self):
+        ALPHA = 4
+        S = get_scaling_factor(ALPHA)
+        self.q_1, self.q_b, self.q_c, _, _, _ = get_i_gelu_constants(S)
+
+        self.write_matrix([[self.q_1]], "Q1", self.path)
+        self.write_matrix([[self.q_b]], "QB", self.path)
+        self.write_matrix([[self.q_c]], "QC", self.path)
 
     def _init_paths(self, base_path: Union[str, os.PathLike]):
         self.paths = {
@@ -507,12 +517,9 @@ class Transformer:
 
     def gelu(self):
         self.postactivation = np.zeros(self.preactivation.shape, dtype = np.int32)
-        alpha = 4
-        S = get_scaling_factor(alpha)
-        q_1, q_b, q_c, _, _, _ = get_i_gelu_constants(S)
         for i in range(self.preactivation.shape[0]):
             for j in range(self.preactivation.shape[1]):
-                self.postactivation[i, j] = i_gelu(self.preactivation[i, j], q_1, q_b, q_c)
+                self.postactivation[i, j] = i_gelu(self.preactivation[i, j], self.q_1, self.q_b, self.q_c)
         self.write_matrix(self.preactivation, "preactivation", self.path)
         self.write_matrix(self.postactivation, "postactivation", self.path)
 
