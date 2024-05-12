@@ -6,7 +6,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from .ITA import i_poly, i_poly_wrapper, quantize, dequantize, i_erf_wrapper, i_gelu_wrapper, get_scaling_factor, i_gelu, get_i_gelu_constants
+from .ITA import i_poly, i_poly_wrapper, quantize, dequantize, i_erf_wrapper, i_gelu_wrapper, get_scaling_factor, i_gelu, get_i_gelu_constants, round_to_i8,round_to_i16, i_gelu_wrapper_requantized
 
 def pretty_print(x, x_q, S, res_q, res_S, deq_res, exp_res):
     print(
@@ -33,6 +33,20 @@ def plot(data: pd.DataFrame, title: str, quantized_y_label: str, expected_y_labe
     ax.set_xlabel('$x$')
     ax.set_ylabel('Value')
     plt.savefig(f'{title}.png')
+
+def test_i_gelu_requant():
+    n_bits = 8
+    alpha = 4
+    D = 2**18
+    xs = np.linspace(-4, 4, 69)
+    qs, S = quantize(xs, alpha, n_bits)
+    for x, q in zip(xs, qs):
+        res_q, res_S = i_gelu_wrapper_requantized(q, S, D)
+        deq_res = res_q * res_S
+        exp_res = torch.nn.functional.gelu(torch.tensor(x, dtype = torch.float32)).item()
+        pretty_print(x, q, S, res_q, res_S, deq_res, exp_res)
+        check.almost_equal(deq_res, exp_res, abs = 1e-1)
+
 
 def test_i_gelu_edge_cases():
     n_bits = 8
