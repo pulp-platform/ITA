@@ -47,7 +47,6 @@ def test_i_gelu_requant():
         pretty_print(x, q, S, res_q, res_S, deq_res, exp_res)
         check.almost_equal(deq_res, exp_res, abs = 1e-1)
 
-
 def test_i_gelu_edge_cases():
     n_bits = 8
     qs = np.array([-128, -127, -64, 0, 64, 127], dtype = np.int8)
