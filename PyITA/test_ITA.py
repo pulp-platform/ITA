@@ -6,7 +6,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from .ITA import i_poly, i_poly_wrapper, quantize, dequantize, i_erf_wrapper, i_gelu_wrapper
+from .ITA import i_poly, i_poly_wrapper, quantize, dequantize, i_erf_wrapper, i_gelu_wrapper, get_scaling_factor, i_gelu, get_i_gelu_constants
 
 def pretty_print(x, x_q, S, res_q, res_S, deq_res, exp_res):
     print(
@@ -34,6 +34,18 @@ def plot(data: pd.DataFrame, title: str, quantized_y_label: str, expected_y_labe
     ax.set_ylabel('Value')
     plt.savefig(f'{title}.png')
 
+def test_i_gelu_edge_cases():
+    n_bits = 8
+    qs = np.array([-128, -127, -64, 0, 64, 127], dtype = np.int8)
+    alpha = 4
+    S = get_scaling_factor(alpha, n_bits)
+    xs = qs * S
+    for q, x in zip(qs, xs):
+        res_q, res_S = i_gelu_wrapper(q, S)
+        deq_res = res_q * res_S
+        exp_res = torch.nn.functional.gelu(torch.tensor(x, dtype = torch.float32)).item()
+        pretty_print(x, q, S, res_q, res_S, deq_res, exp_res)
+        check.almost_equal(deq_res, exp_res, abs = 2e-2)
 
 
 def test_gelu():
@@ -170,6 +182,13 @@ def test_quantize():
     alpha = 3
     n_bits = 2
     expected_output = np.array([-1, -1, 0, 1, 1, 1], dtype = np.int8)
+    output, _ = quantize(activations, alpha, n_bits)
+    assert np.array_equal(output, expected_output)
+
+    activations = np.array([-4, -2, 0, 2, 4, 6])
+    alpha = 4
+    n_bits = 8
+    expected_output = np.array([-4, -2, 0, 2, 4, 6], dtype = np.int8)
     output, _ = quantize(activations, alpha, n_bits)
     assert np.array_equal(output, expected_output)
 
