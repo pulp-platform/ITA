@@ -242,12 +242,17 @@ class Transformer:
 
     def _init_gelu_constants(self):
         ALPHA = 4
+        D = 2**16
         S = get_scaling_factor(ALPHA)
-        self.q_1, self.q_b, self.q_c, _, _, _ = get_i_gelu_constants(S)
+        self.q_1, self.q_b, self.q_c, _, _, _, self.gelu_rqs_mul, self.gelu_rqs_shift, self.gelu_rqs_add = get_i_gelu_requantized_constants(
+            S, D)
 
         self.write_matrix([[self.q_1]], "Q1", self.path)
         self.write_matrix([[self.q_b]], "QB", self.path)
         self.write_matrix([[self.q_c]], "QC", self.path)
+        self.write_matrix([[self.gelu_rqs_mul]], "GELU_RQS_MUL", self.path)
+        self.write_matrix([[self.gelu_rqs_shift]], "GELU_RQS_SHIFT", self.path)
+        self.write_matrix([[self.gelu_rqs_add]], "GELU_RQS_ADD", self.path)
 
     def _init_paths(self, base_path: Union[str, os.PathLike]):
         self.paths = {
@@ -516,10 +521,10 @@ class Transformer:
                                                self.requant_add[6])
 
     def gelu(self):
-        self.postactivation = np.zeros(self.preactivation.shape, dtype = np.int32)
+        self.postactivation = np.zeros(self.preactivation.shape, dtype = np.int8)
         for i in range(self.preactivation.shape[0]):
             for j in range(self.preactivation.shape[1]):
-                self.postactivation[i, j] = i_gelu(self.preactivation[i, j], self.q_1, self.q_b, self.q_c)
+                self.postactivation[i, j] = i_gelu_requantized(self.preactivation[i, j], self.q_1, self.q_b, self.q_c, self.gelu_rqs_mul, self.gelu_rqs_shift, self.gelu_rqs_add)
         self.write_matrix(self.preactivation, "preactivation", self.path)
         self.write_matrix(self.postactivation, "postactivation", self.path)
 
@@ -855,7 +860,7 @@ def requantize(q: i32, eps_mul: i8, eps_shift: i8, eps_add: i8) -> i8:
     q_req: i8 = round_to_i8(q_mul / 2**eps_shift) + eps_add
     return q_req
 
-def i_gelu_reqantized(q: i8, q_1: i16, q_b: i16, q_c: i16, eps_mul: i16, eps_shift: i8, eps_add: i8) -> i8:
+def i_gelu_requantized(q: i8, q_1: i16, q_b: i16, q_c: i16, eps_mul: i16, eps_shift: i8, eps_add: i8) -> i8:
     q_out: i32 = i_gelu(q, q_1, q_b, q_c)
     q_req: i8 = requantize(q_out, eps_mul, eps_shift, eps_add)
     return q_req
@@ -889,7 +894,7 @@ def i_gelu_wrapper(q: i8, S: f32) -> Tuple[i32, f32]:
 
 def i_gelu_wrapper_requantized(q: i8, S: f32, D: i32) -> Tuple[i8, f32]:
     q_1, q_b, q_c, a, _, _, eps_mul, eps_shift, eps_add = get_i_gelu_requantized_constants(S, D)
-    q_out: i32 = i_gelu_reqantized(q, q_1, q_b, q_c, eps_mul, eps_shift, eps_add)
+    q_out: i32 = i_gelu_requantized(q, q_1, q_b, q_c, eps_mul, eps_shift, eps_add)
     return q_out, S
 
 def i_erf(q: i8, q_b: i16, q_c: i16) -> i32:
