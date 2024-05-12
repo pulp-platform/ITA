@@ -4,20 +4,22 @@
 
 module gelu_tb;
 
-  import accel_pkg::*;
-
   timeunit 10ps;
   timeprecision 1ps;
+  
+  import ita_package::*;
 
   localparam time CLK_PERIOD          = 2000ps;
   localparam time APPL_DELAY          = 400ps;
   localparam time ACQ_DELAY           = 1600ps;
   localparam unsigned RST_CLK_CYCLES  = 10;
-  localparam unsigned CONT            = 1;
 
   string constant_one_file = "Q1.txt";
   string constant_b_file = "QB.txt";
   string constant_c_file = "QC.txt";
+  string constant_rqs_mul_file = "GELU_RQS_MUL.txt";
+  string constant_rqs_shift_file = "GELU_RQS_SHIFT.txt";
+  string constant_add_file = "GELU_RQS_ADD.txt";
   string input_file = "preactivation.txt";
   string output_file = "postactivation.txt";
 
@@ -26,11 +28,14 @@ module gelu_tb;
 
   logic         clk, rst_n;
   logic signed [WI-1:0] preactivation_input;
-  logic signed [GELU_OUT_WIDTH-1:0] expected_postactivation;
-  logic signed [GELU_OUT_WIDTH-1:0] acquired_postactivation;
+  logic signed [WI-1:0] expected_postactivation;
+  logic signed [WI-1:0] acquired_postactivation;
   logic signed [GELU_CONSTANTS_WIDTH-1:0] one;
   logic signed [GELU_CONSTANTS_WIDTH-1:0] b;
   logic signed [GELU_CONSTANTS_WIDTH-1:0] c;
+  logic signed [EMS-1:0] eps_mult;
+  logic signed [EMS-1:0] right_shift;
+  logic signed [WI-1:0] add;
 
   string simdir;
   integer is_end_of_file;
@@ -71,6 +76,9 @@ module gelu_tb;
     .b_i          (b    ),
     .c_i          (c    ),
     .data_i       (preactivation_input),
+    .eps_mult_i   (eps_mult),
+    .right_shift_i(right_shift),
+    .add_i        (add  ),
     .data_o       (acquired_postactivation)
   );
 
@@ -106,6 +114,27 @@ module gelu_tb;
     $display("%d", c);
   endfunction
 
+  function automatic void read_constant_rqs_mul(integer stim_fd, string filename);
+    int return_code;
+    $display("[TB] ITA: Reading %s file:", filename);
+    return_code = $fscanf(stim_fd, "%d", eps_mult);
+    $display("%d", eps_mult);
+  endfunction
+
+  function automatic void read_constant_rqs_shift(integer stim_fd, string filename);
+    int return_code;
+    $display("[TB] ITA: Reading %s file:", filename);
+    return_code = $fscanf(stim_fd, "%d", right_shift);
+    $display("%d", right_shift);
+  endfunction
+
+  function automatic void read_constant_add(integer stim_fd, string filename);
+    int return_code;
+    $display("[TB] ITA: Reading %s file:", filename);
+    return_code = $fscanf(stim_fd, "%d", add);
+    $display("%d", add);
+  endfunction
+
   function automatic void read_preactivation(integer stim_fd, string filename);
     int return_code;
     return_code = $fscanf(stim_fd, "%d", preactivation_input);
@@ -120,6 +149,9 @@ module gelu_tb;
     integer one_fd;
     integer b_fd;
     integer c_fd;
+    integer rqs_mul_fd;
+    integer rqs_shift_fd;
+    integer add_fd;
     integer input_fd;
     integer output_fd;
 
@@ -130,12 +162,18 @@ module gelu_tb;
     one_fd = open_stim_file(constant_one_file);
     b_fd = open_stim_file(constant_b_file);
     c_fd = open_stim_file(constant_c_file);
+    rqs_mul_fd = open_stim_file(constant_rqs_mul_file);
+    rqs_shift_fd = open_stim_file(constant_rqs_shift_file);
+    add_fd = open_stim_file(constant_add_file);
     input_fd = open_stim_file(input_file);
     output_fd = open_stim_file(output_file);
 
     read_constant_one(one_fd, constant_one_file);
     read_constant_b(b_fd, constant_b_file);
     read_constant_c(c_fd, constant_c_file);
+    read_constant_rqs_mul(rqs_mul_fd, constant_rqs_mul_file);
+    read_constant_rqs_shift(rqs_shift_fd, constant_rqs_shift_file);
+    read_constant_add(add_fd, constant_add_file);
 
     while (!is_end_of_file) begin
       @(posedge clk);
