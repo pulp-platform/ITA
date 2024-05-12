@@ -845,8 +845,9 @@ def round_to_i16(x: f32) -> i16:
     return x_rounded.astype(i16)
 
 def i_gelu(q: i8, q_1: i16, q_b: i16, q_c: i16) -> i32:
-    q_erf: i32 = i_erf(q, q_b, q_c)
-    q_out: i32 = q * (q_erf + q_1)
+    q_clipped = max(q, -2**7 + 1)
+    q_erf: i32 = i_erf(q_clipped, q_b, q_c)
+    q_out: i32 = q_clipped * (q_erf + q_1)
     return q_out
 
 def get_i_gelu_constants(S: f32) -> Tuple[i16, i16, i16, float, float, float]:
