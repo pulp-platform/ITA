@@ -95,44 +95,32 @@ module gelu_tb;
 
   function automatic void read_constant_one(integer stim_fd, string filename);
     int return_code;
-    $display("[TB] ITA: Reading %s file:", filename);
     return_code = $fscanf(stim_fd, "%d", one);
-    $display("%d", one);
   endfunction
 
   function automatic void read_constant_b(integer stim_fd, string filename);
     int return_code;
-    $display("[TB] ITA: Reading %s file:", filename);
     return_code = $fscanf(stim_fd, "%d", b);
-    $display("%d", b);
   endfunction
 
   function automatic void read_constant_c(integer stim_fd, string filename);
     int return_code;
-    $display("[TB] ITA: Reading %s file:", filename);
     return_code = $fscanf(stim_fd, "%d", c);
-    $display("%d", c);
   endfunction
 
   function automatic void read_constant_rqs_mul(integer stim_fd, string filename);
     int return_code;
-    $display("[TB] ITA: Reading %s file:", filename);
     return_code = $fscanf(stim_fd, "%d", eps_mult);
-    $display("%d", eps_mult);
   endfunction
 
   function automatic void read_constant_rqs_shift(integer stim_fd, string filename);
     int return_code;
-    $display("[TB] ITA: Reading %s file:", filename);
     return_code = $fscanf(stim_fd, "%d", right_shift);
-    $display("%d", right_shift);
   endfunction
 
   function automatic void read_constant_add(integer stim_fd, string filename);
     int return_code;
-    $display("[TB] ITA: Reading %s file:", filename);
     return_code = $fscanf(stim_fd, "%d", add);
-    $display("%d", add);
   endfunction
 
   function automatic void read_preactivation(integer stim_fd, string filename);
