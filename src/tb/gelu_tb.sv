@@ -35,7 +35,7 @@ module gelu_tb;
   logic signed [GELU_CONSTANTS_WIDTH-1:0] c;
   logic signed [EMS-1:0] eps_mult;
   logic signed [EMS-1:0] right_shift;
-  logic signed [WI-1:0] add;
+  requant_t add;
 
   string simdir;
   integer is_end_of_file;

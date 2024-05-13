@@ -13,7 +13,7 @@ module ita_gelu
     input requant_t  data_i,
     input logic signed [EMS-1:0] eps_mult_i,
     input logic signed [EMS-1:0] right_shift_i,
-    input logic        [EMS-1:0] add_i,
+    input requant_t add_i,
     output requant_t data_o
   );
 
