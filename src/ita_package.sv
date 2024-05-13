@@ -40,6 +40,11 @@ package ita_package;
   typedef logic [           EMS-1:0] right_shift_t;
   typedef logic [            WI-1:0] add_t;
 
+  // Activations
+  typedef enum {IDENTITY=0, GELU=1, RELU=2} activation_e;
+
+  typedef logic signed [WI-1:0] requant_t;
+
   typedef struct packed {
     logic                         start       ;
     seq_length_t                  seq_length  ;
@@ -49,6 +54,13 @@ package ita_package;
     logic         [5:0][EMS-1:0]  eps_mult    ;
     logic         [5:0][EMS-1:0]  right_shift ;
     logic         [5:0][WI-1:0]   add         ;
+    activation_e                  activation  ;
+    logic signed [GELU_CONSTANTS_WIDTH-1:0] gelu_one;
+    logic signed [GELU_CONSTANTS_WIDTH-1:0] gelu_b;
+    logic signed [GELU_CONSTANTS_WIDTH-1:0] gelu_c;
+    logic signed [EMS-1:0] gelu_eps_mult;
+    logic signed [EMS-1:0] gelu_right_shift;
+    requant_t gelu_add;
     logic              [32-1:0]   lin_tiles   ;
     logic              [32-1:0]   attn_tiles  ;
     logic              [32-1:0]   tile_s;
@@ -60,8 +72,6 @@ package ita_package;
     logic [InputAddrWidth-1:0]         addr;
     logic [             E-1:0][WI-1:0] data;
   } write_port_t;
-
-  typedef logic signed [WI-1:0] requant_t;
 
   typedef logic signed [N-1:0][M-1:0][WI-1:0] weight_t;
   typedef logic signed [N-1:0][(WO-2)-1:0]    bias_t;
@@ -94,8 +104,5 @@ package ita_package;
   typedef logic [idx_width(SoftFifoDepth+1)-1:0] ongoing_soft_t;
   localparam int unsigned DividerWidth = SoftmaxAccDataWidth + 1;
   localparam int unsigned NumDiv = 5;
-
-  // Activations
-  typedef enum {IDENTITY=0, GELU=1, RELU=2} activation_e;
 
 endpackage : ita_package
