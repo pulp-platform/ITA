@@ -25,6 +25,12 @@ module ita_tb;
   string ATTENTION_WEIGHT_FILES[1] = {"standalone/Vp_in_0.txt"};
   string OUTPUT_FILES[5] = {"standalone/Qp_0.txt", "standalone/Kp_0.txt", "standalone/Vp_0.txt", "standalone/A_0.txt", "standalone/Out_soft_0.txt"};
   string ATTENTION_OUTPUT_FILES[2] = {"standalone/A_0.txt", "standalone/O_soft_0.txt"};
+  string constant_one_file = "GELU_ONE.txt";
+  string constant_b_file = "GELU_B.txt";
+  string constant_c_file = "GELU_C.txt";
+  string constant_rqs_mul_file = "GELU_RQS_MUL.txt";
+  string constant_rqs_shift_file = "GELU_RQS_SHIFT.txt";
+  string constant_add_file = "GELU_RQS_ADD.txt";
 
   // Parameters
   integer N_PE, M_TILE_LEN;
@@ -237,6 +243,44 @@ function bit should_toggle_output(input bit input_file_index, input integer tile
     return is_last_entry_of_output_group(input_file_index, tile_entry) || is_last_entry_of_attention_group(input_file_index, tile_entry);
 endfunction
 
+task automatic read_gelu_constants(
+  output logic signed [GELU_CONSTANTS_WIDTH-1:0] gelu_one,
+  output logic signed [GELU_CONSTANTS_WIDTH-1:0] gelu_b,
+  output logic signed [GELU_CONSTANTS_WIDTH-1:0] gelu_c,
+  output logic signed [EMS-1:0] gelu_eps_mult,
+  output logic signed [EMS-1:0] gelu_right_shift,
+  output requant_t gelu_add
+);
+  integer one_fd;
+  integer b_fd;
+  integer c_fd;
+  integer rqs_mul_fd;
+  integer rqs_shift_fd;
+  integer add_fd;
+  int return_code;
+
+  one_fd = open_stim_file(constant_one_file);
+  b_fd = open_stim_file(constant_b_file);
+  c_fd = open_stim_file(constant_c_file);
+  rqs_mul_fd = open_stim_file(constant_rqs_mul_file);
+  rqs_shift_fd = open_stim_file(constant_rqs_shift_file);
+  add_fd = open_stim_file(constant_add_file);
+
+  return_code = $fscanf(one_fd, "%d", gelu_one);
+  return_code = $fscanf(b_fd, "%d", gelu_b);
+  return_code = $fscanf(c_fd, "%d", gelu_c);
+  return_code = $fscanf(rqs_mul_fd, "%d", gelu_eps_mult);
+  return_code = $fscanf(rqs_shift_fd, "%d", gelu_right_shift);
+  return_code = $fscanf(add_fd, "%d", gelu_add);
+
+  $fclose(one_fd);
+  $fclose(b_fd);
+  $fclose(c_fd);
+  $fclose(rqs_mul_fd);
+  $fclose(rqs_shift_fd);
+  $fclose(add_fd);
+endtask
+
 task automatic apply_ITA_inputs(input integer phase);
       integer stim_fd_inp_attn[2];
       bit input_file_index = 0;
@@ -431,6 +475,9 @@ task automatic apply_ITA_weights(input integer phase);
     ita_ctrl.tile_e = N_TILES_EMBEDDING_DIM;
     ita_ctrl.tile_p = N_TILES_PROJECTION_DIM;
     ita_ctrl.tile_s = N_TILES_SEQUENCE_DIM;
+
+    ita_ctrl.activation = IDENTITY;
+    read_gelu_constants(ita_ctrl.gelu_one, ita_ctrl.gelu_b, ita_ctrl.gelu_c, ita_ctrl.gelu_eps_mult, ita_ctrl.gelu_right_shift, ita_ctrl.gelu_add);
 
     inp_valid = 1'b0;
     inp = '0;

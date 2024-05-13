@@ -247,12 +247,12 @@ class Transformer:
         self.q_1, self.q_b, self.q_c, _, _, _, self.gelu_rqs_mul, self.gelu_rqs_shift, self.gelu_rqs_add = get_i_gelu_requantized_constants(
             S, D)
 
-        self.write_matrix([[self.q_1]], "GELU_ONE", self.path)
-        self.write_matrix([[self.q_b]], "GELU_B", self.path)
-        self.write_matrix([[self.q_c]], "GELU_C", self.path)
-        self.write_matrix([[self.gelu_rqs_mul]], "GELU_RQS_MUL", self.path)
-        self.write_matrix([[self.gelu_rqs_shift]], "GELU_RQS_SHIFT", self.path)
-        self.write_matrix([[self.gelu_rqs_add]], "GELU_RQS_ADD", self.path)
+        self.write_matrix([[self.q_1]], "GELU_ONE", self.paths["base"])
+        self.write_matrix([[self.q_b]], "GELU_B", self.paths["base"])
+        self.write_matrix([[self.q_c]], "GELU_C", self.paths["base"])
+        self.write_matrix([[self.gelu_rqs_mul]], "GELU_RQS_MUL", self.paths["base"])
+        self.write_matrix([[self.gelu_rqs_shift]], "GELU_RQS_SHIFT", self.paths["base"])
+        self.write_matrix([[self.gelu_rqs_add]], "GELU_RQS_ADD", self.paths["base"])
 
     def _init_paths(self, base_path: Union[str, os.PathLike]):
         self.paths = {
@@ -525,8 +525,8 @@ class Transformer:
         for i in range(self.preactivation.shape[0]):
             for j in range(self.preactivation.shape[1]):
                 self.postactivation[i, j] = i_gelu_requantized(self.preactivation[i, j], self.q_1, self.q_b, self.q_c, self.gelu_rqs_mul, self.gelu_rqs_shift, self.gelu_rqs_add)
-        self.write_matrix(self.preactivation, "preactivation", self.path)
-        self.write_matrix(self.postactivation, "postactivation", self.path)
+        self.write_matrix(self.preactivation, "preactivation", self.paths["standalone"])
+        self.write_matrix(self.postactivation, "postactivation", self.paths["standalone"])
 
     def export_hwpe(self):
         path = self.paths["hwpe"]

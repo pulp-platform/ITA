@@ -20,8 +20,8 @@ module activation_tb;
   string constant_rqs_mul_file = "GELU_RQS_MUL.txt";
   string constant_rqs_shift_file = "GELU_RQS_SHIFT.txt";
   string constant_add_file = "GELU_RQS_ADD.txt";
-  string input_file = "preactivation.txt";
-  string output_file = "postactivation.txt";
+  string input_file = "standalone/preactivation.txt";
+  string output_file = "standalone/postactivation.txt";
 
   integer N_PE, M_TILE_LEN;
   integer SEQUENCE_LEN, PROJECTION_SIZE, EMBEDDING_SIZE, FEEDFORWARD_SIZE;
