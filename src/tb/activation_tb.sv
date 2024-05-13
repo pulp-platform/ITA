@@ -30,12 +30,12 @@ module activation_tb;
   requant_oup_t preactivation_input;
   requant_oup_t expected_postactivation;
   requant_oup_t acquired_postactivation;
-  logic signed [GELU_CONSTANTS_WIDTH-1:0] one;
-  logic signed [GELU_CONSTANTS_WIDTH-1:0] b;
-  logic signed [GELU_CONSTANTS_WIDTH-1:0] c;
-  logic signed [EMS-1:0] eps_mult;
-  logic signed [EMS-1:0] right_shift;
-  requant_t add;
+  logic signed [GELU_CONSTANTS_WIDTH-1:0] gelu_one;
+  logic signed [GELU_CONSTANTS_WIDTH-1:0] gelu_b;
+  logic signed [GELU_CONSTANTS_WIDTH-1:0] gelu_c;
+  logic signed [EMS-1:0] gelu_eps_mult;
+  logic signed [EMS-1:0] gelu_right_shift;
+  requant_t gelu_add;
   activation_e selected_activation;
 
   string simdir;
@@ -73,14 +73,14 @@ module activation_tb;
   activation dut (
     .clk_i        (clk  ),
     .rst_ni       (rst_n),
-    .one_i        (one  ),
-    .b_i          (b    ),
-    .c_i          (c    ),
+    .one_i        (gelu_one  ),
+    .b_i          (gelu_b    ),
+    .c_i          (gelu_c    ),
     .data_i       (preactivation_input),
-    .eps_mult_i   (eps_mult),
-    .right_shift_i(right_shift),
+    .eps_mult_i   (gelu_eps_mult),
+    .right_shift_i(gelu_right_shift),
     .activation_i (selected_activation),
-    .add_i        (add  ),
+    .add_i        (gelu_add  ),
     .data_o       (acquired_postactivation)
   );
 
@@ -97,32 +97,32 @@ module activation_tb;
 
   function automatic void read_constant_one(integer stim_fd);
     int return_code;
-    return_code = $fscanf(stim_fd, "%d", one);
+    return_code = $fscanf(stim_fd, "%d", gelu_one);
   endfunction
 
   function automatic void read_constant_b(integer stim_fd);
     int return_code;
-    return_code = $fscanf(stim_fd, "%d", b);
+    return_code = $fscanf(stim_fd, "%d", gelu_b);
   endfunction
 
   function automatic void read_constant_c(integer stim_fd);
     int return_code;
-    return_code = $fscanf(stim_fd, "%d", c);
+    return_code = $fscanf(stim_fd, "%d", gelu_c);
   endfunction
 
   function automatic void read_constant_rqs_mul(integer stim_fd);
     int return_code;
-    return_code = $fscanf(stim_fd, "%d", eps_mult);
+    return_code = $fscanf(stim_fd, "%d", gelu_eps_mult);
   endfunction
 
   function automatic void read_constant_rqs_shift(integer stim_fd);
     int return_code;
-    return_code = $fscanf(stim_fd, "%d", right_shift);
+    return_code = $fscanf(stim_fd, "%d", gelu_right_shift);
   endfunction
 
   function automatic void read_constant_add(integer stim_fd);
     int return_code;
-    return_code = $fscanf(stim_fd, "%d", add);
+    return_code = $fscanf(stim_fd, "%d", gelu_add);
   endfunction
 
   function automatic void read_preactivation(integer stim_fd);
