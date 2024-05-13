@@ -247,9 +247,9 @@ class Transformer:
         self.q_1, self.q_b, self.q_c, _, _, _, self.gelu_rqs_mul, self.gelu_rqs_shift, self.gelu_rqs_add = get_i_gelu_requantized_constants(
             S, D)
 
-        self.write_matrix([[self.q_1]], "Q1", self.path)
-        self.write_matrix([[self.q_b]], "QB", self.path)
-        self.write_matrix([[self.q_c]], "QC", self.path)
+        self.write_matrix([[self.q_1]], "GELU_ONE", self.path)
+        self.write_matrix([[self.q_b]], "GELU_B", self.path)
+        self.write_matrix([[self.q_c]], "GELU_C", self.path)
         self.write_matrix([[self.gelu_rqs_mul]], "GELU_RQS_MUL", self.path)
         self.write_matrix([[self.gelu_rqs_shift]], "GELU_RQS_SHIFT", self.path)
         self.write_matrix([[self.gelu_rqs_add]], "GELU_RQS_ADD", self.path)

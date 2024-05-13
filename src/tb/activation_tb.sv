@@ -14,9 +14,9 @@ module activation_tb;
   localparam time ACQ_DELAY           = 1600ps;
   localparam unsigned RST_CLK_CYCLES  = 10;
 
-  string constant_one_file = "Q1.txt";
-  string constant_b_file = "QB.txt";
-  string constant_c_file = "QC.txt";
+  string constant_one_file = "GELU_ONE.txt";
+  string constant_b_file = "GELU_B.txt";
+  string constant_c_file = "GELU_C.txt";
   string constant_rqs_mul_file = "GELU_RQS_MUL.txt";
   string constant_rqs_shift_file = "GELU_RQS_SHIFT.txt";
   string constant_add_file = "GELU_RQS_ADD.txt";
