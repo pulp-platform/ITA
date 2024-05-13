@@ -43,6 +43,7 @@ module ita
   bias_t        inp_bias, inp_bias_q1, inp_bias_q2;
   oup_t         oup, oup_q, result;
   requant_oup_t requant_oup;
+  requant_oup_t post_activation;
 
   // FIFO signals
   logic        fifo_full, fifo_empty, push_to_fifo, pop_from_fifo;
@@ -253,11 +254,27 @@ module ita
     .requant_oup_o( requant_oup       )
   );
 
+  ita_activation i_activation (
+    .clk_i         (clk_i       ),
+    .rst_ni        (rst_ni      ),
+
+    .activation_i  (ctrl_i.activation),
+    .one_i         (ctrl_i.gelu_one),
+    .b_i           (ctrl_i.gelu_b  ),
+    .c_i           (ctrl_i.gelu_c  ),
+    .eps_mult_i    (ctrl_i.gelu_eps_mult),
+    .right_shift_i (ctrl_i.gelu_right_shift),
+    .add_i         (ctrl_i.gelu_add),
+
+    .data_i        (requant_oup),
+    .data_o        (post_activation)
+  );
+
   ita_fifo_controller i_fifo_controller (
     .clk_i         (clk_i       ),
     .rst_ni        (rst_ni      ),
 
-    .requant_oup_i (requant_oup ),
+    .requant_oup_i (post_activation),
     .ready_i       (calc_en_q6 && last_inner_tile_q6 ),
 
     .fifo_full_i   (fifo_full   ),
