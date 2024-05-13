@@ -168,7 +168,6 @@ module activation_tb;
     read_constant_rqs_mul(rqs_mul_fd);
     read_constant_rqs_shift(rqs_shift_fd);
     read_constant_add(add_fd);
-    selected_activation = GELU;
 
     while (!is_end_of_file) begin
       @(posedge clk);
@@ -176,6 +175,15 @@ module activation_tb;
       read_preactivation(input_fd);
       read_postactivation(output_fd);
       is_end_of_file = $feof(input_fd);
+      selected_activation = GELU;
+
+      @(posedge clk);
+      #(APPL_DELAY);
+      selected_activation = RELU;
+
+      @(posedge clk);
+      #(APPL_DELAY);
+      selected_activation = IDENTITY;
     end
     
     $fclose(one_fd);
@@ -200,11 +208,35 @@ module activation_tb;
       @(posedge clk);
       #(ACQ_DELAY);
 
-      n_checks += 1;
+      n_checks += N_PE;
       for (int i = 0; i < N_PE; i++) begin
         if (acquired_postactivation[i] != expected_postactivation[i]) begin
           n_errors += 1;
-          $display(":=( expected %d, not %d for input\n", expected_postactivation[i], acquired_postactivation[i], preactivation_input[i]);
+          $display(":=( expected %d, not %d for input and activation %s\n", expected_postactivation[i], acquired_postactivation[i], preactivation_input[i], selected_activation);
+        end
+      end
+
+      // Check RELU
+      @(posedge clk);
+      #(ACQ_DELAY);
+      n_checks += N_PE;
+      for (int i = 0; i < N_PE; i++) begin
+        expected_postactivation[i] = preactivation_input[i] < 0 ? 0 : preactivation_input[i];
+        if (acquired_postactivation[i] != expected_postactivation[i]) begin
+          n_errors += 1;
+          $display(":=( expected %d, not %d for input and activation %s\n", expected_postactivation[i], acquired_postactivation[i], preactivation_input[i], selected_activation);
+        end
+      end
+
+      // Check IDENTITY
+      @(posedge clk);
+      #(ACQ_DELAY);
+      n_checks += N_PE;
+      for (int i = 0; i < N_PE; i++) begin
+        expected_postactivation[i] = preactivation_input[i];
+        if (acquired_postactivation[i] != expected_postactivation[i]) begin
+          n_errors += 1;
+          $display(":=( expected %d, not %d for input and activation %s\n", expected_postactivation[i], acquired_postactivation[i], preactivation_input[i], selected_activation);
         end
       end
     end
