@@ -109,7 +109,14 @@ module activation_tb;
     end
   endfunction
 
-  task automatic read_gelu_constants();
+  task automatic read_gelu_constants(
+    output logic signed [GELU_CONSTANTS_WIDTH-1:0] gelu_one,
+    output logic signed [GELU_CONSTANTS_WIDTH-1:0] gelu_b,
+    output logic signed [GELU_CONSTANTS_WIDTH-1:0] gelu_c,
+    output logic signed [EMS-1:0] gelu_eps_mult,
+    output logic signed [EMS-1:0] gelu_right_shift,
+    output requant_t gelu_add
+  );
     integer one_fd;
     integer b_fd;
     integer c_fd;
@@ -148,7 +155,7 @@ module activation_tb;
 
     wait (rst_n);
 
-    read_gelu_constants();
+    read_gelu_constants(gelu_one, gelu_b, gelu_c, gelu_eps_mult, gelu_right_shift, gelu_add);
 
     input_fd = open_stim_file(input_file);
     output_fd = open_stim_file(output_file);
