@@ -95,4 +95,7 @@ package ita_package;
   localparam int unsigned DividerWidth = SoftmaxAccDataWidth + 1;
   localparam int unsigned NumDiv = 5;
 
+  // Activations
+  typedef enum {IDENTITY=0, GELU=1, RELU=2} activation_e;
+
 endpackage : ita_package
