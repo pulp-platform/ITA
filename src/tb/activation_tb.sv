@@ -127,14 +127,14 @@ module activation_tb;
 
   function automatic void read_preactivation(integer stim_fd);
     int return_code;
-    for (int i = 0; i < 1; i++) begin
+    for (int i = 0; i < N_PE; i++) begin
       return_code = $fscanf(stim_fd, "%d", preactivation_input[i]);
     end
   endfunction
 
   function automatic void read_postactivation(integer stim_fd);
     int return_code;
-    for (int i = 0; i < 1; i++) begin
+    for (int i = 0; i < N_PE; i++) begin
       return_code = $fscanf(stim_fd, "%d", expected_postactivation[i]);
     end
   endfunction
@@ -201,9 +201,11 @@ module activation_tb;
       #(ACQ_DELAY);
 
       n_checks += 1;
-      if (acquired_postactivation[0] != expected_postactivation[0]) begin
-        n_errors += 1;
-        $display(":=( expected %d, not %d for input\n", expected_postactivation[0], acquired_postactivation[0], preactivation_input[0]);
+      for (int i = 0; i < N_PE; i++) begin
+        if (acquired_postactivation[i] != expected_postactivation[i]) begin
+          n_errors += 1;
+          $display(":=( expected %d, not %d for input\n", expected_postactivation[i], acquired_postactivation[i], preactivation_input[i]);
+        end
       end
     end
     
