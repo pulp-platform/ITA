@@ -95,36 +95,6 @@ module activation_tb;
     return stim_fd;
   endfunction
 
-  function automatic void read_constant_one(integer stim_fd);
-    int return_code;
-    return_code = $fscanf(stim_fd, "%d", gelu_one);
-  endfunction
-
-  function automatic void read_constant_b(integer stim_fd);
-    int return_code;
-    return_code = $fscanf(stim_fd, "%d", gelu_b);
-  endfunction
-
-  function automatic void read_constant_c(integer stim_fd);
-    int return_code;
-    return_code = $fscanf(stim_fd, "%d", gelu_c);
-  endfunction
-
-  function automatic void read_constant_rqs_mul(integer stim_fd);
-    int return_code;
-    return_code = $fscanf(stim_fd, "%d", gelu_eps_mult);
-  endfunction
-
-  function automatic void read_constant_rqs_shift(integer stim_fd);
-    int return_code;
-    return_code = $fscanf(stim_fd, "%d", gelu_right_shift);
-  endfunction
-
-  function automatic void read_constant_add(integer stim_fd);
-    int return_code;
-    return_code = $fscanf(stim_fd, "%d", gelu_add);
-  endfunction
-
   function automatic void read_preactivation(integer stim_fd);
     int return_code;
     for (int i = 0; i < N_PE; i++) begin
@@ -146,6 +116,7 @@ module activation_tb;
     integer rqs_mul_fd;
     integer rqs_shift_fd;
     integer add_fd;
+    int return_code;
 
     one_fd = open_stim_file(constant_one_file);
     b_fd = open_stim_file(constant_b_file);
@@ -154,12 +125,12 @@ module activation_tb;
     rqs_shift_fd = open_stim_file(constant_rqs_shift_file);
     add_fd = open_stim_file(constant_add_file);
 
-    read_constant_one(one_fd);
-    read_constant_b(b_fd);
-    read_constant_c(c_fd);
-    read_constant_rqs_mul(rqs_mul_fd);
-    read_constant_rqs_shift(rqs_shift_fd);
-    read_constant_add(add_fd);
+    return_code = $fscanf(one_fd, "%d", gelu_one);
+    return_code = $fscanf(b_fd, "%d", gelu_b);
+    return_code = $fscanf(c_fd, "%d", gelu_c);
+    return_code = $fscanf(rqs_mul_fd, "%d", gelu_eps_mult);
+    return_code = $fscanf(rqs_shift_fd, "%d", gelu_right_shift);
+    return_code = $fscanf(add_fd, "%d", gelu_add);
 
     $fclose(one_fd);
     $fclose(b_fd);
@@ -172,7 +143,7 @@ module activation_tb;
   initial begin: application_block
     integer input_fd;
     integer output_fd;
-    
+
     is_end_of_file = 0;
 
     wait (rst_n);
@@ -206,13 +177,18 @@ module activation_tb;
   end : application_block
 
   function automatic void validate_postactivation(inout integer n_checks, inout integer n_errors);
-    n_checks += N_PE;
-    for (int i = 0; i < N_PE; i++) begin
-      if (acquired_postactivation[i] != expected_postactivation[i]) begin
-        n_errors += 1;
-        $display(":=( expected %d, not %d for input and activation %s\n", expected_postactivation[i], acquired_postactivation[i], preactivation_input[i], selected_activation);
+      n_checks += N_PE;
+      for (int i = 0; i < N_PE; i++) begin
+        if (acquired_postactivation[i] !== expected_postactivation[i]) begin
+          n_errors += 1;
+          if (n_errors <= 10) begin
+            $display(":=( expected %d, not %d for input %d and activation %s\n", expected_postactivation[i], acquired_postactivation[i], preactivation_input[i], selected_activation);
+          end
+          if (n_errors == 11) begin
+            $display(":=( suppressing further mismatches...\n");
+          end
+        end
       end
-    end
   endfunction
 
   initial begin: checker_block
