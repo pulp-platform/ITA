@@ -10,11 +10,11 @@ module ita_activation
     input logic signed [GELU_CONSTANTS_WIDTH-1:0] one_i,
     input logic signed [GELU_CONSTANTS_WIDTH-1:0] b_i,
     input logic signed [GELU_CONSTANTS_WIDTH-1:0] c_i,
-    input requant_oup_t  data_i,
     input logic signed [EMS-1:0] eps_mult_i,
     input logic signed [EMS-1:0] right_shift_i,
     input logic        [EMS-1:0] add_i,
     input activation_e activation_i,
+    input requant_oup_t  data_i,
     output requant_oup_t data_o
   );
 
