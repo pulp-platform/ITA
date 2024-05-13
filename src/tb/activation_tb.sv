@@ -139,19 +139,13 @@ module activation_tb;
     end
   endfunction
 
-  initial begin: application_block
+  task automatic read_gelu_constants();
     integer one_fd;
     integer b_fd;
     integer c_fd;
     integer rqs_mul_fd;
     integer rqs_shift_fd;
     integer add_fd;
-    integer input_fd;
-    integer output_fd;
-
-    is_end_of_file = 0;
-
-    wait (rst_n);
 
     one_fd = open_stim_file(constant_one_file);
     b_fd = open_stim_file(constant_b_file);
@@ -159,8 +153,6 @@ module activation_tb;
     rqs_mul_fd = open_stim_file(constant_rqs_mul_file);
     rqs_shift_fd = open_stim_file(constant_rqs_shift_file);
     add_fd = open_stim_file(constant_add_file);
-    input_fd = open_stim_file(input_file);
-    output_fd = open_stim_file(output_file);
 
     read_constant_one(one_fd);
     read_constant_b(b_fd);
@@ -168,6 +160,27 @@ module activation_tb;
     read_constant_rqs_mul(rqs_mul_fd);
     read_constant_rqs_shift(rqs_shift_fd);
     read_constant_add(add_fd);
+
+    $fclose(one_fd);
+    $fclose(b_fd);
+    $fclose(c_fd);
+    $fclose(rqs_mul_fd);
+    $fclose(rqs_shift_fd);
+    $fclose(add_fd);
+  endtask
+
+  initial begin: application_block
+    integer input_fd;
+    integer output_fd;
+    
+    is_end_of_file = 0;
+
+    wait (rst_n);
+
+    read_gelu_constants();
+
+    input_fd = open_stim_file(input_file);
+    output_fd = open_stim_file(output_file);
 
     while (!is_end_of_file) begin
       @(posedge clk);
@@ -186,9 +199,6 @@ module activation_tb;
       selected_activation = IDENTITY;
     end
     
-    $fclose(one_fd);
-    $fclose(b_fd);
-    $fclose(c_fd);
     $fclose(input_fd);
     $fclose(output_fd);
 
