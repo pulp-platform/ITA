@@ -201,7 +201,7 @@ def test_quantize():
     activations = np.array([-4, -2, 0, 2, 4, 6])
     alpha = 4
     n_bits = 8
-    expected_output = np.array([-4, -2, 0, 2, 4, 6], dtype = np.int8)
+    expected_output = np.array([-127, -63, 0, 64, 127, 127], dtype = np.int8)
     output, _ = quantize(activations, alpha, n_bits)
     assert np.array_equal(output, expected_output)
 
