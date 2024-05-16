@@ -5,26 +5,19 @@
 module ita_gelu
   import ita_package::*;
   (
-    input  logic           clk_i        ,
-    input  logic           rst_ni       ,
-    input logic signed [GELU_CONSTANTS_WIDTH-1:0] one_i,
-    input logic signed [GELU_CONSTANTS_WIDTH-1:0] b_i,
-    input logic signed [GELU_CONSTANTS_WIDTH-1:0] c_i,
+    input gelu_const_t one_i,
+    input gelu_const_t b_i,
+    input gelu_const_t c_i,
     input requant_t  data_i,
-    input logic signed [EMS-1:0] eps_mult_i,
-    input logic signed [EMS-1:0] right_shift_i,
-    input requant_t add_i,
-    output requant_t data_o
+    output [GELU_OUT_WIDTH-1:0] data_o
   );
 
-  logic signed [GELU_PRE_RQS_WIDTH-1:0] data_sign_ext, b_sign_ext;
-  logic signed [GELU_PRE_RQS_WIDTH-1:0] poly_d, poly_sq;
-  logic signed [GELU_PRE_RQS_WIDTH-1:0] erf_sgn, erf_abs, erf_clipped, erf_L;
-  logic signed [GELU_PRE_RQS_WIDTH-1:0] gelu_erf, gelu_sum, gelu_out;
-  logic signed [GELU_PRE_RQS_WIDTH+EMS-1:0] product;
-  logic signed [GELU_PRE_RQS_WIDTH+EMS-1:0] shifted;
-  logic signed [GELU_PRE_RQS_WIDTH+EMS-1:0] shifted_added;
-  requant_t result;
+  typedef logic signed [GELU_OUT_WIDTH-1:0] gelu_t;
+
+  gelu_t data_sign_ext, b_sign_ext;
+  gelu_t poly_d, poly_sq;
+  gelu_t erf_sgn, erf_abs, erf_clipped, erf_L;
+  gelu_t gelu_erf, gelu_sum, gelu_out;
 
   always_comb begin
     data_sign_ext = {{GELU_PRE_RQS_WIDTH-WI{data_i[WI-1]}}, data_i};

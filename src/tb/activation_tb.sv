@@ -13,6 +13,7 @@ module activation_tb;
   localparam time APPL_DELAY          = 400ps;
   localparam time ACQ_DELAY           = 1600ps;
   localparam unsigned RST_CLK_CYCLES  = 10;
+  localparam logic requant_mode       = 1'b1;
 
   string constant_one_file = "GELU_ONE.txt";
   string constant_b_file = "GELU_B.txt";
@@ -30,12 +31,12 @@ module activation_tb;
   requant_oup_t preactivation_input;
   requant_oup_t expected_postactivation;
   requant_oup_t acquired_postactivation;
-  logic signed [GELU_CONSTANTS_WIDTH-1:0] gelu_one;
-  logic signed [GELU_CONSTANTS_WIDTH-1:0] gelu_b;
-  logic signed [GELU_CONSTANTS_WIDTH-1:0] gelu_c;
-  logic signed [EMS-1:0] gelu_eps_mult;
-  logic signed [EMS-1:0] gelu_right_shift;
-  requant_t gelu_add;
+  gelu_const_t gelu_one;
+  gelu_const_t gelu_b;
+  gelu_const_t gelu_c;
+  logic signed [EMS-1:0] gelu_requant_mult;
+  logic signed [EMS-1:0] gelu_requant_shift;
+  requant_t gelu_requant_add;
   activation_e selected_activation;
 
   string simdir;
@@ -77,10 +78,11 @@ module activation_tb;
     .b_i          (gelu_b    ),
     .c_i          (gelu_c    ),
     .data_i       (preactivation_input),
-    .eps_mult_i   (gelu_eps_mult),
-    .right_shift_i(gelu_right_shift),
+    .requant_mode(requant_mode),
+    .requant_mult_i   (gelu_requant_mult),
+    .requant_shift_i(gelu_requant_shift),
     .activation_i (selected_activation),
-    .add_i        (gelu_add  ),
+    .requant_add_i        (gelu_requant_add  ),
     .data_o       (acquired_postactivation)
   );
 
@@ -110,9 +112,9 @@ module activation_tb;
   endfunction
 
   task automatic read_gelu_constants(
-    output logic signed [GELU_CONSTANTS_WIDTH-1:0] gelu_one,
-    output logic signed [GELU_CONSTANTS_WIDTH-1:0] gelu_b,
-    output logic signed [GELU_CONSTANTS_WIDTH-1:0] gelu_c,
+    output gelu_const_t gelu_one,
+    output gelu_const_t gelu_b,
+    output gelu_const_t gelu_c,
     output logic signed [EMS-1:0] gelu_eps_mult,
     output logic signed [EMS-1:0] gelu_right_shift,
     output requant_t gelu_add
@@ -155,7 +157,7 @@ module activation_tb;
 
     wait (rst_n);
 
-    read_gelu_constants(gelu_one, gelu_b, gelu_c, gelu_eps_mult, gelu_right_shift, gelu_add);
+    read_gelu_constants(gelu_one, gelu_b, gelu_c, gelu_requant_mult, gelu_requant_shift, gelu_requant_add);
 
     input_fd = open_stim_file(input_file);
     output_fd = open_stim_file(output_file);

@@ -262,10 +262,10 @@ module ita
     .one_i         (ctrl_i.gelu_one),
     .b_i           (ctrl_i.gelu_b  ),
     .c_i           (ctrl_i.gelu_c  ),
-    .eps_mult_i    (ctrl_i.gelu_eps_mult),
-    .right_shift_i (ctrl_i.gelu_right_shift),
-    .add_i         (ctrl_i.gelu_add),
-
+    .requant_mode  (requant_mode  ),
+    .requant_mult_i    (ctrl_i.gelu_requant_mult),
+    .requant_shift_i (ctrl_i.gelu_requant_shift),
+    .requant_add_i         (ctrl_i.gelu_requant_add),
     .data_i        (requant_oup),
     .data_o        (post_activation)
   );

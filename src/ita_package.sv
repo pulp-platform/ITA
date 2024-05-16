@@ -18,7 +18,7 @@ package ita_package;
   localparam int unsigned EMS     = 8                                  ;
   localparam int unsigned Latency = 7                                  ;
   localparam int unsigned GELU_CONSTANTS_WIDTH = 16                    ;
-  localparam int unsigned GELU_PRE_RQS_WIDTH = 32                      ;
+  localparam int unsigned GELU_OUT_WIDTH = 26                      ;
 
 
   parameter  int unsigned InputAddrWidth = idx_width(S)                                                      ;
@@ -42,8 +42,10 @@ package ita_package;
 
   // Activations
   typedef enum {IDENTITY=0, GELU=1, RELU=2} activation_e;
-
+  typedef logic signed [GELU_CONSTANTS_WIDTH-1:0] gelu_const_t;
+  
   typedef logic signed [WI-1:0] requant_t;
+  typedef logic [EMS-1:0] requant_const_t;
 
   typedef struct packed {
     logic                         start       ;
@@ -55,12 +57,12 @@ package ita_package;
     logic         [5:0][EMS-1:0]  right_shift ;
     logic         [5:0][WI-1:0]   add         ;
     activation_e                  activation  ;
-    logic signed [GELU_CONSTANTS_WIDTH-1:0] gelu_one;
-    logic signed [GELU_CONSTANTS_WIDTH-1:0] gelu_b;
-    logic signed [GELU_CONSTANTS_WIDTH-1:0] gelu_c;
-    logic signed [EMS-1:0] gelu_eps_mult;
-    logic signed [EMS-1:0] gelu_right_shift;
-    requant_t gelu_add;
+    gelu_const_t gelu_one;
+    gelu_const_t gelu_b;
+    gelu_const_t gelu_c;
+    requant_const_t gelu_requant_mult;
+    requant_const_t gelu_requant_shift;
+    requant_t gelu_requant_add;
     logic              [32-1:0]   lin_tiles   ;
     logic              [32-1:0]   attn_tiles  ;
     logic              [32-1:0]   tile_s;
