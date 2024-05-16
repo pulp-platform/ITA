@@ -6,7 +6,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from .ITA import i_poly, i_poly_wrapper, quantize, dequantize, i_erf_wrapper, i_gelu_wrapper, get_scaling_factor, i_gelu, get_i_gelu_constants, round_to_i8,round_to_i16, i_gelu_wrapper_requantized
+from .ITA import *
 
 def pretty_print(x, x_q, S, res_q, res_S, deq_res, exp_res):
     print(
@@ -36,39 +36,53 @@ def plot(data: pd.DataFrame, title: str, quantized_y_label: str, expected_y_labe
 
 def test_i_gelu_requant():
     n_bits = 8
-    alpha = 4
-    D = 2**18
+    D = 2**20
     xs = np.linspace(-4, 4, 69)
-    qs, S = quantize(xs, alpha, n_bits)
+    clip_lo = -np.abs(xs).max()
+    qs, S = almost_symmetric_quantize(xs, clip_lo, n_bits)
+    data = []
     for x, q in zip(xs, qs):
         res_q, res_S = i_gelu_wrapper_requantized(q, S, D)
         deq_res = res_q * res_S
         exp_res = torch.nn.functional.gelu(torch.tensor(x, dtype = torch.float32)).item()
         pretty_print(x, q, S, res_q, res_S, deq_res, exp_res)
-        check.almost_equal(deq_res, exp_res, abs = 1e-1)
+        data.append({
+            'x': x,
+            'x_q': q,
+            'S': S,
+            'res_q': res_q,
+            'res_S': res_S,
+            'deq_res': deq_res,
+            'exp_res': exp_res
+        })
+        check.almost_equal(deq_res, exp_res, abs = 13e-2)
+    plot(pd.DataFrame(data),
+         quantized_y_label = 'I-GELU(x)',
+         expected_y_label = 'GELU(x)',
+         title = 'I-GELU with 8-bit almost symmetric quantization (output requantized to 8 bit)',
+         alpha = -clip_lo)
 
 def test_i_gelu_edge_cases():
     n_bits = 8
     qs = np.array([-128, -127, -64, 0, 64, 127], dtype = np.int8)
-    alpha = 4
-    S = get_scaling_factor(alpha, n_bits)
+    clip_lo = -4
+    S, _ = get_almost_symmetric_scaling_factor(clip_lo, n_bits)
     xs = qs * S
     for q, x in zip(qs, xs):
         res_q, res_S = i_gelu_wrapper(q, S)
         deq_res = res_q * res_S
         exp_res = torch.nn.functional.gelu(torch.tensor(x, dtype = torch.float32)).item()
         pretty_print(x, q, S, res_q, res_S, deq_res, exp_res)
-        check.almost_equal(deq_res, exp_res, abs = 2e-2)
+        check.almost_equal(deq_res, exp_res, abs = 1e-2)
 
 
 def test_gelu():
     n_bits = 8
     xs = np.linspace(-4, 4, 69)
     # xs = np.linspace(-1.769, 1.769, 25)
-    alpha = np.abs(xs).max()
+    clip_lo = -np.abs(xs).max()
     # alpha = 4
-    print(f'alpha = {alpha}')
-    x_qs, S = quantize(xs, alpha, n_bits)
+    x_qs, S = almost_symmetric_quantize(xs, clip_lo, n_bits)
     data = []
 
     for x, x_q in zip(xs, x_qs):
@@ -85,17 +99,18 @@ def test_gelu():
             'deq_res': deq_res,
             'exp_res': exp_res
         })
-        check.almost_equal(deq_res, exp_res, abs = 69e-2)
+        check.almost_equal(deq_res, exp_res, abs = 33e-3)
     plot(pd.DataFrame(data),
          quantized_y_label = 'I-GELU(x)',
          expected_y_label = 'GELU(x)',
-         title = 'I-GELU with 8-bit symmetric quantization',
-         alpha = alpha)
+         title = 'I-GELU with 8-bit almost symmetric quantization',
+         alpha = -clip_lo)
 
 def test_gelu_simple():
     xs = np.array([-20, -10, -3, -2, -1, 0, 1, 2, 3, 10, 20]) * 0.1
-    alpha, n_bits = 3, 8
-    x_qs, S = quantize(xs, alpha, n_bits)
+    n_bits = 8
+    clip_lo = -np.abs(xs).max()
+    x_qs, S = almost_symmetric_quantize(xs, clip_lo, n_bits)
 
     for x, x_q in zip(xs, x_qs):
         res_q, res_S = i_gelu_wrapper(x_q, S)
@@ -109,9 +124,9 @@ def test_erf():
     xs = np.linspace(-4, 4, 69)
     # xs = np.linspace(-1.769, 1.769, 25)
     n_bits = 8
-    alpha = np.abs(xs).max()
+    clip_lo = -np.abs(xs).max()
     # alpha = 4
-    x_qs, S = quantize(xs, alpha, n_bits)
+    x_qs, S = almost_symmetric_quantize(xs, clip_lo, n_bits)
     data = []
 
     for x, x_q in zip(xs, x_qs):
@@ -132,42 +147,43 @@ def test_erf():
     plot(pd.DataFrame(data),
          quantized_y_label = 'I-ERF(x)',
          expected_y_label = 'ERF(x)',
-         title = 'I-ERF with 8-bit symmetric quantization', alpha = alpha)
+         title = 'I-ERF with 8-bit almost symmetric quantization', alpha = -clip_lo)
 
 
 def test_erf_simple():
     xs = np.array([-20, -10, -3, -2, -1, 0, 1, 2, 3, 10, 20]) * 0.1
-    alpha, n_bits = 3, 8
-    x_qs, S = quantize(xs, alpha, n_bits)
+    n_bits = 8
+    clip_lo = -np.abs(xs).max()
+    x_qs, S = almost_symmetric_quantize(xs, clip_lo, n_bits)
 
     for x, x_q in zip(xs, x_qs):
         res_q, res_S = i_erf_wrapper(x_q, S)
         deq_res = res_q * res_S
         exp_res = torch.erf(torch.tensor(x, dtype = torch.float32)).item()
         pretty_print(x, x_q, S, res_q, res_S, deq_res, exp_res)
-        check.almost_equal(deq_res, exp_res, abs = 8-2)
+        check.almost_equal(deq_res, exp_res, abs = 9e-2)
 
 
 def test_i_poly():
     n_bits = 8
     xs = np.linspace(0, 1.769, 10)
     a, b, c = -0.2888, -1.769, 1
-    alpha = np.abs(xs).max()**2
-    x_qs, S = quantize(xs, alpha, n_bits)
+    clip_lo = -np.abs(xs).max()
+    x_qs, S = almost_symmetric_quantize(xs, clip_lo, n_bits)
     for x, x_q in zip(xs, x_qs):
         res_q, res_S = i_poly_wrapper(x_q, S, a, b, c)
         deq_res = res_q * res_S
         exp_res = a * (x + b)**2 + c
         pretty_print(x, x_q, S, res_q, res_S, deq_res, exp_res)
-        check.almost_equal(deq_res, exp_res, abs = 1e-2)
+        check.almost_equal(deq_res, exp_res, abs = 5e-3)
 
 
 def test_i_poly_simple():
     n_bits = 8
     a, b, c = 2, 1, 1
     xs = np.array([-3, -1, 0, 1, 2], dtype = np.int8)
-    alpha = np.abs(xs).max()
-    x_qs, S = quantize(xs, alpha, n_bits)
+    clip_lo = xs.min()
+    x_qs, S = almost_symmetric_quantize(xs, clip_lo, n_bits)
     for x, x_q in zip(xs, x_qs):
         res_q, res_S = i_poly_wrapper(x_q, S, a, b, c)
         deq_res = res_q * res_S
