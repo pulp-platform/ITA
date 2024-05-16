@@ -17,9 +17,6 @@ module ita_gelu
     output requant_t data_o
   );
 
-  localparam requant_t LOWER_BOUND = -2**(WI-1) + 1;
-
-  requant_t data_clipped;
   logic signed [GELU_PRE_RQS_WIDTH-1:0] data_sign_ext, b_sign_ext;
   logic signed [GELU_PRE_RQS_WIDTH-1:0] poly_d, poly_sq;
   logic signed [GELU_PRE_RQS_WIDTH-1:0] erf_sgn, erf_abs, erf_clipped, erf_L;
@@ -30,8 +27,7 @@ module ita_gelu
   requant_t result;
 
   always_comb begin
-    data_clipped = data_i < LOWER_BOUND ? LOWER_BOUND : data_i;
-    data_sign_ext = {{GELU_PRE_RQS_WIDTH-WI{data_clipped[WI-1]}}, data_clipped};
+    data_sign_ext = {{GELU_PRE_RQS_WIDTH-WI{data_i[WI-1]}}, data_i};
     b_sign_ext = {{GELU_PRE_RQS_WIDTH-GELU_CONSTANTS_WIDTH{b_i[GELU_CONSTANTS_WIDTH-1]}}, b_i};
 
     erf_sgn = data_i < 0 ? -1 : 1;
