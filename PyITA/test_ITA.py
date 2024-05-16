@@ -205,6 +205,17 @@ def test_quantize():
     output, _ = quantize(activations, alpha, n_bits)
     assert np.array_equal(output, expected_output)
 
+def test_almost_symmetric_quantize():
+    activations = np.array([-4, -2, 0, 2, 127/32, 4])
+    clip_lo = -4
+    n_bits = 8
+    expected_S = 1/32
+    S, _ = get_almost_symmetric_scaling_factor(clip_lo, n_bits)
+    assert np.isclose(S, expected_S)
+    expected_output = np.array([-128, -64, 0, 64, 127, 127], dtype = np.int8)
+    x_q, _ = almost_symmetric_quantize(activations, clip_lo, n_bits)
+    assert np.array_equal(x_q, expected_output)
+
 def test_dequantize():
     quantized_activations = np.array([-2, -1, 0, 1, 2, 3], dtype = np.int8)
     alpha = 3
