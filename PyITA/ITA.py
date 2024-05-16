@@ -241,9 +241,10 @@ class Transformer:
         write_matrix([self.requant_add.T], "RQS_ADD", self.paths["base"])
 
     def _init_gelu_constants(self):
-        ALPHA = 4
-        D = 2**16
-        S = get_scaling_factor(ALPHA)
+        CLIP_LO = -4
+        D = 2**20
+        
+        S, _ = get_almost_symmetric_scaling_factor(CLIP_LO, n_bits=8)
         self.q_1, self.q_b, self.q_c, _, _, _, self.gelu_rqs_mul, self.gelu_rqs_shift, self.gelu_rqs_add = get_i_gelu_requantized_constants(
             S, D)
 
