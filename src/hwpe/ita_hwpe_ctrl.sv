@@ -65,6 +65,9 @@ module ita_hwpe_ctrl
     ctrl_engine_o.tile_s = reg_file.hwpe_params[ITA_REG_TILES][3:0];
     ctrl_engine_o.tile_e = reg_file.hwpe_params[ITA_REG_TILES][7:4];
     ctrl_engine_o.tile_p = reg_file.hwpe_params[ITA_REG_TILES][11:8];
+    ctrl_engine_o.seq_length = reg_file.hwpe_params[ITA_REG_LENGTH][7:0];
+    ctrl_engine_o.proj_space = reg_file.hwpe_params[ITA_REG_LENGTH][15:8];
+    ctrl_engine_o.embed_size = reg_file.hwpe_params[ITA_REG_LENGTH][23:16];
     ctrl_engine_o.eps_mult[0] = reg_file.hwpe_params[ITA_REG_EPS_MULT0][7:0];
     ctrl_engine_o.eps_mult[1] = reg_file.hwpe_params[ITA_REG_EPS_MULT0][15:8];
     ctrl_engine_o.eps_mult[2] = reg_file.hwpe_params[ITA_REG_EPS_MULT0][23:16];
