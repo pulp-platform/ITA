@@ -952,6 +952,28 @@ def dequantize(quantized_activations: np.ndarray, alpha: f32, n_bits: int = 8) -
     activations = quantized_activations * S
     return activations
 
+def get_almost_symmetric_scaling_factor(clip_lo: f32, n_bits: int = 8) -> Tuple[f32, f32]:
+    if 2**n_bits == 2:
+        return 1
+    n_levels = 2**n_bits
+    scale = (-n_levels + 2) / n_levels
+    clip_hi = clip_lo * scale
+    S = clip_hi / (n_levels/2 - 1)
+    return S, clip_hi
+
+
+def almost_symmetric_quantize(activations: np.ndarray, clip_lo: f32, n_bits: int = 8) -> Tuple[np.ndarray, f32]:
+    S, clip_hi = get_almost_symmetric_scaling_factor(clip_lo, n_bits)
+    x_q = np.clip(activations, clip_lo, clip_hi)
+    x_q = x_q / S
+    x_q = np.array(list(map(round, x_q)))
+    return x_q, S
+
+def almost_symmetric_dequantize(quantized_activations: np.ndarray, clip_lo: f32, n_bits: int = 8) -> np.ndarray:
+    S, _ = get_almost_symmetric_scaling_factor(clip_lo, n_bits)
+    activations = quantized_activations * S
+    return activations
+
 def generateTestVectors(path, **kwargs):
     s = kwargs['S']
     p = kwargs['P']
