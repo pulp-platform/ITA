@@ -15,13 +15,24 @@ module ita_fifo_controller
   output fifo_data_t   data_to_fifo_o
 );
 
+  logic requantizer_done_q, activation_done;
+
   always_comb begin
     push_to_fifo_o = 0;
     data_to_fifo_o = '0;
-    if (&requantizer_done) begin
+    if (&activation_done) begin
       push_to_fifo_o = 1;
       data_to_fifo_o = {>>WI{requant_oup_i}};
     end
   end
 
+  always_ff @(posedge clk_i or negedge rst_ni) begin
+    if (~rst_ni) begin
+      requantizer_done_q <= 0;
+      activation_done <= 0;
+    end else begin
+      requantizer_done_q <= requantizer_done;
+      activation_done <= requantizer_done_q;
+    end
+  end
  endmodule
