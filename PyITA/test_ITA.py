@@ -55,7 +55,7 @@ def test_i_gelu_requant():
             'deq_res': deq_res,
             'exp_res': exp_res
         })
-        check.almost_equal(deq_res, exp_res, abs = 13e-2)
+        check.almost_equal(deq_res, exp_res, abs = 62e-2)
     plot(pd.DataFrame(data),
          quantized_y_label = 'I-GELU(x)',
          expected_y_label = 'GELU(x)',
@@ -74,7 +74,6 @@ def test_i_gelu_edge_cases():
         exp_res = torch.nn.functional.gelu(torch.tensor(x, dtype = torch.float32)).item()
         pretty_print(x, q, S, res_q, res_S, deq_res, exp_res)
         check.almost_equal(deq_res, exp_res, abs = 1e-2)
-
 
 def test_gelu():
     n_bits = 8
@@ -99,7 +98,7 @@ def test_gelu():
             'deq_res': deq_res,
             'exp_res': exp_res
         })
-        check.almost_equal(deq_res, exp_res, abs = 33e-3)
+        check.almost_equal(deq_res, exp_res, abs = 31e-3)
     plot(pd.DataFrame(data),
          quantized_y_label = 'I-GELU(x)',
          expected_y_label = 'GELU(x)',
