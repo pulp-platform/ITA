@@ -27,7 +27,7 @@ from .util import (generate_matrix_mem, pack_8b_to_word, pack_array_8b_to_word, 
                    pack_multihead_24b_to_word, random_shuffled_tensor, requantize, split_matrix, to_hex, write_matrix,
                    write_matrix_mem, write_matrix_mem_hex, write_vector_mem_hex)
 from typing import Optional, Tuple
-from numpy import int8 as i8, int16 as i16, int32 as i32, float32 as f32
+from numpy import int8 as i8, int16 as i16, int32 as i32, float32 as f32, uint8 as u8, uint16 as u16
 
 
 class Transformer:
@@ -840,15 +840,22 @@ def round(x: f32, n_bits: int = 8):
 def clip(x: f32, n_bits: int = 8) -> f32:
     return np.clip(x, -2**(n_bits-1), 2**(n_bits-1) - 1)
 
+def round_and_clip(x: f32, n_bits: int = 8) -> f32:
+    x_rounded = np.floor(x + 0.5 + np.finfo(f32).eps)
+    x_clipped = clip(x_rounded, n_bits)
+    return x_clipped
+
 def round_to_i8(x: f32) -> i8:
-    x_clipped = clip(x, 8)
-    x_rounded: f32 = np.floor(x_clipped + 0.5 + np.finfo(f32).eps)
-    return x_rounded.astype(i8)
+    x_rounded_clipped: f32 = round_and_clip(x, 8)
+    return x_rounded_clipped.astype(i8)
+
+def round_to_u8(x: f32) -> u8:
+    x_rounded_clipped: f32 = round_and_clip(x, 8)
+    return x_rounded_clipped.astype(u8)
 
 def round_to_i16(x: f32) -> i16:
-    x_clipped: f32 = clip(x, 16)
-    x_rounded: f32 = np.floor(x_clipped + 0.5 + np.finfo(f32).eps)
-    return x_rounded.astype(i16)
+    x_rounded_clipped: f32 = round_and_clip(x, 16)
+    return x_rounded_clipped.astype(i16)
 
 def i_gelu(q: i8, q_1: i16, q_b: i16, q_c: i16) -> i32:
     q_clipped = max(q, -2**7 + 1)
