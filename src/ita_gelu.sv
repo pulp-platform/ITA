@@ -9,15 +9,13 @@ module ita_gelu
     input gelu_const_t b_i,
     input gelu_const_t c_i,
     input requant_t  data_i,
-    output [GELU_OUT_WIDTH-1:0] data_o
+    output gelu_out_t data_o
   );
 
-  typedef logic signed [GELU_OUT_WIDTH-1:0] gelu_t;
-
-  gelu_t data_sign_ext, b_sign_ext;
-  gelu_t poly_d, poly_sq;
-  gelu_t erf_sgn, erf_abs, erf_clipped, erf_L;
-  gelu_t gelu_erf, gelu_sum, gelu_out;
+  gelu_out_t data_sign_ext, b_sign_ext;
+  gelu_out_t poly_d, poly_sq;
+  gelu_out_t erf_sgn, erf_abs, erf_clipped, erf_L;
+  gelu_out_t gelu_erf, gelu_sum, gelu_out;
 
   always_comb begin
     data_sign_ext = {{GELU_PRE_RQS_WIDTH-WI{data_i[WI-1]}}, data_i};

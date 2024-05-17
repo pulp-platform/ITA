@@ -43,6 +43,7 @@ package ita_package;
   // Activations
   typedef enum {IDENTITY=0, GELU=1, RELU=2} activation_e;
   typedef logic signed [GELU_CONSTANTS_WIDTH-1:0] gelu_const_t;
+  typedef logic signed [GELU_OUT_WIDTH-1:0] gelu_out_t;
   
   typedef logic signed [WI-1:0] requant_t;
   typedef logic [EMS-1:0] requant_const_t;
