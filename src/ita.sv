@@ -275,7 +275,7 @@ module ita
     .rst_ni        (rst_ni      ),
 
     .requant_oup_i (post_activation),
-    .ready_i       (calc_en_q6 && last_inner_tile_q6 ),
+    .requantizer_done       (calc_en_q6 && last_inner_tile_q6 ),
 
     .fifo_full_i   (fifo_full   ),
     .push_to_fifo_o(push_to_fifo),
