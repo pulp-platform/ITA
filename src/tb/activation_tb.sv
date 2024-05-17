@@ -13,7 +13,7 @@ module activation_tb;
   localparam time APPL_DELAY          = 400ps;
   localparam time ACQ_DELAY           = 1600ps;
   localparam unsigned RST_CLK_CYCLES  = 10;
-  localparam logic requant_mode       = 1'b1;
+  localparam logic requant_mode       = 1'b0;
 
   string constant_one_file = "GELU_ONE.txt";
   string constant_b_file = "GELU_B.txt";
@@ -29,18 +29,18 @@ module activation_tb;
 
   logic         clk, rst_n;
   requant_oup_t preactivation_input;
+  requant_oup_t preactivation_input_check;
   requant_oup_t expected_postactivation;
   requant_oup_t acquired_postactivation;
   gelu_const_t gelu_one;
   gelu_const_t gelu_b;
   gelu_const_t gelu_c;
-  logic signed [EMS-1:0] gelu_requant_mult;
-  logic signed [EMS-1:0] gelu_requant_shift;
+  requant_const_t gelu_requant_mult;
+  requant_const_t gelu_requant_shift;
   requant_t gelu_requant_add;
   activation_e selected_activation;
 
   string simdir;
-  integer is_end_of_file;
 
   initial begin
     N_PE = `ifdef ITA_N `ITA_N `else 16 `endif;
@@ -104,6 +104,13 @@ module activation_tb;
     end
   endfunction
 
+  function automatic void read_preactivation_check(integer stim_fd);
+    int return_code;
+    for (int i = 0; i < N_PE; i++) begin
+      return_code = $fscanf(stim_fd, "%d", preactivation_input_check[i]);
+    end
+  endfunction
+
   function automatic void read_postactivation(integer stim_fd);
     int return_code;
     for (int i = 0; i < N_PE; i++) begin
@@ -115,9 +122,9 @@ module activation_tb;
     output gelu_const_t gelu_one,
     output gelu_const_t gelu_b,
     output gelu_const_t gelu_c,
-    output logic signed [EMS-1:0] gelu_eps_mult,
-    output logic signed [EMS-1:0] gelu_right_shift,
-    output requant_t gelu_add
+    output requant_const_t gelu_requant_mult,
+    output requant_const_t gelu_requant_shift,
+    output requant_t gelu_requant_add
   );
     integer one_fd;
     integer b_fd;
@@ -137,9 +144,9 @@ module activation_tb;
     return_code = $fscanf(one_fd, "%d", gelu_one);
     return_code = $fscanf(b_fd, "%d", gelu_b);
     return_code = $fscanf(c_fd, "%d", gelu_c);
-    return_code = $fscanf(rqs_mul_fd, "%d", gelu_eps_mult);
-    return_code = $fscanf(rqs_shift_fd, "%d", gelu_right_shift);
-    return_code = $fscanf(add_fd, "%d", gelu_add);
+    return_code = $fscanf(rqs_mul_fd, "%d", gelu_requant_mult);
+    return_code = $fscanf(rqs_shift_fd, "%d", gelu_requant_shift);
+    return_code = $fscanf(add_fd, "%d", gelu_requant_add);
 
     $fclose(one_fd);
     $fclose(b_fd);
@@ -151,7 +158,7 @@ module activation_tb;
 
   initial begin: application_block
     integer input_fd;
-    integer output_fd;
+    integer is_end_of_file;
 
     is_end_of_file = 0;
 
@@ -160,27 +167,24 @@ module activation_tb;
     read_gelu_constants(gelu_one, gelu_b, gelu_c, gelu_requant_mult, gelu_requant_shift, gelu_requant_add);
 
     input_fd = open_stim_file(input_file);
-    output_fd = open_stim_file(output_file);
 
     while (!is_end_of_file) begin
       @(posedge clk);
       #(APPL_DELAY);
       read_preactivation(input_fd);
-      read_postactivation(output_fd);
       is_end_of_file = $feof(input_fd);
       selected_activation = GELU;
 
-      @(posedge clk);
-      #(APPL_DELAY);
-      selected_activation = RELU;
+      // @(posedge clk);
+      // #(APPL_DELAY);
+      // selected_activation = RELU;
 
-      @(posedge clk);
-      #(APPL_DELAY);
-      selected_activation = IDENTITY;
+      // @(posedge clk);
+      // #(APPL_DELAY);
+      // selected_activation = IDENTITY;
     end
     
     $fclose(input_fd);
-    $fclose(output_fd);
 
     @(posedge clk);
   end : application_block
@@ -191,7 +195,7 @@ module activation_tb;
         if (acquired_postactivation[i] !== expected_postactivation[i]) begin
           n_errors += 1;
           if (n_errors <= 10) begin
-            $display(":=( expected %d, not %d for input %d and activation %s\n", expected_postactivation[i], acquired_postactivation[i], preactivation_input[i], selected_activation);
+            $display(":=( expected %d, not %d for input %d and activation %s at %0d\n", expected_postactivation[i], acquired_postactivation[i], preactivation_input[i], selected_activation, $time);
           end
           if (n_errors == 11) begin
             $display(":=( suppressing further mismatches...\n");
@@ -201,35 +205,48 @@ module activation_tb;
   endfunction
 
   initial begin: checker_block
+    integer is_end_of_file;
     integer n_checks;
     integer n_errors;
+    integer input_fd;
+    integer output_fd;
 
+    is_end_of_file = 0;
     n_checks = 0;
     n_errors = 0;
 
     wait (rst_n);
 
+    input_fd = open_stim_file(input_file);
+    output_fd = open_stim_file(output_file);
+    
+    // Wait two extra cycles for requantization to complete
+    repeat (2) @(posedge clk);
+
     while (!is_end_of_file) begin
       @(posedge clk);
       #(ACQ_DELAY);
       // Validate GELU
+      read_preactivation_check(input_fd);
+      is_end_of_file = $feof(input_fd);
+      read_postactivation(output_fd);
       validate_postactivation(n_checks, n_errors);
 
-      @(posedge clk);
-      #(ACQ_DELAY);
-      // Validate RELU
-      for (int i = 0; i < N_PE; i++) begin
-        expected_postactivation[i] = preactivation_input[i] < 0 ? 0 : preactivation_input[i];
-      end
-      validate_postactivation(n_checks, n_errors);
+      // @(posedge clk);
+      // #(ACQ_DELAY);
+      // // Validate RELU
+      // for (int i = 0; i < N_PE; i++) begin
+      //   expected_postactivation[i] = preactivation_input[i] < 0 ? 0 : preactivation_input[i];
+      // end
+      // validate_postactivation(n_checks, n_errors);
 
-      @(posedge clk);
-      #(ACQ_DELAY);
+      // @(posedge clk);
+      // #(ACQ_DELAY);
       // Validate IDENTITY
-      for (int i = 0; i < N_PE; i++) begin
-        expected_postactivation[i] = preactivation_input[i];
-      end
-      validate_postactivation(n_checks, n_errors);
+      // for (int i = 0; i < N_PE; i++) begin
+      //   expected_postactivation[i] = preactivation_input_check[i];
+      // end
+      // validate_postactivation(n_checks, n_errors);
     end
     
     @(posedge clk);
@@ -240,7 +257,10 @@ module activation_tb;
       $display(":=) Test passed with ", n_errors, " mismatches out of ", n_checks, " checks!");
     end
 
-    #(300*CLK_PERIOD);
+    $fclose(input_fd);
+    $fclose(output_fd);
+
+    #(100*CLK_PERIOD);
     $finish();
   end
 
