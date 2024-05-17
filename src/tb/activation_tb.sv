@@ -175,13 +175,13 @@ module activation_tb;
       is_end_of_file = $feof(input_fd);
       selected_activation = GELU;
 
-      // @(posedge clk);
-      // #(APPL_DELAY);
-      // selected_activation = RELU;
+      @(posedge clk);
+      #(APPL_DELAY);
+      selected_activation = RELU;
 
-      // @(posedge clk);
-      // #(APPL_DELAY);
-      // selected_activation = IDENTITY;
+      @(posedge clk);
+      #(APPL_DELAY);
+      selected_activation = IDENTITY;
     end
     
     $fclose(input_fd);
@@ -189,15 +189,15 @@ module activation_tb;
     @(posedge clk);
   end : application_block
 
-  function automatic void validate_postactivation(inout integer n_checks, inout integer n_errors);
+  function automatic void validate_postactivation(inout integer n_checks, inout integer n_errors, input activation_e activation);
       n_checks += N_PE;
       for (int i = 0; i < N_PE; i++) begin
         if (acquired_postactivation[i] !== expected_postactivation[i]) begin
           n_errors += 1;
-          if (n_errors <= 10) begin
-            $display(":=( expected %d, not %d for input %d and activation %s at %0d\n", expected_postactivation[i], acquired_postactivation[i], preactivation_input[i], selected_activation, $time);
+          if (n_errors <= 30) begin
+            $display(":=( expected %d, not %d for input %d and activation %s at %0d\n", expected_postactivation[i], acquired_postactivation[i], preactivation_input_check[i], activation, $time);
           end
-          if (n_errors == 11) begin
+          if (n_errors == 31) begin
             $display(":=( suppressing further mismatches...\n");
           end
         end
@@ -226,27 +226,24 @@ module activation_tb;
     while (!is_end_of_file) begin
       @(posedge clk);
       #(ACQ_DELAY);
-      // Validate GELU
       read_preactivation_check(input_fd);
       is_end_of_file = $feof(input_fd);
       read_postactivation(output_fd);
-      validate_postactivation(n_checks, n_errors);
+      validate_postactivation(n_checks, n_errors, GELU);
 
-      // @(posedge clk);
-      // #(ACQ_DELAY);
-      // // Validate RELU
-      // for (int i = 0; i < N_PE; i++) begin
-      //   expected_postactivation[i] = preactivation_input[i] < 0 ? 0 : preactivation_input[i];
-      // end
-      // validate_postactivation(n_checks, n_errors);
+      @(posedge clk);
+      #(ACQ_DELAY);
+      for (int i = 0; i < N_PE; i++) begin
+        expected_postactivation[i] = preactivation_input_check[i] < 0 ? 0 : preactivation_input_check[i];
+      end
+      validate_postactivation(n_checks, n_errors, RELU);
 
-      // @(posedge clk);
-      // #(ACQ_DELAY);
-      // Validate IDENTITY
-      // for (int i = 0; i < N_PE; i++) begin
-      //   expected_postactivation[i] = preactivation_input_check[i];
-      // end
-      // validate_postactivation(n_checks, n_errors);
+      @(posedge clk);
+      #(ACQ_DELAY);
+      for (int i = 0; i < N_PE; i++) begin
+        expected_postactivation[i] = preactivation_input_check[i];
+      end
+      validate_postactivation(n_checks, n_errors, IDENTITY);
     end
     
     @(posedge clk);
