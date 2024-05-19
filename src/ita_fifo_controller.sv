@@ -9,18 +9,23 @@ module ita_fifo_controller
   input  logic         clk_i         ,
   input  logic         rst_ni        ,
   input  requant_oup_t requant_oup_i ,
-  input  logic         requantizer_done       ,
+  input  logic         preactivation_requantizer_done_i       ,
   input  logic         fifo_full_i   ,
+  input activation_e activation_i,
   output logic         push_to_fifo_o,
   output fifo_data_t   data_to_fifo_o
 );
 
-  logic requantizer_done_q, activation_done;
+  logic is_activation_requantized, is_activation_done;
+  logic preactivation_requantizer_done_q, postactivation_requantizer_done_q;
+
+  assign is_activation_requantized = activation_i === GELU;
+  assign is_activation_done =  (is_activation_requantized && postactivation_requantizer_done_q) || (!is_activation_requantized && preactivation_requantizer_done_i);
 
   always_comb begin
     push_to_fifo_o = 0;
     data_to_fifo_o = '0;
-    if (&activation_done) begin
+    if (is_activation_done) begin
       push_to_fifo_o = 1;
       data_to_fifo_o = {>>WI{requant_oup_i}};
     end
@@ -28,11 +33,11 @@ module ita_fifo_controller
 
   always_ff @(posedge clk_i or negedge rst_ni) begin
     if (~rst_ni) begin
-      requantizer_done_q <= 0;
-      activation_done <= 0;
+      preactivation_requantizer_done_q <= 0;
+      postactivation_requantizer_done_q <= 0;
     end else begin
-      requantizer_done_q <= requantizer_done;
-      activation_done <= requantizer_done_q;
+      preactivation_requantizer_done_q <= preactivation_requantizer_done_i;
+      postactivation_requantizer_done_q <= preactivation_requantizer_done_q;
     end
   end
  endmodule
