@@ -111,10 +111,20 @@ module activation_tb;
     end
   endfunction
 
-  function automatic void read_postactivation(integer stim_fd);
+  function automatic void read_postactivation(integer post_activation_fd, input activation_e activation, input requant_oup_t preactivation, output requant_oup_t expected_postactivation);
     int return_code;
-    for (int i = 0; i < N_PE; i++) begin
-      return_code = $fscanf(stim_fd, "%d", expected_postactivation[i]);
+    if (activation == GELU) begin
+      for (int i = 0; i < N_PE; i++) begin
+        return_code = $fscanf(post_activation_fd, "%d", expected_postactivation[i]);
+      end
+    end else if (activation == RELU) begin
+      for (int i = 0; i < N_PE; i++) begin
+        expected_postactivation[i] = preactivation[i] < 0 ? 0 : preactivation[i];
+      end
+    end else if (activation == IDENTITY) begin
+      for (int i = 0; i < N_PE; i++) begin
+        expected_postactivation[i] = preactivation[i];
+      end
     end
   endfunction
 
@@ -156,6 +166,35 @@ module activation_tb;
     $fclose(add_fd);
   endtask
 
+  task apply_activations(input activation_e activation, int latency);
+    integer input_fd;
+    integer is_end_of_file;
+
+    is_end_of_file = 0;
+
+    input_fd = open_stim_file(input_file);
+    
+    if (activation == GELU) begin
+      read_gelu_constants(gelu_one, gelu_b, gelu_c, gelu_requant_mult, gelu_requant_shift, gelu_requant_add);
+    end
+    
+    $display("Starting to apply activations for %s with latency %0d at cycle after %0d", activation, latency, $time);
+
+    while (!is_end_of_file) begin
+      @(posedge clk);
+      #(APPL_DELAY);
+      read_preactivation(input_fd);
+      is_end_of_file = $feof(input_fd);
+      selected_activation = activation;
+    end
+
+    repeat(latency) @(posedge clk);
+
+    $display("Finished applying activations for %s at %0d", activation, $time);
+
+    $fclose(input_fd);
+  endtask
+
   initial begin: application_block
     integer input_fd;
     integer is_end_of_file;
@@ -164,27 +203,9 @@ module activation_tb;
 
     wait (rst_n);
 
-    read_gelu_constants(gelu_one, gelu_b, gelu_c, gelu_requant_mult, gelu_requant_shift, gelu_requant_add);
-
-    input_fd = open_stim_file(input_file);
-
-    while (!is_end_of_file) begin
-      @(posedge clk);
-      #(APPL_DELAY);
-      read_preactivation(input_fd);
-      is_end_of_file = $feof(input_fd);
-      selected_activation = GELU;
-
-      @(posedge clk);
-      #(APPL_DELAY);
-      selected_activation = RELU;
-
-      @(posedge clk);
-      #(APPL_DELAY);
-      selected_activation = IDENTITY;
-    end
-    
-    $fclose(input_fd);
+    apply_activations(IDENTITY, 0);
+    apply_activations(GELU, 2);
+    apply_activations(RELU, 0);
 
     @(posedge clk);
   end : application_block
@@ -204,6 +225,33 @@ module activation_tb;
       end
   endfunction
 
+  task check_activations(input activation_e activation, input int latency, inout integer n_checks, inout integer n_errors);
+    integer input_fd;
+    integer output_fd;
+    integer is_end_of_file;
+
+    is_end_of_file = 0;
+
+    input_fd = open_stim_file(input_file);
+    output_fd = open_stim_file(output_file);
+    
+    repeat(latency) @(posedge clk);
+
+    $display("Starting to check activations for %s with latency %0d at cycle after %0d", activation, latency, $time);
+    
+    while (!is_end_of_file) begin
+      @(posedge clk);
+      #(ACQ_DELAY);
+      read_preactivation_check(input_fd);
+      is_end_of_file = $feof(input_fd);
+      read_postactivation(output_fd, activation, preactivation_input_check, expected_postactivation);
+      validate_postactivation(n_checks, n_errors, activation);
+    end
+
+    $display("Finished checking activations for %s at %0d", activation, $time);
+  endtask
+
+
   initial begin: checker_block
     integer is_end_of_file;
     integer n_checks;
@@ -217,34 +265,9 @@ module activation_tb;
 
     wait (rst_n);
 
-    input_fd = open_stim_file(input_file);
-    output_fd = open_stim_file(output_file);
-    
-    // Wait two extra cycles for requantization to complete
-    repeat (2) @(posedge clk);
-
-    while (!is_end_of_file) begin
-      @(posedge clk);
-      #(ACQ_DELAY);
-      read_preactivation_check(input_fd);
-      is_end_of_file = $feof(input_fd);
-      read_postactivation(output_fd);
-      validate_postactivation(n_checks, n_errors, GELU);
-
-      @(posedge clk);
-      #(ACQ_DELAY);
-      for (int i = 0; i < N_PE; i++) begin
-        expected_postactivation[i] = preactivation_input_check[i] < 0 ? 0 : preactivation_input_check[i];
-      end
-      validate_postactivation(n_checks, n_errors, RELU);
-
-      @(posedge clk);
-      #(ACQ_DELAY);
-      for (int i = 0; i < N_PE; i++) begin
-        expected_postactivation[i] = preactivation_input_check[i];
-      end
-      validate_postactivation(n_checks, n_errors, IDENTITY);
-    end
+    check_activations(IDENTITY, 0, n_checks, n_errors);
+    check_activations(GELU, 2, n_checks, n_errors);
+    check_activations(RELU, 0, n_checks, n_errors);
     
     @(posedge clk);
 
