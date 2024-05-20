@@ -61,6 +61,9 @@ module ita
   write_data_t   write_data  ;
   write_select_t write_select;
 
+  // Activation signals
+  activation_e activation_q1, activation_q2, activation_q3, activation_q4, activation_q5, activation_q6, activation_q7;
+
   always_ff @(posedge clk_i, negedge rst_ni) begin
     if (!rst_ni) begin
       calc_en_q6            <= 0;
@@ -87,6 +90,13 @@ module ita
       step_q3               <= Idle;
       step_q2               <= Idle;
       step_q1               <= Idle;
+      activation_q7         <= IDENTITY;
+      activation_q6         <= IDENTITY;
+      activation_q5         <= IDENTITY;
+      activation_q4         <= IDENTITY;
+      activation_q3         <= IDENTITY;
+      activation_q2         <= IDENTITY;
+      activation_q1         <= IDENTITY;
     end else begin
       calc_en_q6            <= calc_en_q5;
       calc_en_q5            <= calc_en_q4;
@@ -112,6 +122,13 @@ module ita
       step_q3               <= step_q2;
       step_q2               <= step_q1;
       step_q1               <= step;
+      activation_q7         <= activation_q6;
+      activation_q6         <= activation_q5;
+      activation_q5         <= activation_q4;
+      activation_q4         <= activation_q3;
+      activation_q3         <= activation_q2;
+      activation_q2         <= activation_q1;
+      activation_q1         <= ctrl_i.activation;
     end
   end
 
@@ -258,7 +275,7 @@ module ita
     .clk_i         (clk_i       ),
     .rst_ni        (rst_ni      ),
 
-    .activation_i  (ctrl_i.activation),
+    .activation_i  (activation_q7),
     .one_i         (ctrl_i.gelu_one),
     .b_i           (ctrl_i.gelu_b  ),
     .c_i           (ctrl_i.gelu_c  ),
