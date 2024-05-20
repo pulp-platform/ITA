@@ -449,8 +449,12 @@ task automatic apply_ITA_weights(input integer phase);
       oup_ready_q = oup_ready;
       if (successful_handshake(oup_valid, oup_ready)) begin
         tile_entry += 1;
-        if (requant_oup !== exp_res)
-          $display("[TB] ITA: Wrong value received %x, instead of %x at %0t.", requant_oup, exp_res, $time);
+        if (requant_oup !== exp_res) begin
+          $display("[TB] ITA: Wrong value received %x, instead of %x at %0t. (phase: %d)", requant_oup, exp_res, $time, phase);
+          for (int i = 0; i < N_PE; i++) begin
+            $display("[TB] ITA: PE %0d: received %0d, expected %0d.", i, requant_oup[i], exp_res[i]);
+          end
+        end
         if (!is_last_group(group) && phase == 3 && should_toggle_output(input_file_index, tile_entry)) begin
             $display("[TB] ITA: %0d outputs were checked in phase %0d.",tile_entry, phase);
             $display("[TB] ITA: Output Switch: tile_entry: %0d, group: %0d at %0t.", tile_entry, group, $time);
