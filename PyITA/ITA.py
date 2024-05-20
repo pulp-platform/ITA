@@ -42,6 +42,7 @@ class Transformer:
                  H: int,
                  path: Union[str, os.PathLike],
                  bias: bool = True,
+                 activation: str = "relu",
                  Q: ArrayLike = None,
                  K: ArrayLike = None,
                  V: ArrayLike = None,
@@ -75,6 +76,7 @@ class Transformer:
         self.F = F
         self.H = H
         self.bias = bias
+        self.activation = activation
 
         # Setup transformation functions
         self.split_m_m = partial(split_matrix, block_shape = (self.ITA_M, self.ITA_M))
@@ -513,7 +515,20 @@ class Transformer:
         self.Out_soft_requant = requantize(self.Out_soft, self.requant_eps_mult[5], self.requant_right_shift[5],
                                            self.requant_add[5])
 
-        self.tiler_Out(self.O_soft_requant, self.Wo, self.Bo, self.Out_soft_requant, "O_soft_in", "Wo", "Bo",
+        self.postactivation = self.Out_soft_requant.copy()
+        for h in range(self.H):
+            for i in range(self.Out_soft_requant[h].shape[0]):
+                for j in range(self.Out_soft_requant[h].shape[1]):
+                    if self.activation == "gelu":
+                        self.postactivation[h, i, j] = i_gelu_requantized(self.Out_soft_requant[h, i, j], self.q_1, self.q_b, self.q_c, self.gelu_rqs_mul, self.gelu_rqs_shift, self.gelu_rqs_add)
+                    elif self.activation == "relu":
+                        self.postactivation[h, i, j] = self.Out_soft_requant[h, i, j] if self.Out_soft_requant[h, i, j] > 0 else 0
+                    elif self.activation == "identity":
+                        self.postactivation[h, i, j] = self.Out_soft_requant[h, i, j]
+                    else:
+                        raise ValueError("Activation function not supported")
+
+        self.tiler_Out(self.O_soft_requant, self.Wo, self.Bo, self.postactivation, "O_soft_in", "Wo", "Bo",
                        "Out_soft")
 
     def step7_Osum(self):
@@ -863,7 +878,7 @@ def i_gelu(q: i8, q_1: i16, q_b: i16, q_c: i16) -> i32:
     q_out: i32 = q_clipped * (q_erf + q_1)
     return q_out
 
-def requantize(q: i32, eps_mul: i8, eps_shift: u8, eps_add: u8) -> i8:
+def gelu_requantize(q: i32, eps_mul: i8, eps_shift: u8, eps_add: u8) -> i8:
     q_mul: i64 = eps_mul * q
     shifted: f32 = q_mul / 2**eps_shift + eps_add
     q_req: i8 = round_to_i8(shifted)
@@ -871,7 +886,7 @@ def requantize(q: i32, eps_mul: i8, eps_shift: u8, eps_add: u8) -> i8:
 
 def i_gelu_requantized(q: i8, q_1: i16, q_b: i16, q_c: i16, eps_mul: u8, eps_shift: u8, eps_add: u8) -> i8:
     q_out: i32 = i_gelu(q, q_1, q_b, q_c)
-    q_req: i8 = requantize(q_out, eps_mul, eps_shift, eps_add)
+    q_req: i8 = gelu_requantize(q_out, eps_mul, eps_shift, eps_add)
     return q_req
 
 def get_i_gelu_constants(S: f32) -> Tuple[i16, i16, i16, float, float, float]:
