@@ -501,6 +501,11 @@ task automatic apply_ITA_weights(input integer phase);
       ita_ctrl.start = 1'b0;
 
       for (int phase = 0; phase < 5; phase++) begin
+        if (phase == 4) begin
+          ita_ctrl.activation = RELU;
+        end else begin
+          ita_ctrl.activation = IDENTITY;
+        end
         apply_ITA_inputs(phase);
       end
 
