@@ -42,7 +42,7 @@ class Transformer:
                  H: int,
                  path: Union[str, os.PathLike],
                  bias: bool = True,
-                 activation: str = "relu",
+                 activation: str = "gelu",
                  Q: ArrayLike = None,
                  K: ArrayLike = None,
                  V: ArrayLike = None,
