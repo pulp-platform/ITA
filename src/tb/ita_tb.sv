@@ -16,6 +16,7 @@ module ita_tb;
   // Set to 1 to run the simulation without stalls
   localparam unsigned CONT            = `ifdef NO_STALLS `NO_STALLS `else 0 `endif;
   localparam unsigned ITERS           = 1;
+  localparam activation_e ACTIVATION   = IDENTITY;
 
   // Stimuli files
   string INPUT_FILES[5] = {"standalone/Q.txt", "standalone/K.txt", "standalone/Wv_0.txt", "standalone/Qp_in_0.txt", "standalone/O_soft_in_0.txt"};
@@ -499,7 +500,7 @@ task automatic apply_ITA_weights(input integer phase);
 
       for (int phase = 0; phase < 5; phase++) begin
         if (phase == 4) begin
-          ita_ctrl.activation = GELU;
+          ita_ctrl.activation = ACTIVATION;
         end else begin
           ita_ctrl.activation = IDENTITY;
         end
