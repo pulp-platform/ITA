@@ -33,9 +33,9 @@ module ita
 );
 
   step_e  step, step_q1, step_q2, step_q3, step_q4, step_q5, step_q6;
-  logic   calc_en, calc_en_q1, calc_en_q2, calc_en_q3, calc_en_q4, calc_en_q5, calc_en_q6;
+  logic   calc_en, calc_en_q1, calc_en_q2, calc_en_q3, calc_en_q4, calc_en_q5, calc_en_q6, calc_en_q7, calc_en_q8;
   logic   first_inner_tile, first_inner_tile_q1, first_inner_tile_q2, first_inner_tile_q3, first_inner_tile_q4, first_inner_tile_q5, first_inner_tile_q6;
-  logic   last_inner_tile, last_inner_tile_q1, last_inner_tile_q2, last_inner_tile_q3, last_inner_tile_q4, last_inner_tile_q5, last_inner_tile_q6;
+  logic   last_inner_tile, last_inner_tile_q1, last_inner_tile_q2, last_inner_tile_q3, last_inner_tile_q4, last_inner_tile_q5, last_inner_tile_q6, last_inner_tile_q7, last_inner_tile_q8;
 
   logic         weight_valid, weight_ready;
   inp_t         inp, inp_stream_soft;
@@ -62,10 +62,12 @@ module ita
   write_select_t write_select;
 
   // Activation signals
-  activation_e activation_q1, activation_q2, activation_q3, activation_q4, activation_q5, activation_q6, activation_q7;
+  activation_e activation_q1, activation_q2, activation_q3, activation_q4, activation_q5, activation_q6, activation_q7, activation_q8;
 
   always_ff @(posedge clk_i, negedge rst_ni) begin
     if (!rst_ni) begin
+      calc_en_q8            <= 0;
+      calc_en_q7            <= 0;
       calc_en_q6            <= 0;
       calc_en_q5            <= 0;
       calc_en_q4            <= 0;
@@ -78,6 +80,8 @@ module ita
       first_inner_tile_q3   <= 0;
       first_inner_tile_q2   <= 0;
       first_inner_tile_q1   <= 0;
+      last_inner_tile_q8    <= 0;
+      last_inner_tile_q7    <= 0;
       last_inner_tile_q6    <= 1'b0;
       last_inner_tile_q5    <= 1'b0;
       last_inner_tile_q4    <= 1'b0;
@@ -90,6 +94,7 @@ module ita
       step_q3               <= Idle;
       step_q2               <= Idle;
       step_q1               <= Idle;
+      activation_q8         <= IDENTITY;
       activation_q7         <= IDENTITY;
       activation_q6         <= IDENTITY;
       activation_q5         <= IDENTITY;
@@ -98,6 +103,8 @@ module ita
       activation_q2         <= IDENTITY;
       activation_q1         <= IDENTITY;
     end else begin
+      calc_en_q8            <= calc_en_q7;
+      calc_en_q7            <= calc_en_q6;
       calc_en_q6            <= calc_en_q5;
       calc_en_q5            <= calc_en_q4;
       calc_en_q4            <= calc_en_q3;
@@ -110,6 +117,8 @@ module ita
       first_inner_tile_q3   <= first_inner_tile_q2;
       first_inner_tile_q2   <= first_inner_tile_q1;
       first_inner_tile_q1   <= first_inner_tile;
+      last_inner_tile_q8    <= last_inner_tile_q7;
+      last_inner_tile_q7    <= last_inner_tile_q6;
       last_inner_tile_q6    <= last_inner_tile_q5;
       last_inner_tile_q5    <= last_inner_tile_q4;
       last_inner_tile_q4    <= last_inner_tile_q3;
@@ -122,6 +131,7 @@ module ita
       step_q3               <= step_q2;
       step_q2               <= step_q1;
       step_q1               <= step;
+      activation_q8         <= activation_q7;
       activation_q7         <= activation_q6;
       activation_q6         <= activation_q5;
       activation_q5         <= activation_q4;
@@ -275,7 +285,9 @@ module ita
     .clk_i         (clk_i       ),
     .rst_ni        (rst_ni      ),
 
-    .activation_i  (activation_q7),
+    .activation_i  (activation_q8),
+    .calc_en_i    (calc_en_q6  ),
+    .calc_en_q_i  (calc_en_q7  ),
     .one_i         (ctrl_i.gelu_one),
     .b_i           (ctrl_i.gelu_b  ),
     .c_i           (ctrl_i.gelu_c  ),
@@ -292,8 +304,7 @@ module ita
     .rst_ni        (rst_ni      ),
 
     .requant_oup_i (post_activation),
-    .preactivation_requantizer_done_i       (calc_en_q6 && last_inner_tile_q6 ),
-
+    .activation_done_i     (calc_en_q8 && last_inner_tile_q8 ),
     .fifo_full_i   (fifo_full   ),
     .push_to_fifo_o(push_to_fifo),
     .data_to_fifo_o(data_to_fifo)
