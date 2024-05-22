@@ -42,7 +42,7 @@ class Transformer:
                  H: int,
                  path: Union[str, os.PathLike],
                  bias: bool = True,
-                 activation: str = "gelu",
+                 activation: str = "identity",
                  Q: ArrayLike = None,
                  K: ArrayLike = None,
                  V: ArrayLike = None,
@@ -1006,9 +1006,10 @@ def generateTestVectors(path, **kwargs):
     e = kwargs['E']
     f = kwargs['F']
     h = kwargs['H']
+    activation = kwargs['activation']
     bias = int(not kwargs['no_bias'])
 
-    acc1 = Transformer(s, p, e, f, h, bias = bias, path = path)
+    acc1 = Transformer(s, p, e, f, h, bias = bias, path = path, activation=activation)
 
     if kwargs['verbose']:
         print("=> Generating test vectors...")

@@ -96,6 +96,7 @@ class TestParser(argparse.ArgumentParser):
         self.group1.add_argument('-F', default = 64, type = int, help = 'Feedforward size')
         self.group1.add_argument('-P', default = 64, type = int, help = 'Projection size')
         self.group1.add_argument('-H', default = 1, type = int, help = 'Number of heads')
+        self.group1.add_argument('--activation' , default = 'identity', type = str, help = 'Activation function', choices = ['gelu', 'relu', 'identity'])
         self.group1.add_argument('--no-partial-softmax',
                                  action = 'store_true',
                                  help = 'Disable partial softmax calculation')
