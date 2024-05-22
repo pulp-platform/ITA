@@ -27,7 +27,15 @@ e ?= 128
 p ?= 192
 f ?= 256
 bias ?= 0
-vlog_defs += -DNO_STALLS=$(no_stalls) -DSEQ_LENGTH=$(s) -DEMBED_SIZE=$(e) -DPROJ_SPACE=$(p) -DFF_SIZE=$(f) -DBIAS=$(bias)
+activation ?= identity
+ifeq ($(activation), gelu)
+	activation_int = 1
+else ifeq ($(activation), relu)
+	activation_int = 2
+else
+	activation_int = 0
+endif
+vlog_defs += -DNO_STALLS=$(no_stalls) -DSEQ_LENGTH=$(s) -DEMBED_SIZE=$(e) -DPROJ_SPACE=$(p) -DFF_SIZE=$(f) -DBIAS=$(bias) -DACTIVATION=$(activation_int)
 
 ifeq ($(target), sim_ita_hwpe_tb)
 	BENDER_TARGETS += -t ita_hwpe -t ita_hwpe_test
