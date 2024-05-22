@@ -16,7 +16,6 @@ module ita_tb;
   // Set to 1 to run the simulation without stalls
   localparam unsigned CONT            = `ifdef NO_STALLS `NO_STALLS `else 0 `endif;
   localparam unsigned ITERS           = 1;
-  localparam activation_e ACTIVATION   = IDENTITY;
 
   // Stimuli files
   string INPUT_FILES[5] = {"standalone/Q.txt", "standalone/K.txt", "standalone/Wv_0.txt", "standalone/Qp_in_0.txt", "standalone/O_soft_in_0.txt"};
@@ -43,6 +42,7 @@ module ita_tb;
   integer N_ENTRIES_LINEAR_OUTPUT, N_ENTRIES_PER_PROJECTION_DIM, N_ENTRIES_PER_SEQUENCE_DIM;
   integer N_TILES_INNER_DIM_LINEAR_PROJECTION[5];
   integer N_ATTENTION_TILE_ROWS, N_GROUPS;
+  activation_e ACTIVATION;
 
   // Signals
   logic         clk, rst_n;
@@ -67,6 +67,8 @@ module ita_tb;
     PROJECTION_SIZE = `ifdef PROJ_SPACE `PROJ_SPACE `else M_TILE_LEN `endif;
     EMBEDDING_SIZE = `ifdef EMBED_SIZE `EMBED_SIZE `else M_TILE_LEN `endif;
     FEEDFORWARD_SIZE = `ifdef FF_SIZE `FF_SIZE `else M_TILE_LEN `endif;
+    ACTIVATION = activation_e'(`ifdef ACTIVATION `ACTIVATION `else IDENTITY `endif);
+
     simdir = {
       "../../simvectors/data_S",
       $sformatf("%0d", SEQUENCE_LEN),
