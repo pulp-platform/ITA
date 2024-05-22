@@ -451,9 +451,6 @@ task automatic apply_ITA_weights(input integer phase);
         tile_entry += 1;
         if (requant_oup !== exp_res) begin
           $display("[TB] ITA: Wrong value received %x, instead of %x at %0t. (phase: %d)", requant_oup, exp_res, $time, phase);
-          for (int i = 0; i < N_PE; i++) begin
-            $display("[TB] ITA: PE %0d: received %0d, expected %0d.", i, requant_oup[i], exp_res[i]);
-          end
         end
         if (!is_last_group(group) && phase == 3 && should_toggle_output(input_file_index, tile_entry)) begin
             $display("[TB] ITA: %0d outputs were checked in phase %0d.",tile_entry, phase);
@@ -502,7 +499,7 @@ task automatic apply_ITA_weights(input integer phase);
 
       for (int phase = 0; phase < 5; phase++) begin
         if (phase == 4) begin
-          ita_ctrl.activation = RELU;
+          ita_ctrl.activation = GELU;
         end else begin
           ita_ctrl.activation = IDENTITY;
         end
