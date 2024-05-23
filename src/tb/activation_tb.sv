@@ -82,6 +82,8 @@ module activation_tb;
     .requant_mult_i   (gelu_requant_mult),
     .requant_shift_i(gelu_requant_shift),
     .activation_i (selected_activation),
+    .calc_en_i   (1'b1),
+    .calc_en_q_i (1'b1),
     .requant_add_i        (gelu_requant_add  ),
     .data_o       (acquired_postactivation)
   );
@@ -203,9 +205,9 @@ module activation_tb;
 
     wait (rst_n);
 
-    apply_activations(IDENTITY, 0);
+    apply_activations(IDENTITY, 2);
     apply_activations(GELU, 2);
-    apply_activations(RELU, 0);
+    apply_activations(RELU, 2);
 
     @(posedge clk);
   end : application_block
@@ -265,9 +267,9 @@ module activation_tb;
 
     wait (rst_n);
 
-    check_activations(IDENTITY, 0, n_checks, n_errors);
+    check_activations(IDENTITY, 2, n_checks, n_errors);
     check_activations(GELU, 2, n_checks, n_errors);
-    check_activations(RELU, 0, n_checks, n_errors);
+    check_activations(RELU, 2, n_checks, n_errors);
     
     @(posedge clk);
 
