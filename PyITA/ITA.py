@@ -523,11 +523,11 @@ class Transformer:
                         self.postactivation[h, i, j] = i_gelu_requantized(self.Out_soft_requant[h, i, j], self.q_1, self.q_b, self.q_c, self.gelu_rqs_mul, self.gelu_rqs_shift, self.gelu_rqs_add)
                     elif self.activation == "relu":
                         self.postactivation[h, i, j] = self.Out_soft_requant[h, i, j] if self.Out_soft_requant[h, i, j] > 0 else 0
+                        self.postactivation[h, i, j] = gelu_requantize(self.postactivation[h, i, j], self.gelu_rqs_mul, self.gelu_rqs_shift, self.gelu_rqs_add)
                     elif self.activation == "identity":
                         self.postactivation[h, i, j] = self.Out_soft_requant[h, i, j]
                     else:
                         raise ValueError("Activation function not supported")
-
         self.tiler_Out(self.O_soft_requant, self.Wo, self.Bo, self.postactivation, "O_soft_in", "Wo", "Bo",
                        "Out_soft")
 
@@ -536,13 +536,18 @@ class Transformer:
         self.Out_soft_sum_requant = requantize(self.Out_soft_sum, self.requant_eps_mult[6], self.requant_right_shift[6],
                                                self.requant_add[6])
 
-    def gelu(self):
-        self.postactivation = np.zeros(self.preactivation.shape, dtype = np.int8)
+    def test_activations(self):
+        self.write_matrix(self.preactivation, "preactivation", self.paths["standalone"])
+        gelu = np.zeros(self.preactivation.shape, dtype = np.int8)
+        relu = np.zeros(self.preactivation.shape, dtype = np.int8)
         for i in range(self.preactivation.shape[0]):
             for j in range(self.preactivation.shape[1]):
-                self.postactivation[i, j] = i_gelu_requantized(self.preactivation[i, j], self.q_1, self.q_b, self.q_c, self.gelu_rqs_mul, self.gelu_rqs_shift, self.gelu_rqs_add)
-        self.write_matrix(self.preactivation, "preactivation", self.paths["standalone"])
-        self.write_matrix(self.postactivation, "postactivation", self.paths["standalone"])
+                gelu[i, j] = i_gelu_requantized(self.preactivation[i, j], self.q_1, self.q_b, self.q_c, self.gelu_rqs_mul, self.gelu_rqs_shift, self.gelu_rqs_add)
+                relu[i, j] = self.preactivation[i, j] if self.preactivation[i, j] > 0 else 0
+                relu[i, j] = requantize(relu[i, j], self.gelu_rqs_mul, self.gelu_rqs_shift, self.gelu_rqs_add)
+
+        self.write_matrix(gelu, "gelu", self.paths["standalone"])
+        self.write_matrix(relu, "relu", self.paths["standalone"])
 
     def export_hwpe(self):
         path = self.paths["hwpe"]
@@ -1021,7 +1026,7 @@ def generateTestVectors(path, **kwargs):
     acc1.step5_AV()
     acc1.step6_O()
     acc1.step7_Osum()
-    acc1.gelu()
+    acc1.test_activations()
 
     acc1.export_mempool(kwargs['mem_path'])
     acc1.export_snitch_cluster(kwargs['mem_path'])
