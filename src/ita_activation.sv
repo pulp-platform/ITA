@@ -13,7 +13,7 @@ module ita_activation
     input logic requant_mode,
     input requant_const_t requant_mult_i,
     input requant_const_t requant_shift_i,
-    input requant_const_t requant_add_i,
+    input requant_t requant_add_i,
     input activation_e activation_i,
     input logic calc_en_i,
     input logic calc_en_q_i,

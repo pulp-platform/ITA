@@ -253,9 +253,9 @@ module ita
 
   oup_t         requant_result;
   logic         requant_mode  ;
-  eps_mult_t    requant_mult  ;
-  right_shift_t requant_shift ;
-  add_t         requant_add ;
+  requant_const_t    requant_mult;
+  requant_const_t requant_shift ;
+  requant_t         requant_add ;
 
   assign requant_result = result;
   assign requant_mode   = 1'b0;
