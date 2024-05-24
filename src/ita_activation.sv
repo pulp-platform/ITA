@@ -23,9 +23,8 @@ module ita_activation
 
   requant_oup_t data_q1, data_q2;
   activation_e activation_q1, activation_q2;
-  gelu_out_t [N-1:0] gelu_out;
-  requant_oup_t gelu_out_requant;
-  requant_oup_t relu_out;
+  oup_t gelu_out, relu_out_sign_ext, requant_in;
+  requant_oup_t relu_out, requant_out;
 
   ita_requantizer i_requantizer (
     .clk_i(clk_i),
@@ -36,8 +35,8 @@ module ita_activation
     .add_i({N{requant_add_i}}),
     .calc_en_i(calc_en_i),
     .calc_en_q_i(calc_en_q_i),
-    .result_i(gelu_out),
-    .requant_oup_o(gelu_out_requant)
+    .result_i(requant_in),
+    .requant_oup_o(requant_out)
   );
 
   generate
@@ -46,6 +45,7 @@ module ita_activation
         .data_i(data_q2[i]),
         .data_o(relu_out[i])
       );
+      assign relu_out_sign_ext[i] = {{(WO-WI){relu_out[i][WI-1]}}, relu_out[i]};
     end
   endgenerate
 
@@ -61,15 +61,30 @@ module ita_activation
     end
   endgenerate
 
+  always_comb begin
+    case (activation_i)
+      GELU: begin
+        requant_in = gelu_out;
+      end
+      RELU: begin
+        requant_in = relu_out_sign_ext;
+      end
+      default: begin
+        requant_in = '0;
+      end
+    endcase
+  end
+
 
   always_comb begin
-    if (activation_q2 === GELU) begin
-      data_o = gelu_out_requant;
-    end else if (activation_q2 === RELU) begin
-      data_o = relu_out;
-    end else begin
-      data_o = data_q2;
-    end
+    case (activation_q2)
+      GELU, RELU: begin
+        data_o = requant_out;
+      end
+      default: begin
+        data_o = data_q2;
+      end
+    endcase
   end
 
   always_ff @(posedge clk_i) begin
