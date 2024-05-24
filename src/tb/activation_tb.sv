@@ -22,7 +22,8 @@ module activation_tb;
   string constant_rqs_shift_file = "GELU_RQS_SHIFT.txt";
   string constant_add_file = "GELU_RQS_ADD.txt";
   string input_file = "standalone/preactivation.txt";
-  string output_file = "standalone/postactivation.txt";
+  string gelu_output_file = "standalone/gelu.txt";
+  string relu_output_file = "standalone/relu.txt";
 
   integer N_PE, M_TILE_LEN;
   integer SEQUENCE_LEN, PROJECTION_SIZE, EMBEDDING_SIZE, FEEDFORWARD_SIZE;
@@ -113,15 +114,15 @@ module activation_tb;
     end
   endfunction
 
-  function automatic void read_postactivation(integer post_activation_fd, input activation_e activation, input requant_oup_t preactivation, output requant_oup_t expected_postactivation);
+  function automatic void read_postactivation(integer gelu_fd, integer relu_fd, input activation_e activation, input requant_oup_t preactivation, output requant_oup_t expected_postactivation);
     int return_code;
     if (activation == GELU) begin
       for (int i = 0; i < N_PE; i++) begin
-        return_code = $fscanf(post_activation_fd, "%d", expected_postactivation[i]);
+        return_code = $fscanf(gelu_fd, "%d", expected_postactivation[i]);
       end
     end else if (activation == RELU) begin
       for (int i = 0; i < N_PE; i++) begin
-        expected_postactivation[i] = preactivation[i] < 0 ? 0 : preactivation[i];
+        return_code = $fscanf(relu_fd, "%d", expected_postactivation[i]);
       end
     end else if (activation == IDENTITY) begin
       for (int i = 0; i < N_PE; i++) begin
@@ -229,13 +230,15 @@ module activation_tb;
 
   task check_activations(input activation_e activation, input int latency, inout integer n_checks, inout integer n_errors);
     integer input_fd;
-    integer output_fd;
+    integer gelu_output_fd;
+    integer relu_output_fd;
     integer is_end_of_file;
 
     is_end_of_file = 0;
 
     input_fd = open_stim_file(input_file);
-    output_fd = open_stim_file(output_file);
+    gelu_output_fd = open_stim_file(gelu_output_file);
+    relu_output_fd = open_stim_file(relu_output_file);
     
     repeat(latency) @(posedge clk);
 
@@ -246,7 +249,7 @@ module activation_tb;
       #(ACQ_DELAY);
       read_preactivation_check(input_fd);
       is_end_of_file = $feof(input_fd);
-      read_postactivation(output_fd, activation, preactivation_input_check, expected_postactivation);
+      read_postactivation(gelu_output_fd, relu_output_fd, activation, preactivation_input_check, expected_postactivation);
       validate_postactivation(n_checks, n_errors, activation);
     end
 
