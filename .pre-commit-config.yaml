@@ -3,3 +3,11 @@ repos:
     rev: v0.40.2
     hooks:
     -   id: yapf
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+    -   id: trailing-whitespace
+    -   id: check-ast
+    -   id: check-case-conflict
+    -   id: check-merge-conflict
+    -   id: check-executables-have-shebangs
