@@ -19,6 +19,7 @@ package ita_package;
   localparam int unsigned Latency = 7                                  ;
   localparam int unsigned GELU_CONSTANTS_WIDTH = 16                    ;
   localparam int unsigned GELU_OUT_WIDTH = 26                          ;
+  localparam int unsigned N_REQUANT_CONSTS = 6                         ;
 
 
   parameter  int unsigned InputAddrWidth = idx_width(S)                                                      ;
@@ -31,23 +32,21 @@ package ita_package;
 
   parameter  int unsigned N_WRITE_EN     = `ifdef TARGET_ITA_HWPE 8 `else M `endif;
 
+  // Activation
+  typedef enum {IDENTITY=0, GELU=1, RELU=2} activation_e;
+  typedef logic signed [GELU_CONSTANTS_WIDTH-1:0] gelu_const_t;
+  typedef logic signed [GELU_OUT_WIDTH-1:0] gelu_out_t;
+
   // IO
   typedef logic            [EMS-1:0] requant_const_t;
-  typedef logic       [5:0][EMS-1:0] requant_const_array_t;
+  typedef logic       [N_REQUANT_CONSTS-1:0][EMS-1:0] requant_const_array_t;
   typedef logic signed      [WI-1:0] requant_t;
-  typedef logic signed [5:0][WI-1:0] requant_array_t;
+  typedef logic signed [N_REQUANT_CONSTS-1:0][WI-1:0] requant_array_t;
   typedef logic [idx_width(S+1)-1:0] seq_length_t;
   typedef logic [idx_width(P+1)-1:0] proj_space_t;
   typedef logic [idx_width(E+1)-1:0] embed_size_t;
   typedef logic [idx_width(H+1)-1:0] n_heads_t;
   typedef logic [            32-1:0] tile_t;
-
-  // Activations
-  typedef enum {IDENTITY=0, GELU=1, RELU=2} activation_e;
-  typedef logic signed [GELU_CONSTANTS_WIDTH-1:0] gelu_const_t;
-  typedef logic signed [GELU_OUT_WIDTH-1:0] gelu_out_t;
-
-
   typedef struct packed {
     logic                         start       ;
     seq_length_t                  seq_length  ;
@@ -70,17 +69,10 @@ package ita_package;
     tile_t                        tile_e;
     tile_t                        tile_p;
   } ctrl_t;
-
   typedef struct packed {
     logic [InputAddrWidth-1:0]         addr;
     logic [             E-1:0][WI-1:0] data;
   } write_port_t;
-
-  typedef logic signed [N-1:0][M-1:0][WI-1:0] weight_t;
-  typedef logic signed [N-1:0][(WO-2)-1:0]    bias_t;
-
-  typedef logic signed [N-1:0][WO-1:0]        oup_t;
-  typedef requant_t    [N-1:0]        requant_oup_t;
 
   // States
   typedef enum {Idle=6, Q=0, K=1, V=2, QK=3, AV=4, OW=5} step_e;
@@ -90,6 +82,11 @@ package ita_package;
   typedef logic [(N*M/N_WRITE_EN)-1:0][  WI-1:0] inp_weight_t;
   typedef logic [N_WRITE_EN-1:0]           write_select_t;
   typedef logic [N_WRITE_EN-1:0][(N*M*WI/N_WRITE_EN)-1:0] write_data_t;
+  typedef logic signed [N-1:0][(WO-2)-1:0]    bias_t;
+  typedef logic signed [N-1:0][M-1:0][WI-1:0] weight_t;
+
+  // Accumulator
+  typedef logic signed [N-1:0][WO-1:0]        oup_t;
 
   // FIFO
   typedef logic [                N*WI-1:0]   fifo_data_t;
@@ -108,4 +105,8 @@ package ita_package;
   localparam int unsigned DividerWidth = SoftmaxAccDataWidth + 1;
   localparam int unsigned NumDiv = 5;
 
+  // Requantizer
+  typedef enum {SIGNED=0, UNSIGNED=1} requant_mode_e;
+  localparam requant_mode_e REQUANT_MODE = SIGNED;
+  typedef requant_t    [N-1:0]        requant_oup_t;
 endpackage : ita_package
