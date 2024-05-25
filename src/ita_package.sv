@@ -19,7 +19,8 @@ package ita_package;
   localparam int unsigned Latency = 7                                  ;
   localparam int unsigned GELU_CONSTANTS_WIDTH = 16                    ;
   localparam int unsigned GELU_OUT_WIDTH = 26                          ;
-  localparam int unsigned N_REQUANT_CONSTS = 6                         ;
+  localparam int unsigned N_ATTENTION_STEPS = 6;
+  localparam int unsigned N_REQUANT_CONSTS = N_ATTENTION_STEPS         ;
 
 
   parameter  int unsigned InputAddrWidth = idx_width(S)                                                      ;
@@ -54,6 +55,7 @@ package ita_package;
     proj_space_t                  proj_space  ;
     embed_size_t                  embed_size  ;
     n_heads_t                     n_heads     ;
+    layer_t                       layer       ;
     requant_const_array_t         eps_mult    ;
     requant_const_array_t         right_shift ;
     requant_array_t               add         ;
@@ -69,6 +71,7 @@ package ita_package;
     tile_t                        tile_s;
     tile_t                        tile_e;
     tile_t                        tile_p;
+    tile_t                        tile_f;
   } ctrl_t;
   typedef struct packed {
     logic [InputAddrWidth-1:0]         addr;
