@@ -16,15 +16,15 @@ module ita_tb;
   // Set to 1 to run the simulation without stalls
   localparam unsigned CONT            = `ifdef NO_STALLS `NO_STALLS `else 0 `endif;
   localparam unsigned ITERS           = 1;
-  localparam unsigned N_PHASES        = 6;
+  localparam unsigned N_PHASES        = 7;
 
   // Stimuli files
-  string INPUT_FILES[N_PHASES] = {"standalone/Q.txt", "standalone/K.txt", "standalone/Wv_0.txt", "standalone/Qp_in_0.txt", "standalone/O_soft_in_0.txt"};
+  string INPUT_FILES[N_PHASES] = {"standalone/Q.txt", "standalone/K.txt", "standalone/Wv_0.txt", "standalone/Qp_in_0.txt", "standalone/O_soft_in_0.txt", "standalone/FF.txt", "standalone/FFp_in_0.txt"};
   string ATTENTION_INPUT_FILES[1] = {"standalone/A_stream_soft_in_0.txt"};
-  string INPUT_BIAS_FILES[N_PHASES] = {"standalone/Bq_0.txt", "standalone/Bk_0.txt", "standalone/Bv_0.txt", "", "standalone/Bo_0.txt"};
-  string WEIGHT_FILES[N_PHASES] = {"standalone/Wq_0.txt", "standalone/Wk_0.txt", "standalone/V.txt", "standalone/Kp_in_0.txt", "standalone/Wo_0.txt"};
+  string INPUT_BIAS_FILES[N_PHASES] = {"standalone/Bq_0.txt", "standalone/Bk_0.txt", "standalone/Bv_0.txt", "", "standalone/Bo_0.txt", "standalone/Bff_0.txt", "standalone/Bff2_0.txt"};
+  string WEIGHT_FILES[N_PHASES] = {"standalone/Wq_0.txt", "standalone/Wk_0.txt", "standalone/V.txt", "standalone/Kp_in_0.txt", "standalone/Wo_0.txt", "standalone/Wff_0.txt", "standalone/Wff2_0.txt"};
   string ATTENTION_WEIGHT_FILES[1] = {"standalone/Vp_in_0.txt"};
-  string OUTPUT_FILES[N_PHASES] = {"standalone/Qp_0.txt", "standalone/Kp_0.txt", "standalone/Vp_0.txt", "standalone/A_0.txt", "standalone/Out_soft_0.txt"};
+  string OUTPUT_FILES[N_PHASES] = {"standalone/Qp_0.txt", "standalone/Kp_0.txt", "standalone/Vp_0.txt", "standalone/A_0.txt", "standalone/Out_soft_0.txt", "standalone/FFp_0.txt", "standalone/FF2p_0.txt"};
   string ATTENTION_OUTPUT_FILES[2] = {"standalone/A_0.txt", "standalone/O_soft_0.txt"};
   string gelu_one_file = "GELU_ONE.txt";
   string gelu_b_file = "GELU_B.txt";
@@ -95,13 +95,14 @@ module ita_tb;
     N_ENTRIES_PER_SEQUENCE_DIM = N_ENTRIES_PER_TILE * N_TILES_SEQUENCE_DIM;
     N_ATTENTION_TILE_ROWS = N_TILES_SEQUENCE_DIM;
     N_GROUPS = 2 * N_ATTENTION_TILE_ROWS;
+    N_TILES_FEEDFORWARD = FEEDFORWARD_SIZE / M_TILE_LEN;
     N_TILES_INNER_DIM_LINEAR_PROJECTION[0] = N_TILES_EMBEDDING_DIM;
     N_TILES_INNER_DIM_LINEAR_PROJECTION[1] = N_TILES_EMBEDDING_DIM;
     N_TILES_INNER_DIM_LINEAR_PROJECTION[2] = N_TILES_EMBEDDING_DIM;
     N_TILES_INNER_DIM_LINEAR_PROJECTION[3] = '0; // Not used, no bias
     N_TILES_INNER_DIM_LINEAR_PROJECTION[4] = N_TILES_PROJECTION_DIM;
     N_TILES_INNER_DIM_LINEAR_PROJECTION[5] = N_TILES_EMBEDDING_DIM;
-    N_TILES_FEEDFORWARD = FEEDFORWARD_SIZE / M_TILE_LEN;
+    N_TILES_INNER_DIM_LINEAR_PROJECTION[6] = N_TILES_FEEDFORWARD;
   end
 
   clk_rst_gen #(
@@ -523,6 +524,18 @@ task automatic apply_ITA_weights(input integer phase);
 
       @(posedge clk);
       #(APPL_DELAY);
+      ita_ctrl.start = 1'b1;
+      ita_ctrl.layer = Feedforward;
+      ita_ctrl.activation = Identity;
+      ita_ctrl.tile_e = N_TILES_FEEDFORWARD;
+      ita_ctrl.tile_f = N_TILES_EMBEDDING_DIM;
+
+      @(posedge clk);
+      #(APPL_DELAY);
+      apply_ITA_inputs(6);
+
+      @(posedge clk);
+      #(APPL_DELAY);
       inp = '0;
       inp_valid = 1'b0;
       #(100*CLK_PERIOD);
@@ -546,6 +559,10 @@ task automatic apply_ITA_weights(input integer phase);
       @(posedge clk);
       #(APPL_DELAY);
       apply_ITA_weights(5);
+
+      @(posedge clk);
+      #(APPL_DELAY);
+      apply_ITA_weights(6);
 
       @(posedge clk);
       #(APPL_DELAY);
@@ -577,6 +594,9 @@ task automatic apply_ITA_weights(input integer phase);
 
       @(posedge clk);
       check_ITA_outputs(5);
+
+      @(posedge clk);
+      check_ITA_outputs(6);
     end
 
     #(50*CLK_PERIOD);
