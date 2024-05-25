@@ -25,12 +25,12 @@ module ita_tb;
   string ATTENTION_WEIGHT_FILES[1] = {"standalone/Vp_in_0.txt"};
   string OUTPUT_FILES[5] = {"standalone/Qp_0.txt", "standalone/Kp_0.txt", "standalone/Vp_0.txt", "standalone/A_0.txt", "standalone/Out_soft_0.txt"};
   string ATTENTION_OUTPUT_FILES[2] = {"standalone/A_0.txt", "standalone/O_soft_0.txt"};
-  string constant_one_file = "GELU_ONE.txt";
-  string constant_b_file = "GELU_B.txt";
-  string constant_c_file = "GELU_C.txt";
-  string constant_rqs_mul_file = "GELU_RQS_MUL.txt";
-  string constant_rqs_shift_file = "GELU_RQS_SHIFT.txt";
-  string constant_add_file = "GELU_RQS_ADD.txt";
+  string gelu_one_file = "GELU_ONE.txt";
+  string gelu_b_file = "GELU_B.txt";
+  string gelu_c_file = "GELU_C.txt";
+  string activation_requant_mult_file = "activation_requant_mult.txt";
+  string activation_requant_shift_file = "activation_requant_shift.txt";
+  string activation_requant_add_file = "activation_requant_add.txt";
 
   // Parameters
   integer N_PE, M_TILE_LEN;
@@ -262,12 +262,12 @@ task automatic read_gelu_constants(
   integer add_fd;
   int return_code;
 
-  one_fd = open_stim_file(constant_one_file);
-  b_fd = open_stim_file(constant_b_file);
-  c_fd = open_stim_file(constant_c_file);
-  rqs_mul_fd = open_stim_file(constant_rqs_mul_file);
-  rqs_shift_fd = open_stim_file(constant_rqs_shift_file);
-  add_fd = open_stim_file(constant_add_file);
+  one_fd = open_stim_file(gelu_one_file);
+  b_fd = open_stim_file(gelu_b_file);
+  c_fd = open_stim_file(gelu_c_file);
+  rqs_mul_fd = open_stim_file(activation_requant_mult_file);
+  rqs_shift_fd = open_stim_file(activation_requant_shift_file);
+  add_fd = open_stim_file(activation_requant_add_file);
 
   return_code = $fscanf(one_fd, "%d", gelu_one);
   return_code = $fscanf(b_fd, "%d", gelu_b);
