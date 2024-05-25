@@ -16,14 +16,15 @@ module ita_tb;
   // Set to 1 to run the simulation without stalls
   localparam unsigned CONT            = `ifdef NO_STALLS `NO_STALLS `else 0 `endif;
   localparam unsigned ITERS           = 1;
+  localparam unsigned N_PHASES        = 6;
 
   // Stimuli files
-  string INPUT_FILES[5] = {"standalone/Q.txt", "standalone/K.txt", "standalone/Wv_0.txt", "standalone/Qp_in_0.txt", "standalone/O_soft_in_0.txt"};
+  string INPUT_FILES[N_PHASES] = {"standalone/Q.txt", "standalone/K.txt", "standalone/Wv_0.txt", "standalone/Qp_in_0.txt", "standalone/O_soft_in_0.txt"};
   string ATTENTION_INPUT_FILES[1] = {"standalone/A_stream_soft_in_0.txt"};
-  string INPUT_BIAS_FILES[5] = {"standalone/Bq_0.txt", "standalone/Bk_0.txt", "standalone/Bv_0.txt", "", "standalone/Bo_0.txt"};
-  string WEIGHT_FILES[5] = {"standalone/Wq_0.txt", "standalone/Wk_0.txt", "standalone/V.txt", "standalone/Kp_in_0.txt", "standalone/Wo_0.txt"};
+  string INPUT_BIAS_FILES[N_PHASES] = {"standalone/Bq_0.txt", "standalone/Bk_0.txt", "standalone/Bv_0.txt", "", "standalone/Bo_0.txt"};
+  string WEIGHT_FILES[N_PHASES] = {"standalone/Wq_0.txt", "standalone/Wk_0.txt", "standalone/V.txt", "standalone/Kp_in_0.txt", "standalone/Wo_0.txt"};
   string ATTENTION_WEIGHT_FILES[1] = {"standalone/Vp_in_0.txt"};
-  string OUTPUT_FILES[5] = {"standalone/Qp_0.txt", "standalone/Kp_0.txt", "standalone/Vp_0.txt", "standalone/A_0.txt", "standalone/Out_soft_0.txt"};
+  string OUTPUT_FILES[N_PHASES] = {"standalone/Qp_0.txt", "standalone/Kp_0.txt", "standalone/Vp_0.txt", "standalone/A_0.txt", "standalone/Out_soft_0.txt"};
   string ATTENTION_OUTPUT_FILES[2] = {"standalone/A_0.txt", "standalone/O_soft_0.txt"};
   string gelu_one_file = "GELU_ONE.txt";
   string gelu_b_file = "GELU_B.txt";
@@ -37,10 +38,11 @@ module ita_tb;
   integer N_ENTRIES_PER_TILE;
   integer SEQUENCE_LEN, PROJECTION_SIZE, EMBEDDING_SIZE, FEEDFORWARD_SIZE;
   integer N_TILES_SEQUENCE_DIM, N_TILES_EMBEDDING_DIM, N_TILES_PROJECTION_DIM;
+  integer N_TILES_FEEDFORWARD;
   integer N_TILES_LINEAR_PROJECTION, N_TILES_ATTENTION;
   integer N_TILES_LINEAR_OUTPUT;
   integer N_ENTRIES_LINEAR_OUTPUT, N_ENTRIES_PER_PROJECTION_DIM, N_ENTRIES_PER_SEQUENCE_DIM;
-  integer N_TILES_INNER_DIM_LINEAR_PROJECTION[5];
+  integer N_TILES_INNER_DIM_LINEAR_PROJECTION[N_PHASES];
   integer N_ATTENTION_TILE_ROWS, N_GROUPS;
   activation_e ACTIVATION;
 
@@ -98,6 +100,8 @@ module ita_tb;
     N_TILES_INNER_DIM_LINEAR_PROJECTION[2] = N_TILES_EMBEDDING_DIM;
     N_TILES_INNER_DIM_LINEAR_PROJECTION[3] = '0; // Not used, no bias
     N_TILES_INNER_DIM_LINEAR_PROJECTION[4] = N_TILES_PROJECTION_DIM;
+    N_TILES_INNER_DIM_LINEAR_PROJECTION[5] = N_TILES_EMBEDDING_DIM;
+    N_TILES_FEEDFORWARD = FEEDFORWARD_SIZE / M_TILE_LEN;
   end
 
   clk_rst_gen #(
@@ -400,17 +404,17 @@ task automatic apply_ITA_weights(input integer phase);
 
       case(phase)
         0 : begin
-          for (int j = 0; j < 6; j++) begin
+          for (int j = 0; j < N_REQUANT_CONSTS; j++) begin
             ret_code = $fscanf(stim_fd_rqs, "%d\n", ita_ctrl.eps_mult[j]);
           end
         end
         1 : begin
-          for (int j = 0; j < 6; j++) begin
+          for (int j = 0; j < N_REQUANT_CONSTS; j++) begin
             ret_code = $fscanf(stim_fd_rqs, "%d\n", ita_ctrl.right_shift[j]);
           end
         end
         2 : begin
-          for (int j = 0; j < 6; j++) begin
+          for (int j = 0; j < N_REQUANT_CONSTS; j++) begin
             ret_code = $fscanf(stim_fd_rqs, "%d\n", ita_ctrl.add[j]);
           end
         end
@@ -479,8 +483,8 @@ task automatic apply_ITA_weights(input integer phase);
     ita_ctrl.tile_e = N_TILES_EMBEDDING_DIM;
     ita_ctrl.tile_p = N_TILES_PROJECTION_DIM;
     ita_ctrl.tile_s = N_TILES_SEQUENCE_DIM;
+    ita_ctrl.tile_f = N_TILES_FEEDFORWARD;
 
-    ita_ctrl.activation = Identity;
     read_gelu_constants(ita_ctrl.gelu_one, ita_ctrl.gelu_b, ita_ctrl.gelu_c, ita_ctrl.activation_requant_mult, ita_ctrl.activation_requant_shift, ita_ctrl.activation_requant_add);
 
     inp_valid = 1'b0;
@@ -494,6 +498,8 @@ task automatic apply_ITA_weights(input integer phase);
       @(posedge clk);
       #(APPL_DELAY);
       ita_ctrl.start = 1'b1;
+      ita_ctrl.layer = Attention;
+      ita_ctrl.activation = Identity;
       stim_applied = 1;
 
       @(posedge clk);
@@ -501,13 +507,19 @@ task automatic apply_ITA_weights(input integer phase);
       ita_ctrl.start = 1'b0;
 
       for (int phase = 0; phase < 5; phase++) begin
-        if (phase == 4) begin
-          ita_ctrl.activation = ACTIVATION;
-        end else begin
-          ita_ctrl.activation = Identity;
-        end
         apply_ITA_inputs(phase);
       end
+
+      @(posedge clk);
+      #(APPL_DELAY);
+      ita_ctrl.start = 1'b1;
+      ita_ctrl.layer = Feedforward;
+      ita_ctrl.activation = Identity;
+
+      @(posedge clk);
+      #(APPL_DELAY);
+      ita_ctrl.start = 1'b0;
+      apply_ITA_inputs(5);
 
       @(posedge clk);
       #(APPL_DELAY);
@@ -530,6 +542,10 @@ task automatic apply_ITA_weights(input integer phase);
       for (int phase = 0; phase < 5; phase++) begin
         apply_ITA_weights(phase);
       end
+
+      @(posedge clk);
+      #(APPL_DELAY);
+      apply_ITA_weights(5);
 
       @(posedge clk);
       #(APPL_DELAY);
@@ -558,6 +574,9 @@ task automatic apply_ITA_weights(input integer phase);
       for (int phase = 0; phase < 5; phase++) begin
         check_ITA_outputs(phase);
       end
+
+      @(posedge clk);
+      check_ITA_outputs(5);
     end
 
     #(50*CLK_PERIOD);
