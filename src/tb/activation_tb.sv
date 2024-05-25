@@ -14,15 +14,15 @@ module activation_tb;
   localparam time ACQ_DELAY           = 1600ps;
   localparam unsigned RST_CLK_CYCLES  = 10;
 
-  string constant_one_file = "GELU_ONE.txt";
-  string constant_b_file = "GELU_B.txt";
-  string constant_c_file = "GELU_C.txt";
-  string constant_rqs_mul_file = "GELU_RQS_MUL.txt";
-  string constant_rqs_shift_file = "GELU_RQS_SHIFT.txt";
-  string constant_add_file = "GELU_RQS_ADD.txt";
+  string gelu_one_file = "GELU_ONE.txt";
+  string gelu_b_file = "GELU_B.txt";
+  string gelu_c_file = "GELU_C.txt";
   string input_file = "standalone/preactivation.txt";
   string gelu_output_file = "standalone/gelu.txt";
   string relu_output_file = "standalone/relu.txt";
+  string activation_requant_mult_file = "activation_requant_mult.txt";
+  string activation_requant_shift_file = "activation_requant_shift.txt";
+  string activation_requant_add_file = "activation_requant_add.txt";
 
   integer N_PE, M_TILE_LEN;
   integer SEQUENCE_LEN, PROJECTION_SIZE, EMBEDDING_SIZE, FEEDFORWARD_SIZE;
@@ -146,12 +146,12 @@ module activation_tb;
     integer add_fd;
     int return_code;
 
-    one_fd = open_stim_file(constant_one_file);
-    b_fd = open_stim_file(constant_b_file);
-    c_fd = open_stim_file(constant_c_file);
-    rqs_mul_fd = open_stim_file(constant_rqs_mul_file);
-    rqs_shift_fd = open_stim_file(constant_rqs_shift_file);
-    add_fd = open_stim_file(constant_add_file);
+    one_fd = open_stim_file(gelu_one_file);
+    b_fd = open_stim_file(gelu_b_file);
+    c_fd = open_stim_file(gelu_c_file);
+    rqs_mul_fd = open_stim_file(activation_requant_mult_file);
+    rqs_shift_fd = open_stim_file(activation_requant_shift_file);
+    add_fd = open_stim_file(activation_requant_add_file);
 
     return_code = $fscanf(one_fd, "%d", gelu_one);
     return_code = $fscanf(b_fd, "%d", gelu_b);
