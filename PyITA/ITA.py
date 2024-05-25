@@ -509,24 +509,23 @@ class Transformer:
         self.tiler_AV(self.A_requant, np.transpose(self.Vp_requant, (0, 2, 1)), self.O_soft_requant, "A_stream_soft_in",
                       "Vp_in", "O_soft")
 
-def apply_activation(self, preactivation, activation):
-    postactivation = preactivation.copy()
-    for h in range(preactivation.shape[0]):
-        for i in range(preactivation.shape[1]):
-            for j in range(preactivation.shape[2]):
-                if activation == "gelu":
-                    postactivation[h, i, j] = i_gelu_requantized(preactivation[h, i, j], self.q_1, self.q_b,
-                                                                    self.q_c, self.gelu_rqs_mul, self.gelu_rqs_shift,
-                                                                    self.gelu_rqs_add)
-                elif activation == "relu":
-                    postactivation[h, i, j] = preactivation[h, i, j] if preactivation[h, i, j] > 0 else 0
-                    postactivation[h, i, j] = gelu_requantize(postactivation[h, i, j], self.gelu_rqs_mul,
-                                                            self.gelu_rqs_shift, self.gelu_rqs_add)
-                elif activation == "identity":
-                    postactivation[h, i, j] = preactivation[h, i, j]
-                else:
-                    raise ValueError("Activation function not supported")
-    return postactivation
+    def apply_activation(self, preactivation, activation):
+        if activation not in ["gelu", "relu", "identity"]:
+            raise ValueError("Activation function not supported")
+
+        if activation == "gelu":
+            vectorized_gelu = np.vectorize(i_gelu_requantized)
+            postactivation = vectorized_gelu(preactivation, self.q_1, self.q_b, self.q_c, self.gelu_rqs_mul,
+                                             self.gelu_rqs_shift, self.gelu_rqs_add)
+        elif activation == "relu":
+            postactivation = np.maximum(preactivation, 0)
+            vectorized_requantize = np.vectorize(gelu_requantize)
+            postactivation = vectorized_requantize(postactivation, self.gelu_rqs_mul, self.gelu_rqs_shift,
+                                                   self.gelu_rqs_add)
+        elif activation == "identity":
+            postactivation = preactivation.copy()
+
+        return postactivation
 
     def step6_O(self):
         self.Out_soft = np.matmul(self.O_soft_requant, self.Wo, dtype = np.int32) + self.Bo_broadcast
