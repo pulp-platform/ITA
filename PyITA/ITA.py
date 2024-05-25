@@ -509,30 +509,31 @@ class Transformer:
         self.tiler_AV(self.A_requant, np.transpose(self.Vp_requant, (0, 2, 1)), self.O_soft_requant, "A_stream_soft_in",
                       "Vp_in", "O_soft")
 
+def apply_activation(self, preactivation, activation):
+    postactivation = preactivation.copy()
+    for h in range(preactivation.shape[0]):
+        for i in range(preactivation.shape[1]):
+            for j in range(preactivation.shape[2]):
+                if activation == "gelu":
+                    postactivation[h, i, j] = i_gelu_requantized(preactivation[h, i, j], self.q_1, self.q_b,
+                                                                    self.q_c, self.gelu_rqs_mul, self.gelu_rqs_shift,
+                                                                    self.gelu_rqs_add)
+                elif activation == "relu":
+                    postactivation[h, i, j] = preactivation[h, i, j] if preactivation[h, i, j] > 0 else 0
+                    postactivation[h, i, j] = gelu_requantize(postactivation[h, i, j], self.gelu_rqs_mul,
+                                                            self.gelu_rqs_shift, self.gelu_rqs_add)
+                elif activation == "identity":
+                    postactivation[h, i, j] = preactivation[h, i, j]
+                else:
+                    raise ValueError("Activation function not supported")
+    return postactivation
+
     def step6_O(self):
         self.Out_soft = np.matmul(self.O_soft_requant, self.Wo, dtype = np.int32) + self.Bo_broadcast
         self.Out_soft = np.clip(self.Out_soft, -2**(self.WO - 1), 2**(self.WO - 1) - 1)
-        self.Out_soft_requant = requantize(self.Out_soft, self.requant_eps_mult[5], self.requant_right_shift[5],
-                                           self.requant_add[5])
-
-        self.postactivation = self.Out_soft_requant.copy()
-        for h in range(self.H):
-            for i in range(self.Out_soft_requant[h].shape[0]):
-                for j in range(self.Out_soft_requant[h].shape[1]):
-                    if self.activation == "gelu":
-                        self.postactivation[h, i, j] = i_gelu_requantized(self.Out_soft_requant[h, i, j], self.q_1,
-                                                                          self.q_b, self.q_c, self.gelu_rqs_mul,
-                                                                          self.gelu_rqs_shift, self.gelu_rqs_add)
-                    elif self.activation == "relu":
-                        self.postactivation[h, i, j] = self.Out_soft_requant[h, i,
-                                                                             j] if self.Out_soft_requant[h, i,
-                                                                                                         j] > 0 else 0
-                        self.postactivation[h, i, j] = gelu_requantize(self.postactivation[h, i, j], self.gelu_rqs_mul,
-                                                                  self.gelu_rqs_shift, self.gelu_rqs_add)
-                    elif self.activation == "identity":
-                        self.postactivation[h, i, j] = self.Out_soft_requant[h, i, j]
-                    else:
-                        raise ValueError("Activation function not supported")
+        self.Out_soft_requant = self.requantize(self.Out_soft, self.requant_eps_mult[5], self.requant_right_shift[5],
+                                                 self.requant_add[5])
+        self.postactivation = self.apply_activation(self.Out_soft_requant, self.activation)
         self.tiler_Out(self.O_soft_requant, self.Wo, self.Bo, self.postactivation, "O_soft_in", "Wo", "Bo", "Out_soft")
 
     def step7_Osum(self):
