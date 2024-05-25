@@ -481,7 +481,7 @@ task automatic apply_ITA_weights(input integer phase);
     ita_ctrl.tile_s = N_TILES_SEQUENCE_DIM;
 
     ita_ctrl.activation = IDENTITY;
-    read_gelu_constants(ita_ctrl.gelu_one, ita_ctrl.gelu_b, ita_ctrl.gelu_c, ita_ctrl.gelu_requant_mult, ita_ctrl.gelu_requant_shift, ita_ctrl.gelu_requant_add);
+    read_gelu_constants(ita_ctrl.gelu_one, ita_ctrl.gelu_b, ita_ctrl.gelu_c, ita_ctrl.activation_requant_mult, ita_ctrl.activation_requant_shift, ita_ctrl.activation_requant_add);
 
     inp_valid = 1'b0;
     inp = '0;

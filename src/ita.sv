@@ -290,9 +290,9 @@ module ita
     .b_i           (ctrl_i.gelu_b  ),
     .c_i           (ctrl_i.gelu_c  ),
     .requant_mode  (requant_mode  ),
-    .requant_mult_i    (ctrl_i.gelu_requant_mult),
-    .requant_shift_i (ctrl_i.gelu_requant_shift),
-    .requant_add_i         (ctrl_i.gelu_requant_add),
+    .requant_mult_i    (ctrl_i.activation_requant_mult),
+    .requant_shift_i (ctrl_i.activation_requant_shift),
+    .requant_add_i         (ctrl_i.activation_requant_add),
     .data_i        (requant_oup),
     .data_o        (post_activation)
   );
