@@ -8,7 +8,7 @@ module ita_requantizer
 (
   input  logic           clk_i        ,
   input  logic           rst_ni       ,
-  input  logic           mode_i       ,
+  input  requant_mode_e  mode_i       ,
   input  requant_const_t eps_mult_i   ,
   input  requant_const_t right_shift_i,
   input  logic           calc_en_i    ,
@@ -34,7 +34,7 @@ module ita_requantizer
     shifted_added = '0;
 
     for (int i = 0; i < N; i++) begin
-      if (mode_i) begin
+      if (mode_i === UNSIGNED) begin
         mult_signed = {1'b0, result_i[i]};
       end else begin
         mult_signed = signed'(result_i[i]);
