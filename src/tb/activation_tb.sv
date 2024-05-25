@@ -13,7 +13,6 @@ module activation_tb;
   localparam time APPL_DELAY          = 400ps;
   localparam time ACQ_DELAY           = 1600ps;
   localparam unsigned RST_CLK_CYCLES  = 10;
-  localparam logic requant_mode       = 1'b0;
 
   string constant_one_file = "GELU_ONE.txt";
   string constant_b_file = "GELU_B.txt";
@@ -79,13 +78,13 @@ module activation_tb;
     .b_i          (gelu_b    ),
     .c_i          (gelu_c    ),
     .data_i       (preactivation_input),
-    .requant_mode(requant_mode),
+    .activation_i (selected_activation),
+    .requant_mode_i (requant_mode_e'(REQUANT_MODE)),
     .requant_mult_i   (activation_requant_mult),
     .requant_shift_i(activation_requant_shift),
-    .activation_i (selected_activation),
+    .requant_add_i        (activation_requant_add  ),
     .calc_en_i   (1'b1),
     .calc_en_q_i (1'b1),
-    .requant_add_i        (activation_requant_add  ),
     .data_o       (acquired_postactivation)
   );
 
