@@ -557,6 +557,7 @@ class Transformer:
         self.FFp = np.clip(self.FFp, -2**(self.WO - 1), 2**(self.WO - 1) - 1)
         self.FFp_requant = self.requantize(self.FFp, self.requant_eps_mult[0], self.requant_right_shift[0],
                                             self.requant_add[0])
+        self.FFp_requant = self.apply_activation(self.FFp_requant, self.activation)
 
         self.tiler_QK(self.FF, self.Wff, self.Bff, self.FFp_requant, "FF", "Wff", "Bff", "FFp")
 
