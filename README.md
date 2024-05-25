@@ -56,6 +56,11 @@ $> source venv/bin/activate
 $> pip install -r requirements.txt
 ```
 
+If you want to enable pre-commit hooks, which perform code formatting and linting, run the following command:
+```sh
+$> pre-commit install
+```
+
 In case you want to compare the softmax implementation with the QuantLib implementation, you need to install the QuantLib library and additional dependencies. To do so, create a virtual environment:
 
 ```sh

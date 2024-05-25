@@ -11,3 +11,4 @@ matplotlib
 torch
 pytest
 pytest-check
+pre-commit
