@@ -67,6 +67,7 @@ class Transformer:
         self.S_ITA = max(64, S)
         self.P_ITA = max(64, P)
         self.E_ITA = max(64, E)
+        self.F_ITA = max(64, F)
         self.H_ITA = 4
         self.split = self.ITA_M // self.ITA_N
 
@@ -138,6 +139,9 @@ class Transformer:
         self.K_in = self.V_in
         self.K = self.V
 
+        self.FF_in = np.random.randint(-128, 127, size = (S, E), dtype = np.int8)
+        self.FF = np.pad(self.FF_in, ((0, self.S_ITA - S), (0, self.E_ITA - E)))
+
         #### Weight matrices ####
         self.Wq_in = random_shuffled_tensor((self.H, self.E, self.P), self.WI - 1) if Wq is None else Wq
         self.Wq = np.pad(self.Wq_in, ((0, 0), (0, self.E_ITA - self.E), (0, self.P_ITA - self.P)))
@@ -150,6 +154,9 @@ class Transformer:
 
         self.Wo_in = random_shuffled_tensor((self.H, self.P, self.E), self.WI - 1) if Wo is None else Wo
         self.Wo = np.pad(self.Wo_in, ((0, 0), (0, self.P_ITA - self.P), (0, self.E_ITA - self.E)))
+
+        self.Wff_in = np.random.randint(-128, 127, size = (H, E, F), dtype = np.int8)
+        self.Wff = np.pad(self.Wff_in, ((0, 0), (0, self.E_ITA - E), (0, self.F_ITA - F)))
 
         #### Bias matrices ####
         if self.bias:
@@ -184,6 +191,14 @@ class Transformer:
         self.Bo = np.pad(self.Bo_in, ((0, 0), (0, self.E_ITA - self.E)))
         self.Bo_broadcast = np.reshape(np.repeat(self.Bo, self.S, axis = 0), (self.H, self.S, self.E))
 
+        if self.bias:
+            self.Bff_in = np.random.randint(-2**(self.WO - 3), 2**(self.WO - 3) - 1, size = (H, F), dtype = np.int32)
+        else:
+            self.Bff_in = np.zeros((H, F), dtype = np.int8)
+        self.Bff = np.pad(self.Bff_in, ((0, 0), (0, self.F_ITA - F)))
+        self.Bff_broadcast = np.reshape(np.repeat(self.Bff, self.S, axis = 0), (self.H, self.S, self.F))
+
+
         #### Intermediate tensors ####
 
         self.Qp = None
@@ -192,6 +207,8 @@ class Transformer:
         self.Kp_requant = None
         self.Vp = None
         self.Vp_requant = None
+        self.FFp = None
+        self.FFp_requant = None
 
         self.A = None
         self.A_requant = None
@@ -246,9 +263,9 @@ class Transformer:
         CLIP_LO = -4
         D = 2**20
 
-        S, _ = get_almost_symmetric_scaling_factor(CLIP_LO, n_bits = 8)
+        gelu_eps_mult, _ = get_almost_symmetric_scaling_factor(CLIP_LO, n_bits = 8)
         self.q_1, self.q_b, self.q_c, _, _, _, self.gelu_rqs_mul, self.gelu_rqs_shift, self.gelu_rqs_add, S_out = get_i_gelu_requantized_constants(
-            S, D)
+            gelu_eps_mult, D)
 
         self.write_matrix([[self.q_1]], "GELU_ONE", self.paths["base"])
         self.write_matrix([[self.q_b]], "GELU_B", self.paths["base"])
@@ -532,8 +549,16 @@ class Transformer:
         self.Out_soft = np.clip(self.Out_soft, -2**(self.WO - 1), 2**(self.WO - 1) - 1)
         self.Out_soft_requant = self.requantize(self.Out_soft, self.requant_eps_mult[5], self.requant_right_shift[5],
                                                  self.requant_add[5])
-        self.postactivation = self.apply_activation(self.Out_soft_requant, self.activation)
-        self.tiler_Out(self.O_soft_requant, self.Wo, self.Bo, self.postactivation, "O_soft_in", "Wo", "Bo", "Out_soft")
+        self.tiler_Out(self.O_soft_requant, self.Wo, self.Bo, self.Out_soft_requant, "O_soft_in", "Wo", "Bo",
+                       "Out_soft")
+
+    def feedforward_layer(self):
+        self.FFp = np.matmul(self.FF, self.Wff, dtype = np.int32) + self.Bff_broadcast
+        self.FFp = np.clip(self.FFp, -2**(self.WO - 1), 2**(self.WO - 1) - 1)
+        self.FFp_requant = self.requantize(self.FFp, self.requant_eps_mult[0], self.requant_right_shift[0],
+                                            self.requant_add[0])
+
+        self.tiler_QK(self.FF, self.Wff, self.Bff, self.FFp_requant, "FF", "Wff", "Bff", "FFp")
 
     def step7_Osum(self):
         self.Out_soft_sum = np.sum(self.Out_soft_requant, axis = 0, dtype = np.int32, keepdims = True)
@@ -1046,6 +1071,7 @@ def generateTestVectors(path, **kwargs):
     acc1.step5_AV()
     acc1.step6_O()
     acc1.step7_Osum()
+    acc1.feedforward_layer()
     acc1.test_activations()
 
     acc1.export_mempool(kwargs['mem_path'])
