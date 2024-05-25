@@ -13,6 +13,7 @@ def pretty_print(x, x_q, S, res_q, res_S, deq_res, exp_res):
         f"x={x:>10.2f}, x_q={x_q:>10}, S={S:>10.1g}, res_q={res_q:>10}, res_S={res_S:>10.1g}, deq_res={deq_res:>10.2f}, exp_res={exp_res:>10.2f}, abs_err={(np.abs(deq_res - exp_res)):>10.3f}"
     )
 
+plot_dir = "./plots"
 
 def plot(data: pd.DataFrame, title: str, quantized_y_label: str, expected_y_label: str, alpha: float):
     l2_error = np.linalg.norm(data['deq_res'] - data['exp_res']) / len(data)
@@ -32,7 +33,8 @@ def plot(data: pd.DataFrame, title: str, quantized_y_label: str, expected_y_labe
 
     ax.set_xlabel('$x$')
     ax.set_ylabel('Value')
-    plt.savefig(f'{title}.png')
+    filename = os.path.join(plot_dir, f'{title}.png')
+    plt.savefig(filename)
 
 def test_i_gelu_requant():
     n_bits = 8
