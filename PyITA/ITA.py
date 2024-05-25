@@ -253,9 +253,9 @@ class Transformer:
         self.write_matrix([[self.q_1]], "GELU_ONE", self.paths["base"])
         self.write_matrix([[self.q_b]], "GELU_B", self.paths["base"])
         self.write_matrix([[self.q_c]], "GELU_C", self.paths["base"])
-        self.write_matrix([[self.gelu_rqs_mul]], "GELU_RQS_MUL", self.paths["base"])
-        self.write_matrix([[self.gelu_rqs_shift]], "GELU_RQS_SHIFT", self.paths["base"])
-        self.write_matrix([[self.gelu_rqs_add]], "GELU_RQS_ADD", self.paths["base"])
+        self.write_matrix([[self.gelu_rqs_mul]], "activation_requant_mult", self.paths["base"])
+        self.write_matrix([[self.gelu_rqs_shift]], "activation_requant_shift", self.paths["base"])
+        self.write_matrix([[self.gelu_rqs_add]], "activation_requant_add", self.paths["base"])
 
     def _init_paths(self, base_path: Union[str, os.PathLike]):
         self.paths = {
