@@ -34,7 +34,7 @@ module ita
 
   step_e  step, step_q1, step_q2, step_q3, step_q4, step_q5, step_q6;
   logic   calc_en, calc_en_q1, calc_en_q2, calc_en_q3, calc_en_q4, calc_en_q5, calc_en_q6, calc_en_q7, calc_en_q8;
-  logic   first_inner_tile, first_inner_tile_q1, first_inner_tile_q2, first_inner_tile_q3, first_inner_tile_q4, first_inner_tile_q5;
+  logic   first_inner_tile, first_inner_tile_q1, first_inner_tile_q2, first_inner_tile_q3;
   logic   last_inner_tile, last_inner_tile_q1, last_inner_tile_q2, last_inner_tile_q3, last_inner_tile_q4, last_inner_tile_q5, last_inner_tile_q6, last_inner_tile_q7, last_inner_tile_q8;
 
   logic         weight_valid, weight_ready;
@@ -74,8 +74,6 @@ module ita
       calc_en_q3            <= 0;
       calc_en_q2            <= 0;
       calc_en_q1            <= 0;
-      first_inner_tile_q5   <= 0;
-      first_inner_tile_q4   <= 0;
       first_inner_tile_q3   <= 0;
       first_inner_tile_q2   <= 0;
       first_inner_tile_q1   <= 0;
@@ -110,8 +108,6 @@ module ita
       calc_en_q3            <= calc_en_q2;
       calc_en_q2            <= calc_en_q1;
       calc_en_q1            <= calc_en;
-      first_inner_tile_q5   <= first_inner_tile_q4;
-      first_inner_tile_q4   <= first_inner_tile_q3;
       first_inner_tile_q3   <= first_inner_tile_q2;
       first_inner_tile_q2   <= first_inner_tile_q1;
       first_inner_tile_q1   <= first_inner_tile;
