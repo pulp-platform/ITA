@@ -181,7 +181,7 @@ module activation_tb;
       read_gelu_constants(gelu_one, gelu_b, gelu_c, gelu_requant_mult, gelu_requant_shift, gelu_requant_add);
     end
     
-    $display("Starting to apply activations for %s with latency %0d at cycle after %0d", activation, latency, $time);
+    $display("Starting to apply activations for %s with latency %0d after %0d", activation, latency, $time);
 
     while (!is_end_of_file) begin
       @(posedge clk);
@@ -242,7 +242,7 @@ module activation_tb;
     
     repeat(latency) @(posedge clk);
 
-    $display("Starting to check activations for %s with latency %0d at cycle after %0d", activation, latency, $time);
+    $display("Starting to check activations for %s with latency %0d after %0d", activation, latency, $time);
     
     while (!is_end_of_file) begin
       @(posedge clk);
