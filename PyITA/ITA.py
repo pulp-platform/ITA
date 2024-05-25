@@ -157,6 +157,8 @@ class Transformer:
 
         self.Wff_in = np.random.randint(-128, 127, size = (H, E, F), dtype = np.int8)
         self.Wff = np.pad(self.Wff_in, ((0, 0), (0, self.E_ITA - E), (0, self.F_ITA - F)))
+        self.Wff2_in = np.random.randint(-128, 127, size = (H, F, E), dtype = np.int8)
+        self.Wff2 = np.pad(self.Wff2_in, ((0, 0), (0, self.F_ITA - F), (0, self.E_ITA - E)))
 
         #### Bias matrices ####
         if self.bias:
@@ -197,6 +199,12 @@ class Transformer:
             self.Bff_in = np.zeros((H, F), dtype = np.int8)
         self.Bff = np.pad(self.Bff_in, ((0, 0), (0, self.F_ITA - F)))
         self.Bff_broadcast = np.reshape(np.repeat(self.Bff, self.S, axis = 0), (self.H, self.S, self.F))
+        if self.bias:
+            self.Bff2_in = np.random.randint(-2**(self.WO - 3), 2**(self.WO - 3) - 1, size = (H, E), dtype = np.int32)
+        else:
+            self.Bff2_in = np.zeros((H, E), dtype = np.int8)
+        self.Bff2 = np.pad(self.Bff2_in, ((0, 0), (0, self.E_ITA - E)))
+        self.Bff2_broadcast = np.reshape(np.repeat(self.Bff2, self.S, axis = 0), (self.H, self.S, self.E))
 
 
         #### Intermediate tensors ####
@@ -209,6 +217,8 @@ class Transformer:
         self.Vp_requant = None
         self.FFp = None
         self.FFp_requant = None
+        self.FF2p = None
+        self.FF2p_requant = None
 
         self.A = None
         self.A_requant = None
@@ -560,6 +570,13 @@ class Transformer:
         self.FFp_requant = self.apply_activation(self.FFp_requant, self.activation)
 
         self.tiler_QK(self.FF, self.Wff, self.Bff, self.FFp_requant, "FF", "Wff", "Bff", "FFp")
+
+        self.FF2p = np.matmul(self.FFp_requant, self.Wff2, dtype = np.int32) + self.Bff2_broadcast
+        self.FF2p = np.clip(self.FF2p, -2**(self.WO - 1), 2**(self.WO - 1) - 1)
+        self.FF2p_requant = self.requantize(self.FF2p, self.requant_eps_mult[1], self.requant_right_shift[1],
+                                             self.requant_add[1])
+
+        self.tiler_Out(self.FFp_requant, self.Wff2, self.Bff2, self.FF2p_requant, "FFp_in", "Wff2", "Bff2", "FF2p")
 
     def step7_Osum(self):
         self.Out_soft_sum = np.sum(self.Out_soft_requant, axis = 0, dtype = np.int32, keepdims = True)
