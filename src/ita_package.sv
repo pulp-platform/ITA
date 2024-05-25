@@ -32,7 +32,8 @@ package ita_package;
 
   parameter  int unsigned N_WRITE_EN     = `ifdef TARGET_ITA_HWPE 8 `else M `endif;
 
-  // Activation
+  // Feedforward
+  typedef enum {Attention=0, Feedforward=1} layer_t;
   typedef enum {Identity=0, Gelu=1, Relu=2} activation_e;
   typedef logic signed [GELU_CONSTANTS_WIDTH-1:0] gelu_const_t;
   typedef logic signed [GELU_OUT_WIDTH-1:0] gelu_out_t;
@@ -75,7 +76,7 @@ package ita_package;
   } write_port_t;
 
   // States
-  typedef enum {Idle=6, Q=0, K=1, V=2, QK=3, AV=4, OW=5} step_e;
+  typedef enum {Idle=0, Q=1, K=2, V=3, QK=4, AV=5, OW=6, FF=7} step_e;
 
   // Inputs and weights
   typedef logic signed [M-1:0][  WI-1:0] inp_t;
