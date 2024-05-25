@@ -34,7 +34,7 @@ module ita_requantizer
     shifted_added = '0;
 
     for (int i = 0; i < N; i++) begin
-      if (mode_i === UNSIGNED) begin
+      if (mode_i === Unsigned) begin
         mult_signed = {1'b0, result_i[i]};
       end else begin
         mult_signed = signed'(result_i[i]);

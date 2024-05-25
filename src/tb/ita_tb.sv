@@ -67,7 +67,7 @@ module ita_tb;
     PROJECTION_SIZE = `ifdef PROJ_SPACE `PROJ_SPACE `else M_TILE_LEN `endif;
     EMBEDDING_SIZE = `ifdef EMBED_SIZE `EMBED_SIZE `else M_TILE_LEN `endif;
     FEEDFORWARD_SIZE = `ifdef FF_SIZE `FF_SIZE `else M_TILE_LEN `endif;
-    ACTIVATION = activation_e'(`ifdef ACTIVATION `ACTIVATION `else IDENTITY `endif);
+    ACTIVATION = activation_e'(`ifdef ACTIVATION `ACTIVATION `else Identity `endif);
 
     simdir = {
       "../../simvectors/data_S",
@@ -480,7 +480,7 @@ task automatic apply_ITA_weights(input integer phase);
     ita_ctrl.tile_p = N_TILES_PROJECTION_DIM;
     ita_ctrl.tile_s = N_TILES_SEQUENCE_DIM;
 
-    ita_ctrl.activation = IDENTITY;
+    ita_ctrl.activation = Identity;
     read_gelu_constants(ita_ctrl.gelu_one, ita_ctrl.gelu_b, ita_ctrl.gelu_c, ita_ctrl.activation_requant_mult, ita_ctrl.activation_requant_shift, ita_ctrl.activation_requant_add);
 
     inp_valid = 1'b0;
@@ -504,7 +504,7 @@ task automatic apply_ITA_weights(input integer phase);
         if (phase == 4) begin
           ita_ctrl.activation = ACTIVATION;
         end else begin
-          ita_ctrl.activation = IDENTITY;
+          ita_ctrl.activation = Identity;
         end
         apply_ITA_inputs(phase);
       end

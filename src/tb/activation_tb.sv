@@ -115,15 +115,15 @@ module activation_tb;
 
   function automatic void read_postactivation(integer gelu_fd, integer relu_fd, input activation_e activation, input requant_oup_t preactivation, output requant_oup_t expected_postactivation);
     int return_code;
-    if (activation == GELU) begin
+    if (activation == Gelu) begin
       for (int i = 0; i < N_PE; i++) begin
         return_code = $fscanf(gelu_fd, "%d", expected_postactivation[i]);
       end
-    end else if (activation == RELU) begin
+    end else if (activation == Relu) begin
       for (int i = 0; i < N_PE; i++) begin
         return_code = $fscanf(relu_fd, "%d", expected_postactivation[i]);
       end
-    end else if (activation == IDENTITY) begin
+    end else if (activation == Identity) begin
       for (int i = 0; i < N_PE; i++) begin
         expected_postactivation[i] = preactivation[i];
       end
@@ -176,7 +176,7 @@ module activation_tb;
 
     input_fd = open_stim_file(input_file);
 
-    if (activation == GELU) begin
+    if (activation == Gelu) begin
       read_gelu_constants(gelu_one, gelu_b, gelu_c, activation_requant_mult, activation_requant_shift, activation_requant_add);
     end
 
@@ -205,9 +205,9 @@ module activation_tb;
 
     wait (rst_n);
 
-    apply_activations(IDENTITY, 2);
-    apply_activations(GELU, 2);
-    apply_activations(RELU, 2);
+    apply_activations(Identity, 2);
+    apply_activations(Gelu, 2);
+    apply_activations(Relu, 2);
 
     @(posedge clk);
   end : application_block
@@ -269,9 +269,9 @@ module activation_tb;
 
     wait (rst_n);
 
-    check_activations(IDENTITY, 2, n_checks, n_errors);
-    check_activations(GELU, 2, n_checks, n_errors);
-    check_activations(RELU, 2, n_checks, n_errors);
+    check_activations(Identity, 2, n_checks, n_errors);
+    check_activations(Gelu, 2, n_checks, n_errors);
+    check_activations(Relu, 2, n_checks, n_errors);
 
     @(posedge clk);
 

@@ -63,10 +63,10 @@ module ita_activation
 
   always_comb begin
     case (activation_i)
-      GELU: begin
+      Gelu: begin
         requant_in = gelu_out;
       end
-      RELU: begin
+      Relu: begin
         requant_in = relu_out_sign_ext;
       end
       default: begin
@@ -78,7 +78,7 @@ module ita_activation
 
   always_comb begin
     case (activation_q2)
-      GELU, RELU: begin
+      Gelu, Relu: begin
         data_o = requant_out;
       end
       default: begin
@@ -89,8 +89,8 @@ module ita_activation
 
   always_ff @(posedge clk_i) begin
     if (rst_ni == 0) begin
-      activation_q1 <= IDENTITY;
-      activation_q2 <= IDENTITY;
+      activation_q1 <= Identity;
+      activation_q2 <= Identity;
       data_q1 <= '0;
       data_q2 <= '0;
     end else begin

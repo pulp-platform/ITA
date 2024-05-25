@@ -33,7 +33,7 @@ package ita_package;
   parameter  int unsigned N_WRITE_EN     = `ifdef TARGET_ITA_HWPE 8 `else M `endif;
 
   // Activation
-  typedef enum {IDENTITY=0, GELU=1, RELU=2} activation_e;
+  typedef enum {Identity=0, Gelu=1, Relu=2} activation_e;
   typedef logic signed [GELU_CONSTANTS_WIDTH-1:0] gelu_const_t;
   typedef logic signed [GELU_OUT_WIDTH-1:0] gelu_out_t;
 
@@ -106,7 +106,7 @@ package ita_package;
   localparam int unsigned NumDiv = 5;
 
   // Requantizer
-  typedef enum {SIGNED=0, UNSIGNED=1} requant_mode_e;
-  localparam requant_mode_e REQUANT_MODE = SIGNED;
+  typedef enum {Signed=0, Unsigned=1} requant_mode_e;
+  localparam requant_mode_e REQUANT_MODE = Signed;
   typedef requant_t    [N-1:0]        requant_oup_t;
 endpackage : ita_package

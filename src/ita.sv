@@ -94,14 +94,14 @@ module ita
       step_q3               <= Idle;
       step_q2               <= Idle;
       step_q1               <= Idle;
-      activation_q8         <= IDENTITY;
-      activation_q7         <= IDENTITY;
-      activation_q6         <= IDENTITY;
-      activation_q5         <= IDENTITY;
-      activation_q4         <= IDENTITY;
-      activation_q3         <= IDENTITY;
-      activation_q2         <= IDENTITY;
-      activation_q1         <= IDENTITY;
+      activation_q8         <= Identity;
+      activation_q7         <= Identity;
+      activation_q6         <= Identity;
+      activation_q5         <= Identity;
+      activation_q4         <= Identity;
+      activation_q3         <= Identity;
+      activation_q2         <= Identity;
+      activation_q1         <= Identity;
     end else begin
       calc_en_q8            <= calc_en_q7;
       calc_en_q7            <= calc_en_q6;
