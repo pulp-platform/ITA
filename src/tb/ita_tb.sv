@@ -514,7 +514,7 @@ task automatic apply_ITA_weights(input integer phase);
       #(APPL_DELAY);
       ita_ctrl.start = 1'b1;
       ita_ctrl.layer = Feedforward;
-      ita_ctrl.activation = Identity;
+      ita_ctrl.activation = ACTIVATION;
 
       @(posedge clk);
       #(APPL_DELAY);
