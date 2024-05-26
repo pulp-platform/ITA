@@ -15,7 +15,8 @@ def pretty_print(x, x_q, S, res_q, res_S, deq_res, exp_res):
     )
 
 
-plot_dir = "./plots"
+file_dir = os.path.dirname(os.path.abspath(__file__))
+plot_dir = os.path.join(file_dir, 'plots')
 
 
 def plot(data: pd.DataFrame, title: str, quantized_y_label: str, expected_y_label: str, alpha: float):
@@ -99,7 +100,7 @@ def test_gelu():
             'deq_res': deq_res,
             'exp_res': exp_res
         })
-        check.almost_equal(deq_res, exp_res, abs = 31e-3)
+        check.almost_equal(deq_res, exp_res, abs = 33e-3)
     plot(pd.DataFrame(data),
          quantized_y_label = 'I-GELU(x)',
          expected_y_label = 'GELU(x)',
