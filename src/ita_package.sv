@@ -34,7 +34,7 @@ package ita_package;
   parameter  int unsigned N_WRITE_EN     = `ifdef TARGET_ITA_HWPE 8 `else M `endif;
 
   // Feedforward
-  typedef enum {Attention=0, Feedforward=1} layer_t;
+  typedef enum {Attention=0, Feedforward=1} layer_e;
   typedef enum {Identity=0, Gelu=1, Relu=2} activation_e;
   typedef logic signed [GELU_CONSTANTS_WIDTH-1:0] gelu_const_t;
   typedef logic signed [GELU_OUT_WIDTH-1:0] gelu_out_t;
@@ -55,7 +55,7 @@ package ita_package;
     proj_space_t                  proj_space  ;
     embed_size_t                  embed_size  ;
     n_heads_t                     n_heads     ;
-    layer_t                       layer       ;
+    layer_e                       layer       ;
     requant_const_array_t         eps_mult    ;
     requant_const_array_t         right_shift ;
     requant_array_t               add         ;
