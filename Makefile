@@ -21,8 +21,6 @@ target ?= sim_ita_tb
 
 no_stalls ?= 0
 s ?= 64
-p ?= 64
-e ?= 64
 e ?= 128
 p ?= 192
 f ?= 256
