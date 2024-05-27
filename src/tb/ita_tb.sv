@@ -251,13 +251,13 @@ function bit should_toggle_output(input bit input_file_index, input integer tile
     return is_last_entry_of_output_group(input_file_index, tile_entry) || is_last_entry_of_attention_group(input_file_index, tile_entry);
 endfunction
 
-task automatic read_gelu_constants(
+task automatic read_activation_constants(
   output gelu_const_t gelu_one,
   output gelu_const_t gelu_b,
   output gelu_const_t gelu_c,
-  output requant_const_t gelu_eps_mult,
-  output requant_const_t gelu_right_shift,
-  output requant_t gelu_add
+  output requant_const_t activation_requant_mult,
+  output requant_const_t activation_requant_shift,
+  output requant_t activation_requant_add
 );
   integer one_fd;
   integer b_fd;
@@ -277,9 +277,9 @@ task automatic read_gelu_constants(
   return_code = $fscanf(one_fd, "%d", gelu_one);
   return_code = $fscanf(b_fd, "%d", gelu_b);
   return_code = $fscanf(c_fd, "%d", gelu_c);
-  return_code = $fscanf(rqs_mul_fd, "%d", gelu_eps_mult);
-  return_code = $fscanf(rqs_shift_fd, "%d", gelu_right_shift);
-  return_code = $fscanf(add_fd, "%d", gelu_add);
+  return_code = $fscanf(rqs_mul_fd, "%d", activation_requant_mult);
+  return_code = $fscanf(rqs_shift_fd, "%d", activation_requant_shift);
+  return_code = $fscanf(add_fd, "%d", activation_requant_add);
 
   $fclose(one_fd);
   $fclose(b_fd);
@@ -486,7 +486,7 @@ task automatic apply_ITA_weights(input integer phase);
     ita_ctrl.tile_s = N_TILES_SEQUENCE_DIM;
     ita_ctrl.tile_f = N_TILES_FEEDFORWARD;
 
-    read_gelu_constants(ita_ctrl.gelu_one, ita_ctrl.gelu_b, ita_ctrl.gelu_c, ita_ctrl.activation_requant_mult, ita_ctrl.activation_requant_shift, ita_ctrl.activation_requant_add);
+    read_activation_constants(ita_ctrl.gelu_one, ita_ctrl.gelu_b, ita_ctrl.gelu_c, ita_ctrl.activation_requant_mult, ita_ctrl.activation_requant_shift, ita_ctrl.activation_requant_add);
 
     inp_valid = 1'b0;
     inp = '0;
