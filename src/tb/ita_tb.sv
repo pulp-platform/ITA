@@ -210,7 +210,7 @@ task automatic toggle_input(inout integer tile_entry, inout integer group, inout
   group += 1;
 endtask
 
-function integer get_random();
+function bit get_random();
     logic value;
     integer ret_code;
       if (CONT)
@@ -239,11 +239,11 @@ function bit did_finish_output_dot_product(input integer tile_entry);
     return tile_entry >= N_ENTRIES_PER_SEQUENCE_DIM;
 endfunction
 
-function bit is_last_entry_of_output_group(input integer input_file_index, input integer tile_entry);
+function bit is_last_entry_of_output_group(input bit input_file_index, input integer tile_entry);
     return is_output_group(input_file_index) && did_finish_output_dot_product(tile_entry);
 endfunction
 
-function bit is_last_entry_of_attention_group(input integer input_file_index, input integer tile_entry);
+function bit is_last_entry_of_attention_group(input bit input_file_index, input integer tile_entry);
     return is_attention_group(input_file_index) && did_finish_attention_dot_product(tile_entry);
 endfunction
 
@@ -255,8 +255,8 @@ task automatic read_gelu_constants(
   output gelu_const_t gelu_one,
   output gelu_const_t gelu_b,
   output gelu_const_t gelu_c,
-  output logic signed [EMS-1:0] gelu_eps_mult,
-  output logic signed [EMS-1:0] gelu_right_shift,
+  output requant_const_t gelu_eps_mult,
+  output requant_const_t gelu_right_shift,
   output requant_t gelu_add
 );
   integer one_fd;
@@ -333,7 +333,7 @@ task automatic apply_ITA_inputs(input integer phase);
           if (is_end_of_tile(tile_entry) && phase != 3)
             reset_tile(tile, tile_entry);
           stim_fd_inp = stim_fd_inp_attn[input_file_index];
-          is_end_of_input = $feof(stim_fd_inp);
+          is_end_of_input = $feof(stim_fd_inp) != 0;
         end
       end
       $fclose(stim_fd_inp);
