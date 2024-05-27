@@ -390,8 +390,8 @@ task automatic apply_ITA_weights(input integer phase);
     integer stim_fd_rqs;
     integer ret_code, rand_ret_code;
 
-    for (int phase = 0; phase < 3; phase++) begin
-      case(phase)
+    for (int i = 0; i < 3; i++) begin
+      case(i)
         0 : begin
           stim_fd_rqs = open_stim_file("RQS_MUL.txt");
         end
@@ -403,7 +403,7 @@ task automatic apply_ITA_weights(input integer phase);
         end
       endcase
 
-      case(phase)
+      case(i)
         0 : begin
           for (int j = 0; j < N_REQUANT_CONSTS; j++) begin
             ret_code = $fscanf(stim_fd_rqs, "%d\n", ita_ctrl.eps_mult[j]);
