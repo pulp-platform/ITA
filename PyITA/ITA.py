@@ -578,8 +578,8 @@ class Transformer:
 
         self.FF2p = np.matmul(self.FFp_requant, self.Wff2, dtype = np.int32) + self.Bff2_broadcast
         self.FF2p = np.clip(self.FF2p, -2**(self.WO - 1), 2**(self.WO - 1) - 1)
-        self.FF2p_requant = requantize(self.FF2p, self.requant_eps_mult[1], self.requant_right_shift[1],
-                                       self.requant_add[1])
+        self.FF2p_requant = requantize(self.FF2p, self.requant_eps_mult[0], self.requant_right_shift[0],
+                                       self.requant_add[0])
 
         self.tiler_Out(self.FFp_requant, self.Wff2, self.Bff2, self.FF2p_requant, "FFp_in", "Wff2", "Bff2", "FF2p")
 
