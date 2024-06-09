@@ -206,7 +206,6 @@ class Transformer:
         self.Bff2 = np.pad(self.Bff2_in, ((0, 0), (0, self.E_ITA - E)))
         self.Bff2_broadcast = np.reshape(np.repeat(self.Bff2, self.S, axis = 0), (self.H, self.S, self.E))
 
-
         #### Intermediate tensors ####
 
         self.Qp = None
@@ -277,12 +276,12 @@ class Transformer:
         self.q_1, self.q_b, self.q_c, _, _, _, self.gelu_rqs_mul, self.gelu_rqs_shift, self.gelu_rqs_add, S_out = get_i_gelu_requantized_constants(
             gelu_eps_mult, D)
 
-        self.write_matrix([[self.q_1]], "GELU_ONE", self.paths["base"])
-        self.write_matrix([[self.q_b]], "GELU_B", self.paths["base"])
-        self.write_matrix([[self.q_c]], "GELU_C", self.paths["base"])
-        self.write_matrix([[self.gelu_rqs_mul]], "activation_requant_mult", self.paths["base"])
-        self.write_matrix([[self.gelu_rqs_shift]], "activation_requant_shift", self.paths["base"])
-        self.write_matrix([[self.gelu_rqs_add]], "activation_requant_add", self.paths["base"])
+        write_matrix([[self.q_1]], "GELU_ONE", self.paths["base"])
+        write_matrix([[self.q_b]], "GELU_B", self.paths["base"])
+        write_matrix([[self.q_c]], "GELU_C", self.paths["base"])
+        write_matrix([[self.gelu_rqs_mul]], "activation_requant_mult", self.paths["base"])
+        write_matrix([[self.gelu_rqs_shift]], "activation_requant_shift", self.paths["base"])
+        write_matrix([[self.gelu_rqs_add]], "activation_requant_add", self.paths["base"])
 
     def _init_paths(self, base_path: Union[str, os.PathLike]):
         self.paths = {
@@ -558,7 +557,7 @@ class Transformer:
         self.Out_soft = np.matmul(self.O_soft_requant, self.Wo, dtype = np.int32) + self.Bo_broadcast
         self.Out_soft = np.clip(self.Out_soft, -2**(self.WO - 1), 2**(self.WO - 1) - 1)
         self.Out_soft_requant = self.requantize(self.Out_soft, self.requant_eps_mult[5], self.requant_right_shift[5],
-                                                 self.requant_add[5])
+                                                self.requant_add[5])
         self.tiler_Out(self.O_soft_requant, self.Wo, self.Bo, self.Out_soft_requant, "O_soft_in", "Wo", "Bo",
                        "Out_soft")
 
@@ -566,7 +565,7 @@ class Transformer:
         self.FFp = np.matmul(self.FF, self.Wff, dtype = np.int32) + self.Bff_broadcast
         self.FFp = np.clip(self.FFp, -2**(self.WO - 1), 2**(self.WO - 1) - 1)
         self.FFp_requant = self.requantize(self.FFp, self.requant_eps_mult[0], self.requant_right_shift[0],
-                                            self.requant_add[0])
+                                           self.requant_add[0])
         self.FFp_requant = self.apply_activation(self.FFp_requant, self.activation)
 
         self.tiler_QK(self.FF, self.Wff, self.Bff, self.FFp_requant, "FF", "Wff", "Bff", "FFp")
@@ -574,7 +573,7 @@ class Transformer:
         self.FF2p = np.matmul(self.FFp_requant, self.Wff2, dtype = np.int32) + self.Bff2_broadcast
         self.FF2p = np.clip(self.FF2p, -2**(self.WO - 1), 2**(self.WO - 1) - 1)
         self.FF2p_requant = self.requantize(self.FF2p, self.requant_eps_mult[1], self.requant_right_shift[1],
-                                             self.requant_add[1])
+                                            self.requant_add[1])
 
         self.tiler_Out(self.FFp_requant, self.Wff2, self.Bff2, self.FF2p_requant, "FFp_in", "Wff2", "Bff2", "FF2p")
 
@@ -584,7 +583,7 @@ class Transformer:
                                                self.requant_add[6])
 
     def test_activations(self):
-        self.write_matrix(self.preactivation, "preactivation", self.paths["standalone"])
+        write_matrix(self.preactivation, "preactivation", self.paths["standalone"])
         gelu = np.zeros(self.preactivation.shape, dtype = np.int8)
         relu = np.zeros(self.preactivation.shape, dtype = np.int8)
         for i in range(self.preactivation.shape[0]):
@@ -594,8 +593,8 @@ class Transformer:
                 relu[i, j] = self.preactivation[i, j] if self.preactivation[i, j] > 0 else 0
                 relu[i, j] = requantize(relu[i, j], self.gelu_rqs_mul, self.gelu_rqs_shift, self.gelu_rqs_add)
 
-        self.write_matrix(gelu, "gelu", self.paths["standalone"])
-        self.write_matrix(relu, "relu", self.paths["standalone"])
+        write_matrix(gelu, "gelu", self.paths["standalone"])
+        write_matrix(relu, "relu", self.paths["standalone"])
 
     def export_hwpe(self):
         path = self.paths["hwpe"]
@@ -936,6 +935,7 @@ def i_gelu(q: i8, q_1: i16, q_b: i16, q_c: i16) -> i32:
     q_erf: i32 = i_erf(q_clipped, q_b, q_c)
     q_out: i32 = q_clipped * (q_erf + q_1)
     return q_out
+
 
 def gelu_requantize(q: i32, eps_mul: i8, eps_shift: u8, eps_add: u8) -> i8:
     q_mul: i64 = eps_mul * q
