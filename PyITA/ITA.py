@@ -562,24 +562,24 @@ class Transformer:
     def step6_O(self):
         self.Out_soft = np.matmul(self.O_soft_requant, self.Wo, dtype = np.int32) + self.Bo_broadcast
         self.Out_soft = np.clip(self.Out_soft, -2**(self.WO - 1), 2**(self.WO - 1) - 1)
-        self.Out_soft_requant = self.requantize(self.Out_soft, self.requant_eps_mult[5], self.requant_right_shift[5],
-                                                self.requant_add[5])
+        self.Out_soft_requant = requantize(self.Out_soft, self.requant_eps_mult[5], self.requant_right_shift[5],
+                                           self.requant_add[5])
         self.tiler_Out(self.O_soft_requant, self.Wo, self.Bo, self.Out_soft_requant, "O_soft_in", "Wo", "Bo",
                        "Out_soft")
 
     def feedforward_layer(self):
         self.FFp = np.matmul(self.FF, self.Wff, dtype = np.int32) + self.Bff_broadcast
         self.FFp = np.clip(self.FFp, -2**(self.WO - 1), 2**(self.WO - 1) - 1)
-        self.FFp_requant = self.requantize(self.FFp, self.requant_eps_mult[0], self.requant_right_shift[0],
-                                           self.requant_add[0])
+        self.FFp_requant = requantize(self.FFp, self.requant_eps_mult[0], self.requant_right_shift[0],
+                                      self.requant_add[0])
         self.FFp_requant = self.apply_activation(self.FFp_requant, self.activation)
 
         self.tiler_QK(self.FF, self.Wff, self.Bff, self.FFp_requant, "FF", "Wff", "Bff", "FFp")
 
         self.FF2p = np.matmul(self.FFp_requant, self.Wff2, dtype = np.int32) + self.Bff2_broadcast
         self.FF2p = np.clip(self.FF2p, -2**(self.WO - 1), 2**(self.WO - 1) - 1)
-        self.FF2p_requant = self.requantize(self.FF2p, self.requant_eps_mult[1], self.requant_right_shift[1],
-                                            self.requant_add[1])
+        self.FF2p_requant = requantize(self.FF2p, self.requant_eps_mult[1], self.requant_right_shift[1],
+                                       self.requant_add[1])
 
         self.tiler_Out(self.FFp_requant, self.Wff2, self.Bff2, self.FF2p_requant, "FFp_in", "Wff2", "Bff2", "FF2p")
 
@@ -597,7 +597,7 @@ class Transformer:
                 gelu[i, j] = i_gelu_requantized(self.preactivation[i, j], self.q_1, self.q_b, self.q_c,
                                                 self.gelu_rqs_mul, self.gelu_rqs_shift, self.gelu_rqs_add)
                 relu[i, j] = self.preactivation[i, j] if self.preactivation[i, j] > 0 else 0
-                relu[i, j] = requantize(relu[i, j], self.gelu_rqs_mul, self.gelu_rqs_shift, self.gelu_rqs_add)
+                relu[i, j] = gelu_requantize(relu[i, j], self.gelu_rqs_mul, self.gelu_rqs_shift, self.gelu_rqs_add)
 
         write_matrix(gelu, "gelu", self.paths["standalone"])
         write_matrix(relu, "relu", self.paths["standalone"])
