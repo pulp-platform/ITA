@@ -139,8 +139,8 @@ class Transformer:
         self.K_in = self.V_in
         self.K = self.V
 
-        self.FF_in = np.random.randint(-128, 127, size = (S, E), dtype = np.int8)
-        self.FF = np.pad(self.FF_in, ((0, self.S_ITA - S), (0, self.E_ITA - E)))
+        self.FF_in = np.random.randint(-128, 127, size = (self.S, self.E), dtype = np.int8)
+        self.FF = np.pad(self.FF_in, ((0, self.S_ITA - self.S), (0, self.E_ITA - self.E)))
 
         #### Weight matrices ####
         self.Wq_in = random_shuffled_tensor((self.H, self.E, self.P), self.WI - 1) if Wq is None else Wq
@@ -155,10 +155,10 @@ class Transformer:
         self.Wo_in = random_shuffled_tensor((self.H, self.P, self.E), self.WI - 1) if Wo is None else Wo
         self.Wo = np.pad(self.Wo_in, ((0, 0), (0, self.P_ITA - self.P), (0, self.E_ITA - self.E)))
 
-        self.Wff_in = np.random.randint(-128, 127, size = (H, E, F), dtype = np.int8)
-        self.Wff = np.pad(self.Wff_in, ((0, 0), (0, self.E_ITA - E), (0, self.F_ITA - F)))
-        self.Wff2_in = np.random.randint(-128, 127, size = (H, F, E), dtype = np.int8)
-        self.Wff2 = np.pad(self.Wff2_in, ((0, 0), (0, self.F_ITA - F), (0, self.E_ITA - E)))
+        self.Wff_in = np.random.randint(-128, 127, size = (self.H, self.E, self.F), dtype = np.int8)
+        self.Wff = np.pad(self.Wff_in, ((0, 0), (0, self.E_ITA - self.E), (0, self.F_ITA - self.F)))
+        self.Wff2_in = np.random.randint(-128, 127, size = (self.H, self.F, self.E), dtype = np.int8)
+        self.Wff2 = np.pad(self.Wff2_in, ((0, 0), (0, self.F_ITA - self.F), (0, self.E_ITA - self.E)))
 
         #### Bias matrices ####
         if self.bias:
@@ -194,16 +194,22 @@ class Transformer:
         self.Bo_broadcast = np.reshape(np.repeat(self.Bo, self.S, axis = 0), (self.H, self.S, self.E))
 
         if self.bias:
-            self.Bff_in = np.random.randint(-2**(self.WO - 3), 2**(self.WO - 3) - 1, size = (H, F), dtype = np.int32)
+            self.Bff_in = np.random.randint(-2**(self.WO - 3),
+                                            2**(self.WO - 3) - 1,
+                                            size = (self.H, self.F),
+                                            dtype = np.int32)
         else:
             self.Bff_in = np.zeros((H, F), dtype = np.int8)
-        self.Bff = np.pad(self.Bff_in, ((0, 0), (0, self.F_ITA - F)))
+        self.Bff = np.pad(self.Bff_in, ((0, 0), (0, self.F_ITA - self.F)))
         self.Bff_broadcast = np.reshape(np.repeat(self.Bff, self.S, axis = 0), (self.H, self.S, self.F))
         if self.bias:
-            self.Bff2_in = np.random.randint(-2**(self.WO - 3), 2**(self.WO - 3) - 1, size = (H, E), dtype = np.int32)
+            self.Bff2_in = np.random.randint(-2**(self.WO - 3),
+                                             2**(self.WO - 3) - 1,
+                                             size = (self.H, self.E),
+                                             dtype = np.int32)
         else:
-            self.Bff2_in = np.zeros((H, E), dtype = np.int8)
-        self.Bff2 = np.pad(self.Bff2_in, ((0, 0), (0, self.E_ITA - E)))
+            self.Bff2_in = np.zeros((self.H, self.E), dtype = np.int8)
+        self.Bff2 = np.pad(self.Bff2_in, ((0, 0), (0, self.E_ITA - self.E)))
         self.Bff2_broadcast = np.reshape(np.repeat(self.Bff2, self.S, axis = 0), (self.H, self.S, self.E))
 
         #### Intermediate tensors ####
@@ -233,7 +239,7 @@ class Transformer:
         self.Out_soft_sum = None
         self.Out_soft_sum_requant = None
 
-        self.preactivation = np.random.randint(-128, 127, size = (S, F), dtype = np.int8)
+        self.preactivation = np.random.randint(-128, 127, size = (self.S, self.F), dtype = np.int8)
         self.postactivation = None
 
     def _initialize_quantization_parameters(self):
