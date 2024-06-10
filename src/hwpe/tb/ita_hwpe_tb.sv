@@ -469,7 +469,7 @@ endfunction
     end
     $display(" - input_ptr   0x%08h (input_base_ptr   0x%08h)", input_ptr, input_base_ptr);
     $display(" - weight_ptr0 0x%08h (weight_base_ptr0 0x%08h)", weight_ptr0, weight_base_ptr0);
-    $display(" - weight_ptr1 0x%08h (weight_base_ptr0 0x%08h)", weight_ptr1, weight_base_ptr0);
+    $display(" - weight_ptr1 0x%08h (weight_base_ptr1 0x%08h)", weight_ptr1, weight_base_ptr1);
     $display(" - bias_ptr    0x%08h (bias_base_ptr    0x%08h)", bias_ptr, bias_base_ptr);
     $display(" - output_ptr  0x%08h (output_base_ptr  0x%08h)", output_ptr, output_base_ptr);
   endtask
