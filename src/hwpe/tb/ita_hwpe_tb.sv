@@ -28,7 +28,7 @@ module ita_hwpe_tb;
   parameter integer FEEDFORWARD_SIZE = `ifdef FF_SIZE `FF_SIZE `else M_TILE_LEN `endif;
   parameter activation_e ACTIVATION = `ifdef ACTIVATION `ACTIVATION `else Identity `endif;
 
-  integer N_TILES_SEQUENCE_DIM, N_TILES_EMBEDDING_DIM, N_TILES_PROJECTION_DIM;
+  integer N_TILES_SEQUENCE_DIM, N_TILES_EMBEDDING_DIM, N_TILES_PROJECTION_DIM, N_TILES_FEEDFORWARD_DIM;
   integer N_ELEMENTS_PER_TILE;
   integer N_TILES_OUTER_X[N_STATES], N_TILES_OUTER_Y [N_STATES], N_TILES_INNER_DIM[N_STATES];
 
@@ -71,6 +71,12 @@ module ita_hwpe_tb;
 
   // Variables
   string simdir;
+  string gelu_one_file = "GELU_ONE.txt";
+  string gelu_b_file = "GELU_B.txt";
+  string gelu_c_file = "GELU_C.txt";
+  string activation_requant_mult_file = "activation_requant_mult.txt";
+  string activation_requant_shift_file = "activation_requant_shift.txt";
+  string activation_requant_add_file = "activation_requant_add.txt";
 
   // Signals
   logic         clk, rst_n;
@@ -123,6 +129,8 @@ module ita_hwpe_tb;
     N_TILES_EMBEDDING_DIM = EMBEDDING_SIZE / M_TILE_LEN;
     // Number of tiles in the projection dimension
     N_TILES_PROJECTION_DIM = PROJECTION_SPACE / M_TILE_LEN;
+    // Number of tiles in the feedforward dimension
+    N_TILES_FEEDFORWARD_DIM = FEEDFORWARD_SIZE / M_TILE_LEN;
     // Number of entries per tile
     N_ELEMENTS_PER_TILE = M_TILE_LEN * M_TILE_LEN;
     // Number of output tiles in X direction per step
@@ -290,6 +298,8 @@ endfunction
     string STIM_DATA;
     logic [31:0] ita_reg_tiles_val;
     logic [5:0][31:0] ita_reg_rqs_val;
+    logic [31:0] ita_reg_gelu_one_val, ita_reg_gelu_b_c_val;
+    logic [31:0] ita_reg_activation_rqs_val;
 
     $timeformat(-9, 2, " ns", 10);
 
@@ -300,8 +310,9 @@ endfunction
     STIM_DATA = {simdir,"/hwpe/mem.txt"};
     $readmemh(STIM_DATA, ita_hwpe_tb.i_data_memory.memory);
 
-    ita_reg_tiles_val_compute(N_TILES_SEQUENCE_DIM, N_TILES_EMBEDDING_DIM, N_TILES_PROJECTION_DIM, ita_reg_tiles_val);
+    ita_reg_tiles_val_compute(N_TILES_SEQUENCE_DIM, N_TILES_EMBEDDING_DIM, N_TILES_PROJECTION_DIM, N_TILES_FEEDFORWARD_DIM, ita_reg_tiles_val);
     ita_reg_eps_mult_val_compute(ita_reg_rqs_val);
+    ita_reg_activation_constants_compute(ita_reg_gelu_one_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val);
 
     // soft clear
     PERIPH_WRITE( 32'h14, 32'h0, 32'h0,  clk);
@@ -312,13 +323,13 @@ endfunction
       PERIPH_READ( 32'h04, 32'h0, status, clk);
 
     // 1: Step Q
-    ita_compute_step(Q, ita_reg_tiles_val, ita_reg_rqs_val, clk);
+    ita_compute_step(Q, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_one_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
 
     // 2: Step K
-    ita_compute_step(K, ita_reg_tiles_val, ita_reg_rqs_val, clk);
+    ita_compute_step(K, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_one_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
 
     // 3: Step V
-    ita_compute_step(V, ita_reg_tiles_val, ita_reg_rqs_val, clk);
+    ita_compute_step(V, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_one_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
 
 
     for (int group = 0; group < N_TILES_SEQUENCE_DIM; group++) begin
@@ -329,7 +340,7 @@ endfunction
       BASE_PTR_OUTPUT[AV] = BASE_PTR[14] + group * N_TILES_OUTER_X[AV] * N_ELEMENTS_PER_TILE;
 
       // 4: Step QK
-      ita_compute_step(QK, ita_reg_tiles_val, ita_reg_rqs_val, clk);
+      ita_compute_step(QK, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_one_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
 
       // WIESEP: Hack to ensure that during the last tile of AV, the weight pointer is set correctly
       if (group == N_TILES_SEQUENCE_DIM-1) begin
@@ -337,11 +348,11 @@ endfunction
       end
 
       // 5: Step AV
-      ita_compute_step(AV, ita_reg_tiles_val, ita_reg_rqs_val, clk);
+      ita_compute_step(AV, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_one_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
     end
 
     // 6: Step OW
-    ita_compute_step(OW, ita_reg_tiles_val, ita_reg_rqs_val, clk);
+    ita_compute_step(OW, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_one_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
 
     // Wait for the last step to finish
     wait(evt);
@@ -366,9 +377,13 @@ endfunction
     input  step_e       step,
     input  logic [31:0] ita_reg_tiles_val,
     input  logic [5:0][31:0] ita_reg_rqs_val,
+    input  logic [31:0] ita_reg_gelu_one_val,
+    input  logic [31:0] ita_reg_gelu_b_c_val,
+    input  logic [31:0] ita_reg_activation_rqs_val,
     ref    logic        clk_i
   );
 
+    logic [31:0] ctrl_engine_val;
     logic [31:0] ctrl_stream_val;
     logic        weight_ptr_en;
     logic        bias_ptr_en;
@@ -403,13 +418,13 @@ endfunction
           // Calculate ita_reg_en
           ita_reg_en_compute(step, tile, ita_reg_en);
           // Calculate ctrl_stream_val, weight_ptr_en, and bias_ptr_en
-          ctrl_stream_val_compute(step, tile, ctrl_stream_val, weight_ptr_en, bias_ptr_en);
+          ctrl_val_compute(step, tile, ctrl_engine_val, ctrl_stream_val, weight_ptr_en, bias_ptr_en);
 
           // $display(" - Input_ptr 0x%0h, Weight_ptr0 0x%0h, Weight_ptr1 0x%0h, Bias_ptr 0x%0h, Output_ptr 0x%0h", input_ptr, weight_ptr0, weight_ptr1, bias_ptr, output_ptr);
           $display(" - ITA Reg En 0x%0h, Ctrl Stream Val 0x%0h, Weight Ptr En %0d, Bias Ptr En %0d", ita_reg_en, ctrl_stream_val, weight_ptr_en, bias_ptr_en);
 
           // Program ITA
-          PROGRAM_ITA(input_ptr, weight_ptr0, weight_ptr1, weight_ptr_en, bias_ptr, bias_ptr_en, output_ptr, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_en, ctrl_stream_val, clk_i);
+          PROGRAM_ITA(input_ptr, weight_ptr0, weight_ptr1, weight_ptr_en, bias_ptr, bias_ptr_en, output_ptr, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_one_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, ita_reg_en, ctrl_engine_val, ctrl_stream_val, clk_i);
 
           // Wait for ITA to finish
           @(posedge clk_i);
@@ -491,17 +506,25 @@ endfunction
     end
   endtask
 
-  task automatic ctrl_stream_val_compute(
+  task automatic ctrl_val_compute(
     input   step_e        step,
     input   integer       tile,
-    output  logic [31:0]  reg_val,
+    output  logic [31:0]  ctrl_engine_val,
+    output  logic [31:0]  ctrl_stream_val,
     output  logic         reg_weight_en,
     output  logic         reg_bias_en
   );
+    layer_e layer_type;
+    activation_e activation_function;
+
     // Default values
-    reg_val = 32'h0;
+    ctrl_stream_val = 32'h0;
     reg_weight_en = 1'b0;
     reg_bias_en = 1'b0;
+    layer_type = Attention;
+    activation_function = Identity;
+
+    ctrl_engine_val = layer_type | activation_function << 1;
 
     // ctrl_stream [0]: weight preload,
     // ctrl_stream [1]: weight nextload,
@@ -514,55 +537,111 @@ endfunction
     case(step)
       Q : begin
         if (tile == 0) begin
-          reg_val = {28'b0, 4'b0011}; // weight preload and weight nextload
+          ctrl_stream_val = {28'b0, 4'b0011}; // weight preload and weight nextload
         end else begin
-          reg_val = {28'b0, 4'b0010}; // weight nextload
+          ctrl_stream_val = {28'b0, 4'b0010}; // weight nextload
         end
         reg_weight_en = 1'b1;
         reg_bias_en = 1'b1;
       end
       K : begin
-        reg_val = {28'b0, 4'b0010}; // weight nextload
+        ctrl_stream_val = {28'b0, 4'b0010}; // weight nextload
         reg_weight_en = 1'b1;
         reg_bias_en = 1'b1;
       end
       V : begin
-        reg_val = {28'b0, 4'b1010}; // weight nextload and invert bias direction
+        ctrl_stream_val = {28'b0, 4'b1010}; // weight nextload and invert bias direction
         reg_weight_en = 1'b1;
         reg_bias_en = 1'b1;
       end
       QK : begin
-        reg_val = {28'b0, 4'b0110}; // weight nextload and disable bias
+        ctrl_stream_val = {28'b0, 4'b0110}; // weight nextload and disable bias
         reg_weight_en = 1'b1;
         reg_bias_en = 1'b0;
       end
       AV : begin
-        reg_val = {28'b0, 4'b0110}; // weight nextload and disable bias
+        ctrl_stream_val = {28'b0, 4'b0110}; // weight nextload and disable bias
         reg_weight_en = 1'b1;
         reg_bias_en = 1'b0;
       end
       OW : begin
         if (tile == (N_TILES_OUTER_X[OW]*N_TILES_OUTER_Y[OW]*N_TILES_INNER_DIM[OW])-1) begin
-          reg_val = {28'b0, 4'b0000};
+          ctrl_stream_val = {28'b0, 4'b0000};
           reg_weight_en = 1'b0;
         end else begin
-          reg_val = {28'b0, 4'b0010}; // weight nextload
+          ctrl_stream_val = {28'b0, 4'b0010}; // weight nextload
           reg_weight_en = 1'b1;
         end
         reg_bias_en = 1'b1;
       end
     endcase
 
-    reg_val[4] = ( (tile+1) % N_TILES_INNER_DIM[step] == 0) ? 1'b0 : 1'b1;
+    ctrl_stream_val[4] = ( (tile+1) % N_TILES_INNER_DIM[step] == 0) ? 1'b0 : 1'b1;
   endtask
 
   task automatic ita_reg_tiles_val_compute(
     input integer tile_s,
     input integer tile_e,
     input integer tile_p,
+    input integer tile_f,
     output logic [31:0] reg_val
   );
-    reg_val = tile_s | tile_e << 4 | tile_p << 8;
+    reg_val = tile_s | tile_e << 4 | tile_p << 8 | tile_f << 12;
+  endtask
+
+  task automatic ita_reg_activation_constants_compute(
+    output logic [31:0] gelu_one_reg,
+    output logic [31:0] gelu_b_c_reg,
+    output logic [31:0] activation_requant_reg
+  );
+    gelu_const_t gelu_one;
+    gelu_const_t gelu_b;
+    gelu_const_t gelu_c;
+    requant_const_t activation_requant_mult;
+    requant_const_t activation_requant_shift;
+    requant_t activation_requant_add;
+    read_activation_constants(gelu_one, gelu_b, gelu_c, activation_requant_mult, activation_requant_shift, activation_requant_add);
+    gelu_one_reg = {16'h0, gelu_one};
+    gelu_b_c_reg = gelu_b | gelu_c << 16;
+    activation_requant_reg = activation_requant_mult | activation_requant_shift << 8 | activation_requant_add << 16;
+  endtask
+
+  task automatic read_activation_constants(
+    output gelu_const_t gelu_one,
+    output gelu_const_t gelu_b,
+    output gelu_const_t gelu_c,
+    output requant_const_t gelu_eps_mult,
+    output requant_const_t gelu_right_shift,
+    output requant_t gelu_add
+  );
+    integer one_fd;
+    integer b_fd;
+    integer c_fd;
+    integer rqs_mul_fd;
+    integer rqs_shift_fd;
+    integer add_fd;
+    int return_code;
+
+    one_fd = open_stim_file(gelu_one_file);
+    b_fd = open_stim_file(gelu_b_file);
+    c_fd = open_stim_file(gelu_c_file);
+    rqs_mul_fd = open_stim_file(activation_requant_mult_file);
+    rqs_shift_fd = open_stim_file(activation_requant_shift_file);
+    add_fd = open_stim_file(activation_requant_add_file);
+
+    return_code = $fscanf(one_fd, "%d", gelu_one);
+    return_code = $fscanf(b_fd, "%d", gelu_b);
+    return_code = $fscanf(c_fd, "%d", gelu_c);
+    return_code = $fscanf(rqs_mul_fd, "%d", gelu_eps_mult);
+    return_code = $fscanf(rqs_shift_fd, "%d", gelu_right_shift);
+    return_code = $fscanf(add_fd, "%d", gelu_add);
+
+    $fclose(one_fd);
+    $fclose(b_fd);
+    $fclose(c_fd);
+    $fclose(rqs_mul_fd);
+    $fclose(rqs_shift_fd);
+    $fclose(add_fd);
   endtask
 
   task automatic ita_reg_eps_mult_val_compute(
@@ -655,7 +734,11 @@ endfunction
     input  logic [31:0] output_ptr,
     input  logic [31:0] ita_reg_tiles_val,
     input  logic [5:0][31:0] ita_reg_rqs_val,
+    input  logic [31:0] ita_reg_gelu_one_val,
+    input  logic [31:0] ita_reg_gelu_b_c_val,
+    input  logic [31:0] ita_reg_activation_rqs_val,
     input  logic        ita_reg_en,
+    input  logic [31:0] ctrl_engine_val,
     input  logic [31:0] ctrl_stream_val,
     ref    logic        clk_i
   );
