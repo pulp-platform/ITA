@@ -25,6 +25,8 @@ module ita_hwpe_tb;
   parameter integer SEQUENCE_LEN = `ifdef SEQ_LENGTH `SEQ_LENGTH `else M_TILE_LEN `endif;
   parameter integer PROJECTION_SPACE = `ifdef PROJ_SPACE `PROJ_SPACE `else M_TILE_LEN `endif;
   parameter integer EMBEDDING_SIZE = `ifdef EMBED_SIZE `EMBED_SIZE `else M_TILE_LEN `endif;
+  parameter integer FEEDFORWARD_SIZE = `ifdef FF_SIZE `FF_SIZE `else M_TILE_LEN `endif;
+  parameter activation_e ACTIVATION = `ifdef ACTIVATION `ACTIVATION `else Identity `endif;
 
   integer N_TILES_SEQUENCE_DIM, N_TILES_EMBEDDING_DIM, N_TILES_PROJECTION_DIM;
   integer N_ELEMENTS_PER_TILE;
@@ -110,6 +112,8 @@ module ita_hwpe_tb;
       $sformatf("%0d", EMBEDDING_SIZE),
       "_P",
       $sformatf("%0d", PROJECTION_SPACE),
+      "_F",
+      $sformatf("%0d", FEEDFORWARD_SIZE),
       "_H1_B",
       $sformatf("%0d", `ifdef BIAS `BIAS `else 0 `endif)
     };
