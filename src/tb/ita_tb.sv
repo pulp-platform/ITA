@@ -138,7 +138,7 @@ function automatic integer open_stim_file(string filename);
     return 0;
   stim_fd = $fopen({simdir,"/",filename}, "r");
   if (stim_fd == 0) begin
-    $fatal("[TB] ITA: Could not open %s stim file!", filename);
+    $fatal(1, "[TB] ITA: Could not open %s stim file!", filename);
   end
   return stim_fd;
 endfunction
