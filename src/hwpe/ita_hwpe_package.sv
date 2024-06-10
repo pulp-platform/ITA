@@ -69,9 +69,9 @@ package ita_hwpe_package;
     requant_t                     activation_requant_add;
     tile_t                        lin_tiles   ;
     tile_t                        attn_tiles  ;
+    tile_t                        tile_s;
     tile_t                        tile_e;
     tile_t                        tile_p;
-    tile_t                        tile_s;
     tile_t                        tile_f;
   } ctrl_engine_t;
 
