@@ -35,8 +35,8 @@ package ita_package;
   parameter  int unsigned N_WRITE_EN     = `ifdef TARGET_ITA_HWPE 8 `else M `endif;
 
   // Feedforward
-  typedef enum {Attention=0, Feedforward=1} layer_e;
-  typedef enum {Identity=0, Gelu=1, Relu=2} activation_e;
+  typedef enum bit {Attention=0, Feedforward=1} layer_e;
+  typedef enum bit [1:0] {Identity=0, Gelu=1, Relu=2} activation_e;
   typedef logic signed [GELU_CONSTANTS_WIDTH-1:0] gelu_const_t;
   typedef logic signed [GELU_OUT_WIDTH-1:0] gelu_out_t;
 
