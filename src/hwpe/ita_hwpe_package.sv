@@ -50,30 +50,7 @@ package ita_hwpe_package;
     hci_package::hci_streamer_flags_t output_sink_flags;
   } flags_streamer_t;
 
-  typedef struct packed {
-    logic                         start       ;
-    seq_length_t                  seq_length  ;
-    proj_space_t                  proj_space  ;
-    embed_size_t                  embed_size  ;
-    n_heads_t                     n_heads     ;
-    layer_e                       layer       ;
-    activation_e                  activation  ;
-    requant_const_array_t         eps_mult    ;
-    requant_const_array_t         right_shift ;
-    requant_array_t               add         ;
-    gelu_const_t                  gelu_one;
-    gelu_const_t                  gelu_b;
-    gelu_const_t                  gelu_c;
-    requant_const_t               activation_requant_mult;
-    requant_const_t               activation_requant_shift;
-    requant_t                     activation_requant_add;
-    tile_t                        lin_tiles   ;
-    tile_t                        attn_tiles  ;
-    tile_t                        tile_s;
-    tile_t                        tile_e;
-    tile_t                        tile_p;
-    tile_t                        tile_f;
-  } ctrl_engine_t;
+  typedef ctrl_t ctrl_engine_t;
 
   typedef struct packed {
     logic busy;
