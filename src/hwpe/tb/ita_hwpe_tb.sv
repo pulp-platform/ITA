@@ -85,10 +85,10 @@ module ita_hwpe_tb;
   logic [MP-1:0]                        tcdm_r_valid;
   logic [MP-1:0]                        tcdm_r_ready;
 
-  hwpe_ctrl_intf_periph #( 
-    .ID_WIDTH  (IdWidth) 
-  ) periph ( 
-    .clk (clk) 
+  hwpe_ctrl_intf_periph #(
+    .ID_WIDTH  (IdWidth)
+  ) periph (
+    .clk (clk)
   );
 
   localparam hci_size_parameter_t `HCI_SIZE_PARAM(tcdm_mem) = '{
@@ -275,7 +275,7 @@ function automatic integer open_stim_file(string filename);
     return 0;
   stim_fd = $fopen({simdir,"/",filename}, "r");
   if (stim_fd == 0) begin
-    $fatal("[TB] ITA: Could not open %s stim file!", filename);
+    $fatal(1, "[TB] ITA: Could not open %s stim file!", filename);
   end
   return stim_fd;
 endfunction
