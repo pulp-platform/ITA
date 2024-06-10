@@ -9,6 +9,8 @@ import ita_package::M;
 import ita_package::N;
 import hwpe_ctrl_package::*;
 import hwpe_stream_package::*;
+import ita_package::layer_e;
+import ita_package::activation_e;
 
 module ita_hwpe_ctrl
 (
@@ -65,6 +67,7 @@ module ita_hwpe_ctrl
     ctrl_engine_o.tile_s = reg_file.hwpe_params[ITA_REG_TILES][3:0];
     ctrl_engine_o.tile_e = reg_file.hwpe_params[ITA_REG_TILES][7:4];
     ctrl_engine_o.tile_p = reg_file.hwpe_params[ITA_REG_TILES][11:8];
+    ctrl_engine_o.tile_f = reg_file.hwpe_params[ITA_REG_TILES][15:12];
     ctrl_engine_o.eps_mult[0] = reg_file.hwpe_params[ITA_REG_EPS_MULT0][7:0];
     ctrl_engine_o.eps_mult[1] = reg_file.hwpe_params[ITA_REG_EPS_MULT0][15:8];
     ctrl_engine_o.eps_mult[2] = reg_file.hwpe_params[ITA_REG_EPS_MULT0][23:16];
@@ -83,6 +86,14 @@ module ita_hwpe_ctrl
     ctrl_engine_o.add[3] = reg_file.hwpe_params[ITA_REG_ADD0][31:24];
     ctrl_engine_o.add[4] = reg_file.hwpe_params[ITA_REG_ADD1][7:0];
     ctrl_engine_o.add[5] = reg_file.hwpe_params[ITA_REG_ADD1][15:8];
+    ctrl_engine_o.gelu_one = reg_file.hwpe_params[ITA_REG_GELU_ONE][15:0];
+    ctrl_engine_o.gelu_b = reg_file.hwpe_params[ITA_REG_GELU_B_C][15:0];
+    ctrl_engine_o.gelu_c = reg_file.hwpe_params[ITA_REG_GELU_B_C][31:16];
+    ctrl_engine_o.activation_requant_mult = reg_file.hwpe_params[ITA_REG_ACTIVATION_REQUANT][7:0];
+    ctrl_engine_o.activation_requant_shift = reg_file.hwpe_params[ITA_REG_ACTIVATION_REQUANT][15:8];
+    ctrl_engine_o.activation_requant_add = reg_file.hwpe_params[ITA_REG_ACTIVATION_REQUANT][23:16];
+    ctrl_engine_o.layer = layer_e'(reg_file.hwpe_params[ITA_REG_CTRL_ENGINE][0]);
+    ctrl_engine_o.activation = activation_e'(reg_file.hwpe_params[ITA_REG_CTRL_ENGINE][2:1]);
     ctrl_stream_o.weight_preload = reg_file.hwpe_params[ITA_REG_CTRL_STREAM][0];
     ctrl_stream_o.weight_nextload = reg_file.hwpe_params[ITA_REG_CTRL_STREAM][1];
     ctrl_stream_o.bias_disable  = reg_file.hwpe_params[ITA_REG_CTRL_STREAM][2];
