@@ -30,7 +30,7 @@ module ita_hwpe_tb;
 
   integer N_TILES_SEQUENCE_DIM, N_TILES_EMBEDDING_DIM, N_TILES_PROJECTION_DIM;
   integer N_ELEMENTS_PER_TILE;
-  integer N_TILES_OUTER_X[6], N_TILES_OUTER_Y [6], N_TILES_INNER_DIM[6];
+  integer N_TILES_OUTER_X[N_STATES], N_TILES_OUTER_Y [N_STATES], N_TILES_INNER_DIM[N_STATES];
 
   // Memory Map with
   // 0:  q  (SxE bytes)
@@ -51,11 +51,11 @@ module ita_hwpe_tb;
   // 15: OW (SxE bytes)
   integer BASE_PTR[16];
 
-  logic [6][31:0] BASE_PTR_INPUT;
-  logic [6][31:0] BASE_PTR_WEIGHT0;
-  logic [6][31:0] BASE_PTR_WEIGHT1;
-  logic [6][31:0] BASE_PTR_BIAS;
-  logic [6][31:0] BASE_PTR_OUTPUT;
+  logic [N_STATES][31:0] BASE_PTR_INPUT;
+  logic [N_STATES][31:0] BASE_PTR_WEIGHT0;
+  logic [N_STATES][31:0] BASE_PTR_WEIGHT1;
+  logic [N_STATES][31:0] BASE_PTR_BIAS;
+  logic [N_STATES][31:0] BASE_PTR_OUTPUT;
 
   // HWPE Parameters
   localparam unsigned ITA_REG_OFFSET  = 32'h20;
