@@ -610,49 +610,49 @@ class Transformer:
                 os.remove(file_name)
 
         # WIESEP: Delete the old file otherwise it will lead to mismatches during RTL simulations as the files are memory mapped
-        files = ["mem.txt", "Output.txt", "Q.txt", "K.txt", "V.txt", "QK.txt", "A.txt", "AV.txt", "OW.txt"]
+        mem_file = "mem"
         for file in files:
             remove_if_exists(f"{path}/{file}")
 
         # Write the new mem file
         for h in range(self.H):
             q = split_matrix(self.Q, (self.ITA_M, self.ITA_M))
-            write_matrix_mem_hex(pack_array_8b_to_word(q, hex_string = False), "mem", path)
+            write_matrix_mem_hex(pack_array_8b_to_word(q, hex_string = False), mem_file, path)
 
             k = split_matrix(self.K, (self.ITA_M, self.ITA_M))
-            write_matrix_mem_hex(pack_array_8b_to_word(k, hex_string = False), "mem", path)
+            write_matrix_mem_hex(pack_array_8b_to_word(k, hex_string = False), mem_file, path)
 
             w1 = split_matrix(np.transpose(self.Wq[h]), (self.ITA_M, self.ITA_M))
-            write_matrix_mem_hex(pack_array_8b_to_word(w1, hex_string = False), "mem", path)
+            write_matrix_mem_hex(pack_array_8b_to_word(w1, hex_string = False), mem_file, path)
 
             w2 = split_matrix(np.transpose(self.Wk[h]), (self.ITA_M, self.ITA_M))
-            write_matrix_mem_hex(pack_array_8b_to_word(w2, hex_string = False), "mem", path)
+            write_matrix_mem_hex(pack_array_8b_to_word(w2, hex_string = False), mem_file, path)
 
             w3 = split_matrix(np.transpose(self.Wv[h]), (self.ITA_M, self.ITA_M))
-            write_matrix_mem_hex(pack_array_8b_to_word(w3, hex_string = False), "mem", path)
+            write_matrix_mem_hex(pack_array_8b_to_word(w3, hex_string = False), mem_file, path)
 
             w4 = split_matrix(np.transpose(self.Wo[h]), (self.ITA_M, self.ITA_M))
-            write_matrix_mem_hex(pack_array_8b_to_word(w4, hex_string = False), "mem", path)
+            write_matrix_mem_hex(pack_array_8b_to_word(w4, hex_string = False), mem_file, path)
 
             b1_hex = np.vectorize(lambda val: to_hex(val, bit_size = 24))(self.Bq[h])
             # pack 24-bit values into 32-bit words
             packed_b1_hex = np.array(pack_hex_24b(b1_hex))
-            write_vector_mem_hex(packed_b1_hex, "mem", path)
+            write_vector_mem_hex(packed_b1_hex, mem_file, path)
 
             b2_hex = np.vectorize(lambda val: to_hex(val, bit_size = 24))(self.Bk[h])
             # pack 24-bit values into 32-bit words
             packed_b2_hex = np.array(pack_hex_24b(b2_hex))
-            write_vector_mem_hex(packed_b2_hex, "mem", path)
+            write_vector_mem_hex(packed_b2_hex, mem_file, path)
 
             b3_hex = np.vectorize(lambda val: to_hex(val, bit_size = 24))(self.Bv[h])
             # pack 24-bit values into 32-bit words
             packed_b3_hex = np.array(pack_hex_24b(b3_hex))
-            write_vector_mem_hex(packed_b3_hex, "mem", path)
+            write_vector_mem_hex(packed_b3_hex, mem_file, path)
 
             b4_hex = np.vectorize(lambda val: to_hex(val, bit_size = 24))(self.Bo[h])
             # pack 24-bit values into 32-bit words
             packed_b4_hex = np.array(pack_hex_24b(b4_hex))
-            write_vector_mem_hex(packed_b4_hex, "mem", path)
+            write_vector_mem_hex(packed_b4_hex, mem_file, path)
 
             # Write output
             qp = split_matrix(self.Qp_requant[h], (self.ITA_M, self.ITA_M))
