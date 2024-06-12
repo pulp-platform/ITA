@@ -19,8 +19,9 @@ package ita_package;
   localparam int unsigned Latency = 7                                  ;
   localparam int unsigned GELU_CONSTANTS_WIDTH = 16                    ;
   localparam int unsigned GELU_OUT_WIDTH = 26                          ;
-  localparam int unsigned N_STATES = 8                                  ;
   localparam int unsigned N_ATTENTION_STEPS = 6;
+  localparam int unsigned N_FEEDFORWARD_STEPS = 1;
+  localparam int unsigned N_STATES = N_ATTENTION_STEPS + N_FEEDFORWARD_STEPS + 1;
   localparam int unsigned N_REQUANT_CONSTS = N_ATTENTION_STEPS         ;
 
 
