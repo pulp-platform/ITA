@@ -611,6 +611,10 @@ class Transformer:
 
         # WIESEP: Delete the old file otherwise it will lead to mismatches during RTL simulations as the files are memory mapped
         mem_file = "mem"
+        files = [
+            f"{mem_file}.txt", "Output.txt", "Q.txt", "K.txt", "V.txt", "QK.txt", "A.txt", "AV.txt", "OW.txt", "FF.txt",
+            "FF2.txt"
+        ]
         for file in files:
             remove_if_exists(f"{path}/{file}")
 
