@@ -12,19 +12,18 @@ module ita_gelu
     output gelu_out_t data_o
   );
 
-  gelu_out_t data_sign_ext, b_sign_ext;
-  gelu_out_t poly_d, poly_sq;
   logic erf_sgn;
-  gelu_out_t erf_abs, erf_clipped, erf_L;
+  gelu_const_t data_sign_ext, erf_abs, erf_clipped;
+  gelu_out_t erf_L;
+  gelu_out_t poly_d, poly_sq;
   gelu_out_t gelu_erf, gelu_sum, gelu_out;
 
   always_comb begin
-    data_sign_ext = {{GELU_OUT_WIDTH-WI{data_i[WI-1]}}, data_i};
-    b_sign_ext = {{GELU_OUT_WIDTH-GELU_CONSTANTS_WIDTH{b_i[GELU_CONSTANTS_WIDTH-1]}}, b_i};
+    data_sign_ext = {{GELU_CONSTANTS_WIDTH-WI{data_i[WI-1]}}, data_i};
 
     erf_sgn = data_i < 0;
     erf_abs = erf_sgn ? -data_sign_ext : data_sign_ext;
-    erf_clipped = erf_abs > -b_sign_ext ? -b_sign_ext : erf_abs;
+    erf_clipped = erf_abs > -b_i ? -b_i : erf_abs;
 
     poly_d = erf_clipped + b_i;
     poly_sq = poly_d * poly_d;
