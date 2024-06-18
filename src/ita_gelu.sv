@@ -13,10 +13,8 @@ module ita_gelu
   );
 
   logic erf_sgn;
-  gelu_const_t data_sign_ext, erf_abs, erf_clipped;
-  gelu_out_t erf_L;
-  gelu_out_t poly_d, poly_sq;
-  gelu_out_t gelu_erf, gelu_sum, gelu_out;
+  gelu_const_t data_sign_ext, erf_abs, erf_clipped, poly_d;
+  gelu_out_t erf_L, poly_sq, gelu_erf, gelu_sum, gelu_out;
 
   always_comb begin
     data_sign_ext = {{GELU_CONSTANTS_WIDTH-WI{data_i[WI-1]}}, data_i};
