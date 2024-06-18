@@ -22,8 +22,7 @@ module ita_gelu
   gelu_out_t poly_sq_d, poly_sq_q1;
   requant_t data_q1;
 
-  always_comb begin
-    // First pipeline stage
+  always_comb begin : first_stage
     data_sign_ext = {{GELU_CONSTANTS_WIDTH-WI{data_i[WI-1]}}, data_i};
 
     erf_sgn_d = data_i < 0;
@@ -32,8 +31,9 @@ module ita_gelu
 
     poly_d = erf_clipped + b_i;
     poly_sq_d = poly_d * poly_d;
+  end
 
-    // Second pipeline stage
+  always_comb begin : second_stage
     erf_L_q1 = poly_sq_q1 + c_q1;
 
     gelu_erf_q1 = erf_sgn_q1 ? -erf_L_q1 : erf_L_q1;
