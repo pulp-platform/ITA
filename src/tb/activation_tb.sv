@@ -204,7 +204,7 @@ module activation_tb;
 
     wait (rst_n);
 
-    apply_activations(Identity, 2);
+    apply_activations(Identity, 4);
     apply_activations(Gelu, 4);
     apply_activations(Relu, 4);
 
@@ -268,7 +268,7 @@ module activation_tb;
 
     wait (rst_n);
 
-    check_activations(Identity, 2, n_checks, n_errors);
+    check_activations(Identity, 4, n_checks, n_errors);
     check_activations(Gelu, 4, n_checks, n_errors);
     check_activations(Relu, 4, n_checks, n_errors);
 
