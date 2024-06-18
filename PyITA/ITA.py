@@ -1086,6 +1086,8 @@ def generateTestVectors(path, **kwargs):
     h = kwargs['H']
     activation = kwargs['activation']
     bias = int(not kwargs['no_bias'])
+    export_snitch_cluster = kwargs['export_snitch_cluster']
+    export_mempool = kwargs['export_mempool']
 
     acc1 = Transformer(s, p, e, f, h, bias = bias, path = path, activation = activation)
 
@@ -1102,8 +1104,10 @@ def generateTestVectors(path, **kwargs):
     acc1.feedforward_layer()
     acc1.test_activations()
 
-    acc1.export_mempool(kwargs['mem_path'])
-    acc1.export_snitch_cluster(kwargs['mem_path'])
+    if export_mempool:
+        acc1.export_mempool(kwargs['mem_path'])
+    if export_snitch_cluster:
+        acc1.export_snitch_cluster(kwargs['mem_path'])
     acc1.export_hwpe()
     acc1.export_numpy()
 
