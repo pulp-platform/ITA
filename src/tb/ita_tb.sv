@@ -517,10 +517,8 @@ task automatic apply_ITA_weights(input integer phase);
       ita_ctrl.layer = Feedforward;
       ita_ctrl.activation = ACTIVATION;
 
-      @(posedge clk);
-      #(APPL_DELAY);
-      ita_ctrl.start = 1'b0;
       apply_ITA_inputs(5);
+      ita_ctrl.start = 1'b0;
 
       @(posedge clk);
       #(APPL_DELAY);
@@ -530,9 +528,8 @@ task automatic apply_ITA_weights(input integer phase);
       ita_ctrl.tile_e = N_TILES_FEEDFORWARD;
       ita_ctrl.tile_f = N_TILES_EMBEDDING_DIM;
 
-      @(posedge clk);
-      #(APPL_DELAY);
       apply_ITA_inputs(6);
+      ita_ctrl.start = 1'b0;
 
       @(posedge clk);
       #(APPL_DELAY);
@@ -556,12 +553,8 @@ task automatic apply_ITA_weights(input integer phase);
         apply_ITA_weights(phase);
       end
 
-      @(posedge clk);
-      #(APPL_DELAY);
       apply_ITA_weights(5);
 
-      @(posedge clk);
-      #(APPL_DELAY);
       apply_ITA_weights(6);
 
       @(posedge clk);
@@ -592,10 +585,7 @@ task automatic apply_ITA_weights(input integer phase);
         check_ITA_outputs(phase);
       end
 
-      @(posedge clk);
       check_ITA_outputs(5);
-
-      @(posedge clk);
       check_ITA_outputs(6);
     end
 
