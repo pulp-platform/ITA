@@ -65,7 +65,7 @@ module ita
   write_select_t write_select;
 
   // Activation signals
-  activation_e activation_q1, activation_q2, activation_q3, activation_q4, activation_q5, activation_q6, activation_q7, activation_q8;
+  activation_e activation_q1, activation_q2, activation_q3, activation_q4, activation_q5, activation_q6, activation_q7, activation_q8, activation_q9, activation_q10;
 
   always_ff @(posedge clk_i, negedge rst_ni) begin
     if (!rst_ni) begin
@@ -136,6 +136,8 @@ module ita
       step_q3               <= step_q2;
       step_q2               <= step_q1;
       step_q1               <= step;
+      activation_q10        <= activation_q9;
+      activation_q9         <= activation_q8;
       activation_q8         <= activation_q7;
       activation_q7         <= activation_q6;
       activation_q6         <= activation_q5;
@@ -288,7 +290,7 @@ module ita
   ita_activation i_activation (
     .clk_i         (clk_i       ),
     .rst_ni        (rst_ni      ),
-
+    .activation_i  (activation_q10),
     .activation_i  (activation_q8),
     .calc_en_q_i  (calc_en_q7  ),
     .one_i         (ctrl_i.gelu_one),
