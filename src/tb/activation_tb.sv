@@ -83,6 +83,7 @@ module activation_tb;
     .requant_mult_i   (activation_requant_mult),
     .requant_shift_i(activation_requant_shift),
     .requant_add_i        (activation_requant_add  ),
+    .calc_en_i   (1'b1),
     .calc_en_q_i (1'b1),
     .data_o       (acquired_postactivation)
   );
