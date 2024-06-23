@@ -15,6 +15,7 @@ module ita_activation
     input requant_const_t requant_shift_i,
     input requant_t requant_add_i,
     input activation_e activation_i,
+    input logic calc_en_i,
     input logic calc_en_q_i,
     input requant_oup_t  data_i,
     output requant_oup_t data_o
@@ -56,6 +57,8 @@ module ita_activation
         .one_i(one_i),
         .b_i(b_i),
         .c_i(c_i),
+        .calc_en_i(calc_en_i),
+        .calc_en_q_i(calc_en_q_i),
         .data_i(data_i[i]),
         .data_o(gelu_out[i])
       );

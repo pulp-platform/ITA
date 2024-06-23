@@ -10,6 +10,8 @@ module ita_gelu
     input gelu_const_t one_i,
     input gelu_const_t b_i,
     input gelu_const_t c_i,
+    input logic calc_en_i,
+    input logic calc_en_q_i,
     input requant_t  data_i,
     output gelu_out_t data_o
   );
@@ -23,22 +25,26 @@ module ita_gelu
   requant_t data_q1;
 
   always_comb begin : first_stage
-    data_sign_ext = {{GELU_CONSTANTS_WIDTH-WI{data_i[WI-1]}}, data_i};
+    if (calc_en_i) begin
+      data_sign_ext = {{GELU_CONSTANTS_WIDTH-WI{data_i[WI-1]}}, data_i};
 
-    erf_sgn_d = data_i < 0;
-    erf_abs = erf_sgn_d ? -data_sign_ext : data_sign_ext;
-    erf_clipped = erf_abs > -b_i ? -b_i : erf_abs;
+      erf_sgn_d = data_i < 0;
+      erf_abs = erf_sgn_d ? -data_sign_ext : data_sign_ext;
+      erf_clipped = erf_abs > -b_i ? -b_i : erf_abs;
 
-    poly_d = erf_clipped + b_i;
-    poly_sq_d = poly_d * poly_d;
+      poly_d = erf_clipped + b_i;
+      poly_sq_d = poly_d * poly_d;
+    end
   end
 
   always_comb begin : second_stage
-    erf_L_q1 = poly_sq_q1 + c_q1;
+    if (calc_en_q_i) begin
+      erf_L_q1 = poly_sq_q1 + c_q1;
 
-    gelu_erf_q1 = erf_sgn_q1 ? -erf_L_q1 : erf_L_q1;
-    gelu_sum_q1 = gelu_erf_q1 + one_q1;
-    gelu_out_q1 = data_q1 * gelu_sum_q1;
+      gelu_erf_q1 = erf_sgn_q1 ? -erf_L_q1 : erf_L_q1;
+      gelu_sum_q1 = gelu_erf_q1 + one_q1;
+      gelu_out_q1 = data_q1 * gelu_sum_q1;
+    end
   end
 
   always_ff @(posedge clk_i or negedge rst_ni) begin
