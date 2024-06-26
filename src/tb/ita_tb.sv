@@ -479,8 +479,6 @@ task automatic apply_ITA_weights(input integer phase);
     ita_ctrl.eps_mult   = 1;
     ita_ctrl.right_shift = 8;
     ita_ctrl.add = 0;
-    ita_ctrl.lin_tiles = N_TILES_LINEAR_PROJECTION;
-    ita_ctrl.attn_tiles = N_TILES_ATTENTION;
     ita_ctrl.tile_e = N_TILES_EMBEDDING_DIM;
     ita_ctrl.tile_p = N_TILES_PROJECTION_DIM;
     ita_ctrl.tile_s = N_TILES_SEQUENCE_DIM;
