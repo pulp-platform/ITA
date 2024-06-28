@@ -7,7 +7,6 @@ module ita_gelu
   (
     input logic clk_i,
     input logic rst_ni,
-    input gelu_const_t one_i,
     input gelu_const_t b_i,
     input gelu_const_t c_i,
     input logic calc_en_i,
@@ -17,7 +16,7 @@ module ita_gelu
   );
 
   logic erf_sgn_d, erf_sgn_q1;
-  gelu_const_t one_q1, c_q1;
+  gelu_const_t c_q1;
   gelu_const_t data_sign_ext, erf_abs, erf_clipped, poly_d;
   gelu_out_t erf_L_q1, gelu_erf_q1, gelu_sum_q1;
   gelu_out_t gelu_out_q1, gelu_out_q2;
@@ -42,21 +41,19 @@ module ita_gelu
       erf_L_q1 = poly_sq_q1 + c_q1;
 
       gelu_erf_q1 = erf_sgn_q1 ? -erf_L_q1 : erf_L_q1;
-      gelu_sum_q1 = gelu_erf_q1 + one_q1;
+      gelu_sum_q1 = gelu_erf_q1 + c_q1;
       gelu_out_q1 = data_q1 * gelu_sum_q1;
     end
   end
 
   always_ff @(posedge clk_i or negedge rst_ni) begin
     if (!rst_ni) begin
-      one_q1 <= '0;
       c_q1 <= '0;
       data_q1 <= '0;
       erf_sgn_q1 <= '0;
       poly_sq_q1 <= '0;
       gelu_out_q2 <= '0;
     end else begin
-      one_q1 <= one_i;
       c_q1 <= c_i;
       data_q1 <= data_i;
       erf_sgn_q1 <= erf_sgn_d;

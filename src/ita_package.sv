@@ -57,7 +57,6 @@ package ita_package;
     requant_const_array_t         eps_mult    ;
     requant_const_array_t         right_shift ;
     requant_array_t               add         ;
-    gelu_const_t                  gelu_one;
     gelu_const_t                  gelu_b;
     gelu_const_t                  gelu_c;
     requant_const_t               activation_requant_mult;

@@ -7,7 +7,6 @@ module ita_activation
   (
     input logic clk_i,
     input logic rst_ni,
-    input gelu_const_t one_i,
     input gelu_const_t b_i,
     input gelu_const_t c_i,
     input requant_mode_e requant_mode_i,
@@ -54,7 +53,6 @@ module ita_activation
       ita_gelu i_gelu (
         .clk_i(clk_i),
         .rst_ni(rst_ni),
-        .one_i(one_i),
         .b_i(b_i),
         .c_i(c_i),
         .calc_en_i(calc_en_i),

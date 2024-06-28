@@ -26,7 +26,6 @@ module ita_tb;
   string ATTENTION_WEIGHT_FILES[1] = {"standalone/Vp_in_0.txt"};
   string OUTPUT_FILES[N_PHASES] = {"standalone/Qp_0.txt", "standalone/Kp_0.txt", "standalone/Vp_0.txt", "standalone/A_0.txt", "standalone/Out_soft_0.txt", "standalone/FFp_0.txt", "standalone/FF2p_0.txt"};
   string ATTENTION_OUTPUT_FILES[2] = {"standalone/A_0.txt", "standalone/O_soft_0.txt"};
-  string gelu_one_file = "GELU_ONE.txt";
   string gelu_b_file = "GELU_B.txt";
   string gelu_c_file = "GELU_C.txt";
   string activation_requant_mult_file = "activation_requant_mult.txt";
@@ -252,14 +251,12 @@ function bit should_toggle_output(input bit input_file_index, input integer tile
 endfunction
 
 task automatic read_activation_constants(
-  output gelu_const_t gelu_one,
   output gelu_const_t gelu_b,
   output gelu_const_t gelu_c,
   output requant_const_t activation_requant_mult,
   output requant_const_t activation_requant_shift,
   output requant_t activation_requant_add
 );
-  integer one_fd;
   integer b_fd;
   integer c_fd;
   integer rqs_mul_fd;
@@ -267,21 +264,18 @@ task automatic read_activation_constants(
   integer add_fd;
   int return_code;
 
-  one_fd = open_stim_file(gelu_one_file);
   b_fd = open_stim_file(gelu_b_file);
   c_fd = open_stim_file(gelu_c_file);
   rqs_mul_fd = open_stim_file(activation_requant_mult_file);
   rqs_shift_fd = open_stim_file(activation_requant_shift_file);
   add_fd = open_stim_file(activation_requant_add_file);
 
-  return_code = $fscanf(one_fd, "%d", gelu_one);
   return_code = $fscanf(b_fd, "%d", gelu_b);
   return_code = $fscanf(c_fd, "%d", gelu_c);
   return_code = $fscanf(rqs_mul_fd, "%d", activation_requant_mult);
   return_code = $fscanf(rqs_shift_fd, "%d", activation_requant_shift);
   return_code = $fscanf(add_fd, "%d", activation_requant_add);
 
-  $fclose(one_fd);
   $fclose(b_fd);
   $fclose(c_fd);
   $fclose(rqs_mul_fd);
@@ -484,7 +478,7 @@ task automatic apply_ITA_weights(input integer phase);
     ita_ctrl.tile_s = N_TILES_SEQUENCE_DIM;
     ita_ctrl.tile_f = N_TILES_FEEDFORWARD;
 
-    read_activation_constants(ita_ctrl.gelu_one, ita_ctrl.gelu_b, ita_ctrl.gelu_c, ita_ctrl.activation_requant_mult, ita_ctrl.activation_requant_shift, ita_ctrl.activation_requant_add);
+    read_activation_constants(ita_ctrl.gelu_b, ita_ctrl.gelu_c, ita_ctrl.activation_requant_mult, ita_ctrl.activation_requant_shift, ita_ctrl.activation_requant_add);
 
     inp_valid = 1'b0;
     inp = '0;

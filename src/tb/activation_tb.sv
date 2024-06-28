@@ -14,7 +14,6 @@ module activation_tb;
   localparam time ACQ_DELAY           = 1600ps;
   localparam unsigned RST_CLK_CYCLES  = 10;
 
-  string gelu_one_file = "GELU_ONE.txt";
   string gelu_b_file = "GELU_B.txt";
   string gelu_c_file = "GELU_C.txt";
   string input_file = "standalone/preactivation.txt";
@@ -74,7 +73,6 @@ module activation_tb;
   activation dut (
     .clk_i        (clk  ),
     .rst_ni       (rst_n),
-    .one_i        (gelu_one  ),
     .b_i          (gelu_b    ),
     .c_i          (gelu_c    ),
     .data_i       (preactivation_input),
@@ -131,14 +129,12 @@ module activation_tb;
   endfunction
 
   task automatic read_gelu_constants(
-    output gelu_const_t gelu_one,
     output gelu_const_t gelu_b,
     output gelu_const_t gelu_c,
     output requant_const_t activation_requant_mult,
     output requant_const_t activation_requant_shift,
     output requant_t activation_requant_add
   );
-    integer one_fd;
     integer b_fd;
     integer c_fd;
     integer rqs_mul_fd;
@@ -146,21 +142,18 @@ module activation_tb;
     integer add_fd;
     int return_code;
 
-    one_fd = open_stim_file(gelu_one_file);
     b_fd = open_stim_file(gelu_b_file);
     c_fd = open_stim_file(gelu_c_file);
     rqs_mul_fd = open_stim_file(activation_requant_mult_file);
     rqs_shift_fd = open_stim_file(activation_requant_shift_file);
     add_fd = open_stim_file(activation_requant_add_file);
 
-    return_code = $fscanf(one_fd, "%d", gelu_one);
     return_code = $fscanf(b_fd, "%d", gelu_b);
     return_code = $fscanf(c_fd, "%d", gelu_c);
     return_code = $fscanf(rqs_mul_fd, "%d", activation_requant_mult);
     return_code = $fscanf(rqs_shift_fd, "%d", activation_requant_shift);
     return_code = $fscanf(add_fd, "%d", activation_requant_add);
 
-    $fclose(one_fd);
     $fclose(b_fd);
     $fclose(c_fd);
     $fclose(rqs_mul_fd);
@@ -177,7 +170,7 @@ module activation_tb;
     input_fd = open_stim_file(input_file);
 
     if (activation == Gelu) begin
-      read_gelu_constants(gelu_one, gelu_b, gelu_c, activation_requant_mult, activation_requant_shift, activation_requant_add);
+      read_gelu_constants(gelu_b, gelu_c, activation_requant_mult, activation_requant_shift, activation_requant_add);
     end
 
     $display("Starting to apply activations for %s with latency %0d after %0d", activation, latency, $time);
