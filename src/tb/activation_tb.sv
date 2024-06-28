@@ -31,7 +31,6 @@ module activation_tb;
   requant_oup_t preactivation_input_check;
   requant_oup_t expected_postactivation;
   requant_oup_t acquired_postactivation;
-  gelu_const_t gelu_one;
   gelu_const_t gelu_b;
   gelu_const_t gelu_c;
   requant_const_t activation_requant_mult;
