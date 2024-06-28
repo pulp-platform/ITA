@@ -86,7 +86,6 @@ module ita_hwpe_ctrl
     ctrl_engine_o.add[3] = reg_file.hwpe_params[ITA_REG_ADD0][31:24];
     ctrl_engine_o.add[4] = reg_file.hwpe_params[ITA_REG_ADD1][7:0];
     ctrl_engine_o.add[5] = reg_file.hwpe_params[ITA_REG_ADD1][15:8];
-    ctrl_engine_o.gelu_one = reg_file.hwpe_params[ITA_REG_GELU_ONE][15:0];
     ctrl_engine_o.gelu_b = reg_file.hwpe_params[ITA_REG_GELU_B_C][15:0];
     ctrl_engine_o.gelu_c = reg_file.hwpe_params[ITA_REG_GELU_B_C][31:16];
     ctrl_engine_o.activation_requant_mult = reg_file.hwpe_params[ITA_REG_ACTIVATION_REQUANT][7:0];

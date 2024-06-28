@@ -38,9 +38,8 @@ package ita_hwpe_package;
   parameter int unsigned ITA_REG_CTRL_STREAM  = 14; // ctrl_stream [0]: weight preload, ctrl_stream [1]: weight nextload, ctrl_stream [2]: bias disable, ctrl_stream [3]: bias direction, ctrl_stream [4]: output disable
 
   // Reusing registers which are not used during execution of feedforward layer
-  parameter int unsigned ITA_REG_GELU_ONE     = 8; // gelu_one [15:0]
-  parameter int unsigned ITA_REG_GELU_B_C     = 10; // gelu_b [15:0], gelu_c [31:16]
-  parameter int unsigned ITA_REG_ACTIVATION_REQUANT = 12; // activation_requant_mult [7:0], activation_requant_shift [15:8], activation_requant_add [23:16]
+  parameter int unsigned ITA_REG_GELU_B_C     = 8; // gelu_b [15:0], gelu_c [31:16]
+  parameter int unsigned ITA_REG_ACTIVATION_REQUANT = 10; // activation_requant_mult [7:0], activation_requant_shift [15:8], activation_requant_add [23:16]
 
 
   typedef struct packed {

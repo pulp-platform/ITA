@@ -71,7 +71,6 @@ module ita_hwpe_tb;
 
   // Variables
   string simdir;
-  string gelu_one_file = "GELU_ONE.txt";
   string gelu_b_file = "GELU_B.txt";
   string gelu_c_file = "GELU_C.txt";
   string activation_requant_mult_file = "activation_requant_mult.txt";
@@ -298,7 +297,7 @@ endfunction
     string STIM_DATA;
     logic [31:0] ita_reg_tiles_val;
     logic [5:0][31:0] ita_reg_rqs_val;
-    logic [31:0] ita_reg_gelu_one_val, ita_reg_gelu_b_c_val;
+    logic [31:0] ita_reg_gelu_b_c_val;
     logic [31:0] ita_reg_activation_rqs_val;
 
     $timeformat(-9, 2, " ns", 10);
@@ -312,7 +311,7 @@ endfunction
 
     ita_reg_tiles_val_compute(N_TILES_SEQUENCE_DIM, N_TILES_EMBEDDING_DIM, N_TILES_PROJECTION_DIM, N_TILES_FEEDFORWARD_DIM, ita_reg_tiles_val);
     ita_reg_eps_mult_val_compute(ita_reg_rqs_val);
-    ita_reg_activation_constants_compute(ita_reg_gelu_one_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val);
+    ita_reg_activation_constants_compute(ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val);
 
     // soft clear
     PERIPH_WRITE( 32'h14, 32'h0, 32'h0,  clk);
@@ -323,13 +322,13 @@ endfunction
       PERIPH_READ( 32'h04, 32'h0, status, clk);
 
     // 1: Step Q
-    ita_compute_step(Q, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_one_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
+    ita_compute_step(Q, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
 
     // 2: Step K
-    ita_compute_step(K, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_one_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
+    ita_compute_step(K, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
 
     // 3: Step V
-    ita_compute_step(V, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_one_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
+    ita_compute_step(V, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
 
 
     for (int group = 0; group < N_TILES_SEQUENCE_DIM; group++) begin
@@ -340,7 +339,7 @@ endfunction
       BASE_PTR_OUTPUT[AV] = BASE_PTR[14] + group * N_TILES_OUTER_X[AV] * N_ELEMENTS_PER_TILE;
 
       // 4: Step QK
-      ita_compute_step(QK, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_one_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
+      ita_compute_step(QK, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
 
       // WIESEP: Hack to ensure that during the last tile of AV, the weight pointer is set correctly
       if (group == N_TILES_SEQUENCE_DIM-1) begin
@@ -348,11 +347,11 @@ endfunction
       end
 
       // 5: Step AV
-      ita_compute_step(AV, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_one_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
+      ita_compute_step(AV, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
     end
 
     // 6: Step OW
-    ita_compute_step(OW, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_one_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
+    ita_compute_step(OW, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
 
     // Wait for the last step to finish
     wait(evt);
@@ -377,7 +376,6 @@ endfunction
     input  step_e       step,
     input  logic [31:0] ita_reg_tiles_val,
     input  logic [5:0][31:0] ita_reg_rqs_val,
-    input  logic [31:0] ita_reg_gelu_one_val,
     input  logic [31:0] ita_reg_gelu_b_c_val,
     input  logic [31:0] ita_reg_activation_rqs_val,
     ref    logic        clk_i
@@ -424,7 +422,7 @@ endfunction
           $display(" - ITA Reg En 0x%0h, Ctrl Stream Val 0x%0h, Weight Ptr En %0d, Bias Ptr En %0d", ita_reg_en, ctrl_stream_val, weight_ptr_en, bias_ptr_en);
 
           // Program ITA
-          PROGRAM_ITA(input_ptr, weight_ptr0, weight_ptr1, weight_ptr_en, bias_ptr, bias_ptr_en, output_ptr, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_one_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, ita_reg_en, ctrl_engine_val, ctrl_stream_val, clk_i);
+          PROGRAM_ITA(input_ptr, weight_ptr0, weight_ptr1, weight_ptr_en, bias_ptr, bias_ptr_en, output_ptr, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, ita_reg_en, ctrl_engine_val, ctrl_stream_val, clk_i);
 
           // Wait for ITA to finish
           @(posedge clk_i);
@@ -590,31 +588,26 @@ endfunction
   endtask
 
   task automatic ita_reg_activation_constants_compute(
-    output logic [31:0] gelu_one_reg,
     output logic [31:0] gelu_b_c_reg,
     output logic [31:0] activation_requant_reg
   );
-    gelu_const_t gelu_one;
     gelu_const_t gelu_b;
     gelu_const_t gelu_c;
     requant_const_t activation_requant_mult;
     requant_const_t activation_requant_shift;
     requant_t activation_requant_add;
-    read_activation_constants(gelu_one, gelu_b, gelu_c, activation_requant_mult, activation_requant_shift, activation_requant_add);
-    gelu_one_reg = {16'h0, gelu_one};
+    read_activation_constants(gelu_b, gelu_c, activation_requant_mult, activation_requant_shift, activation_requant_add);
     gelu_b_c_reg = gelu_b | gelu_c << 16;
     activation_requant_reg = activation_requant_mult | activation_requant_shift << 8 | activation_requant_add << 16;
   endtask
 
   task automatic read_activation_constants(
-    output gelu_const_t gelu_one,
     output gelu_const_t gelu_b,
     output gelu_const_t gelu_c,
     output requant_const_t gelu_eps_mult,
     output requant_const_t gelu_right_shift,
     output requant_t gelu_add
   );
-    integer one_fd;
     integer b_fd;
     integer c_fd;
     integer rqs_mul_fd;
@@ -622,21 +615,18 @@ endfunction
     integer add_fd;
     int return_code;
 
-    one_fd = open_stim_file(gelu_one_file);
     b_fd = open_stim_file(gelu_b_file);
     c_fd = open_stim_file(gelu_c_file);
     rqs_mul_fd = open_stim_file(activation_requant_mult_file);
     rqs_shift_fd = open_stim_file(activation_requant_shift_file);
     add_fd = open_stim_file(activation_requant_add_file);
 
-    return_code = $fscanf(one_fd, "%d", gelu_one);
     return_code = $fscanf(b_fd, "%d", gelu_b);
     return_code = $fscanf(c_fd, "%d", gelu_c);
     return_code = $fscanf(rqs_mul_fd, "%d", gelu_eps_mult);
     return_code = $fscanf(rqs_shift_fd, "%d", gelu_right_shift);
     return_code = $fscanf(add_fd, "%d", gelu_add);
 
-    $fclose(one_fd);
     $fclose(b_fd);
     $fclose(c_fd);
     $fclose(rqs_mul_fd);
@@ -734,7 +724,6 @@ endfunction
     input  logic [31:0] output_ptr,
     input  logic [31:0] ita_reg_tiles_val,
     input  logic [5:0][31:0] ita_reg_rqs_val,
-    input  logic [31:0] ita_reg_gelu_one_val,
     input  logic [31:0] ita_reg_gelu_b_c_val,
     input  logic [31:0] ita_reg_activation_rqs_val,
     input  logic        ita_reg_en,
