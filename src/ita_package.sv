@@ -30,7 +30,7 @@ package ita_package;
   parameter  int unsigned M3AddrWidth    = idx_width(S)                                                      ;
   parameter  int unsigned NumReadPorts   = N                                                                 ;
   parameter  int unsigned MNumReadPorts  = N                                                                 ;
-  parameter  int unsigned FifoDepth      = `ifdef ITA_OUTPUT_FIFO_DEPTH `ITA_OUTPUT_FIFO_DEPTH `else 12 `endif;
+  parameter  int unsigned FifoDepth      = `ifdef ITA_OUTPUT_FIFO_DEPTH `ITA_OUTPUT_FIFO_DEPTH `else 14 `endif;
   localparam int unsigned SplitFactor    = 4                                                                 ;
   parameter  int unsigned N_WRITE_EN     = `ifdef TARGET_ITA_HWPE 8 `else M `endif;
 
