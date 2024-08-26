@@ -1,0 +1,49 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Generate Test",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/testGenerator.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": false,
+            "args": [
+                "-H${input:heads}",
+                "-S${input:seq_len}",
+                "-E${input:emb_len}",
+                "-P${input:prj_len}",
+            ],
+        }
+    ],
+    "inputs": [
+        {
+            "id": "heads",
+            "type": "promptString",
+            "description": "Number of heads",
+            "default": "1"
+        },
+        {
+            "id": "seq_len",
+            "type": "promptString",
+            "description": "Sequence length",
+            "default": "64"
+        },
+        {
+            "id": "emb_len",
+            "type": "promptString",
+            "description": "Embenbing length",
+            "default": "64"
+        },
+        {
+            "id": "prj_len",
+            "type": "promptString",
+            "description": "Projection length",
+            "default": "64"
+        }
+    ]
+}

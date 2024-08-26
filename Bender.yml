@@ -1,0 +1,80 @@
+# Copyright 2023 ETH Zurich and University of Bologna.
+# Solderpad Hardware License, Version 0.51, see LICENSE for details.
+# SPDX-License-Identifier: SHL-0.51
+
+# Package metadata. Required.
+package:
+  # The name of the package. Required.
+  name: ita
+
+  # The list of package authors and contributors. Optional.
+  # By convention, authors should be listed in the form shown below.
+  authors: 
+    - Gamze Islamoglu <gislamoglu@iis.ee.ethz.ch>
+    - Philip Wiese <wiesep@iis.ee.ethz.ch>
+
+# Other packages this package depends on. Optional.
+dependencies:
+  common_cells:       { git: https://github.com/pulp-platform/common_cells, version: 1.23.0 }
+  hwpe-stream:        { git: https://github.com/pulp-platform/hwpe-stream, rev: a20f35e62fe2842904797079dc7881e490ff7117 }
+  hci:                { git: https://github.com/pulp-platform/hci, rev: 066c7ce7d24b61587e245decb592054669d7a2d1 }
+  hwpe-ctrl:          { git: https://github.com/pulp-platform/hwpe-ctrl, rev: 2926867cafb3fb518a1ae849675f281b79ecab8a }
+  scm:                { git: https://github.com/pulp-platform/scm, rev: 998466d2a3c2d7d572e43d2666d93c4f767d8d60 }
+  tech_cells_generic: { git: https://github.com/pulp-platform/tech_cells_generic, version:  0.2.11 }
+
+# Freeze any dependency updates. Optional. False if omitted.
+# Useful for chip packages. Once the chip is in final tapeout mode, and
+# dependency updates would require disastrous amounts of re-verification.
+frozen: false
+
+# List of source files in this package. Optional.
+sources:
+  # Individual source files are simple string entries:
+  - src/ita_package.sv
+  - src/ita_accumulator.sv
+  - src/ita_controller.sv
+  - src/ita_dotp.sv
+  - src/ita_fifo_controller.sv
+  - src/ita_inp1_mux.sv
+  - src/ita_inp2_mux.sv
+  - src/ita_input_sampler.sv
+  - src/ita_output_controller.sv
+  - src/ita_register_file_1w_1r_double_width_write.sv
+  - src/ita_register_file_1w_multi_port_read.sv
+  - src/ita_register_file_1w_multi_port_read_we.sv
+  - src/ita_requantizer.sv
+  - src/ita_serdiv.sv
+  - src/ita_softmax.sv
+  - src/ita_softmax_top.sv
+  - src/ita_sumdotp.sv
+  - src/ita_weight_controller.sv
+  - src/ita.sv
+  - src/ita_max_finder.sv
+
+  # HWPE sources
+  - target: hwpe
+    files:
+      - src/hwpe/ita_hwpe_package.sv
+      - src/hwpe/ita_hwpe_ctrl.sv
+      - src/hwpe/ita_hwpe_engine.sv
+      - src/hwpe/ita_hwpe_input_buffer.sv
+      - src/hwpe/ita_hwpe_input_bias_buffer.sv
+      - src/hwpe/ita_hwpe_input_bias_fence.sv
+      - src/hwpe/ita_hwpe_output_buffer.sv
+      - src/hwpe/ita_hwpe_streamer.sv
+      - src/hwpe/ita_hwpe_top.sv
+      - src/hwpe/ita_hwpe_wrap.sv
+
+  # Level 1
+  # TB sources
+  - target: test
+    files:
+      - src/tb/ita_tb.sv
+      - src/tb/clk_rst_gen.sv
+      - src/tb/rst_gen.sv
+
+  # HWPE TB sources
+  - target: hwpe_test
+    files:
+      - src/hwpe/tb/tb_dummy_memory.sv
+      - src/hwpe/tb/ita_hwpe_tb.sv

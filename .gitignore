@@ -1,0 +1,39 @@
+modelsim/build*
+modelsim/work/
+modelsim/wlft*
+simvectors/
+.bender/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+*~
+build
+dist
+**/DumpO.egg*
+
+*venv
+
+.DS_Store
+*.html
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Ignore everything in .vscode except launch.json
+.vscode/*
+!.vscode/launch.json
+!.vscode/settings.json
+!.vscode/c_cpp_properties.json
+
+simvectors
+install
+**/quantlib
+
+logs
+
+# Ignore Bender dependencies
+deps
+

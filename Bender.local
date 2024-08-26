@@ -1,0 +1,6 @@
+# Copyright 2023 ETH Zurich and University of Bologna.
+# Solderpad Hardware License, Version 0.51, see LICENSE for details.
+# SPDX-License-Identifier: SHL-0.51
+
+overrides:
+    hwpe-stream: { git: "https://github.com/pulp-platform/hwpe-stream.git", rev: "a20f35e62fe2842904797079dc7881e490ff7117" }
