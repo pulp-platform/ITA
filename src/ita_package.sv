@@ -26,7 +26,7 @@ package ita_package;
   parameter  int unsigned FifoDepth      = `ifdef ITA_OUTPUT_FIFO_DEPTH `ITA_OUTPUT_FIFO_DEPTH `else 8 `endif;
   localparam int unsigned SplitFactor    = 4                                                                 ;
 
-  parameter  int unsigned N_WRITE_EN     = `ifdef TARGET_HWPE 8 `else M `endif;
+  parameter  int unsigned N_WRITE_EN     = `ifdef TARGET_ITA_HWPE 8 `else M `endif;
 
   // IO
   typedef logic [idx_width(S+1)-1:0] seq_length_t;

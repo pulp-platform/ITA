@@ -27,7 +27,7 @@ bias ?= 0
 vlog_defs += -DNO_STALLS=$(no_stalls) -DSEQ_LENGTH=$(s) -DPROJ_SPACE=$(p) -DEMBED_SIZE=$(e) -DBIAS=$(bias)
 
 ifeq ($(target), sim_ita_hwpe_tb)
-	BENDER_TARGETS += -t hwpe -t hwpe_test
+	BENDER_TARGETS += -t ita_hwpe -t ita_hwpe_test
 	vlog_defs += -DHCI_ASSERT_DELAY=\#41ps
 endif
 

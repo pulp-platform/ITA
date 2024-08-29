@@ -52,7 +52,7 @@ sources:
   - src/ita_max_finder.sv
 
   # HWPE sources
-  - target: hwpe
+  - target: ita_hwpe
     files:
       - src/hwpe/ita_hwpe_package.sv
       - src/hwpe/ita_hwpe_ctrl.sv
@@ -74,7 +74,7 @@ sources:
       - src/tb/rst_gen.sv
 
   # HWPE TB sources
-  - target: hwpe_test
+  - target: ita_hwpe_test
     files:
       - src/hwpe/tb/tb_dummy_memory.sv
       - src/hwpe/tb/ita_hwpe_tb.sv
