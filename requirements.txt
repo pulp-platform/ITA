@@ -9,3 +9,4 @@ netron
 seaborn
 matplotlib
 torch
+pytest
