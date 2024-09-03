@@ -53,6 +53,7 @@ sources:
   - src/ita_gelu.sv
   - src/ita_relu.sv
   - src/ita_activation.sv
+  - src/ita_requantization_controller.sv
 
   # HWPE sources
   - target: ita_hwpe

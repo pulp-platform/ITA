@@ -41,8 +41,11 @@ module ita
   inp_t         inp, inp_stream_soft;
   weight_t      inp1, inp1_q, inp2, inp2_q;
   bias_t        inp_bias, inp_bias_q1, inp_bias_q2;
-  oup_t         oup, oup_q, result;
+  oup_t         oup, oup_q, accumulator_oup;
+  requant_const_t    requant_mult, requant_shift, activation_requant_mult, activation_requant_shift;
   requant_oup_t requant_oup;
+  requant_t         requant_add, activation_requant_add;
+  requant_mode_e    requant_mode, activation_requant_mode;
   requant_oup_t post_activation;
 
   // FIFO signals
@@ -227,7 +230,7 @@ module ita
 
     .oup_i         (oup_q              ),
     .inp_bias_i    (inp_bias_q2        ),
-    .result_o      (result             )
+    .result_o      (accumulator_oup    )
   );
 
   ita_softmax_top i_softmax_top (
@@ -245,20 +248,19 @@ module ita
     .inp_stream_soft_o    (inp_stream_soft                 )
   );
 
-  oup_t         requant_result;
-  logic         requant_mode  ;
-  requant_const_t    requant_mult;
-  requant_const_t requant_shift ;
-  requant_t         requant_add ;
 
-  assign requant_result = result;
-  assign requant_mode   = 1'b0;
-
-  always_comb begin
-    requant_mult  = ctrl_i.eps_mult[step_q4];
-    requant_shift = ctrl_i.right_shift[step_q4];
-    requant_add   = ctrl_i.add[step_q4];
-  end
+  ita_requatization_controller i_requantization_controller (
+    .ctrl_i             (ctrl_i            ),
+    .requantizer_step_i (step_q4         ),
+    .requant_mult_o     (requant_mult     ),
+    .requant_shift_o    (requant_shift    ),
+    .requant_add_o      (requant_add      ),
+    .requant_mode_o     (requant_mode     ),
+    .activation_requant_mult_o (activation_requant_mult),
+    .activation_requant_shift_o(activation_requant_shift),
+    .activation_requant_add_o  (activation_requant_add  ),
+    .activation_requant_mode_o (activation_requant_mode )
+  );
 
   ita_requantizer i_requantizer (
     .clk_i        ( clk_i             ),
@@ -270,7 +272,7 @@ module ita
 
     .calc_en_i    ( calc_en_q4 && last_inner_tile_q4       ),
     .calc_en_q_i  ( calc_en_q5 && last_inner_tile_q5       ),
-    .result_i     ( requant_result    ),
+    .result_i     ( accumulator_oup    ),
     .add_i        ( {N {requant_add}} ),
     .requant_oup_o( requant_oup       )
   );
@@ -285,10 +287,10 @@ module ita
     .one_i         (ctrl_i.gelu_one),
     .b_i           (ctrl_i.gelu_b  ),
     .c_i           (ctrl_i.gelu_c  ),
-    .requant_mode  (requant_mode  ),
-    .requant_mult_i    (ctrl_i.activation_requant_mult),
-    .requant_shift_i (ctrl_i.activation_requant_shift),
-    .requant_add_i         (ctrl_i.activation_requant_add),
+    .requant_mode_i  (activation_requant_mode),
+    .requant_mult_i    (activation_requant_mult),
+    .requant_shift_i (activation_requant_shift),
+    .requant_add_i         (activation_requant_add),
     .data_i        (requant_oup),
     .data_o        (post_activation)
   );

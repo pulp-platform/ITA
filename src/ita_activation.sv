@@ -10,7 +10,7 @@ module ita_activation
     input gelu_const_t one_i,
     input gelu_const_t b_i,
     input gelu_const_t c_i,
-    input logic requant_mode,
+    input requant_mode_e requant_mode_i,
     input requant_const_t requant_mult_i,
     input requant_const_t requant_shift_i,
     input requant_t requant_add_i,
@@ -29,7 +29,7 @@ module ita_activation
   ita_requantizer i_requantizer (
     .clk_i(clk_i),
     .rst_ni(rst_ni),
-    .mode_i(requant_mode),
+    .mode_i(requant_mode_i),
     .eps_mult_i(requant_mult_i),
     .right_shift_i(requant_shift_i),
     .add_i({N{requant_add_i}}),
