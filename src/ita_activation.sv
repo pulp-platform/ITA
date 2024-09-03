@@ -19,12 +19,29 @@ module ita_activation
     output requant_oup_t data_o
   );
 
-  requant_oup_t gelu_out, relu_out;
+  requant_oup_t data_q1, data_q2;
+  activation_e activation_q1, activation_q2;
+  gelu_out_t [N-1:0] gelu_out;
+  requant_oup_t gelu_out_requant;
+  requant_oup_t relu_out;
+
+  ita_requantizer i_requantizer (
+    .clk_i(clk_i),
+    .rst_ni(rst_ni),
+    .mode_i(requant_mode),
+    .eps_mult_i(requant_mult_i),
+    .right_shift_i(requant_shift_i),
+    .add_i({N{requant_add_i}}),
+    .calc_en_i(1'b1),
+    .calc_en_q_i(1'b1),
+    .result_i(gelu_out),
+    .requant_oup_o(gelu_out_requant)
+  );
 
   generate
     for (genvar i = 0; i < N; i++) begin: relu_loop
       ita_relu i_relu (
-        .data_i(data_i[i]),
+        .data_i(data_q2[i]),
         .data_o(relu_out[i])
       );
     end
@@ -33,15 +50,10 @@ module ita_activation
   generate
     for (genvar i = 0; i < N; i++) begin: gelu_loop
       ita_gelu i_gelu (
-        .clk_i(clk_i),
-        .rst_ni(rst_ni),
         .one_i(one_i),
         .b_i(b_i),
         .c_i(c_i),
         .data_i(data_i[i]),
-        .eps_mult_i(eps_mult_i),
-        .right_shift_i(right_shift_i),
-        .add_i(add_i),
         .data_o(gelu_out[i])
       );
     end
@@ -49,13 +61,27 @@ module ita_activation
 
 
   always_comb begin
-    if (activation_i == IDENTITY) begin
-      data_o = data_i;
-    end else if (activation_i == RELU) begin
+    if (activation_q2 == IDENTITY) begin
+      data_o = data_q2;
+    end else if (activation_q2 == RELU) begin
       data_o = relu_out;
-    end else if (activation_i == GELU) begin
-      data_o = gelu_out;
+    end else if (activation_q2 == GELU) begin
+      data_o = gelu_out_requant;
     end
   end
 
+  // Delay data for IDENTITY and RELU activations which are not requantized
+  always_ff @(posedge clk_i, negedge rst_ni) begin
+    if (!rst_ni) begin
+      data_q1 <= '0;
+      data_q2 <= '0;
+      activation_q1 <= IDENTITY;
+      activation_q2 <= IDENTITY;
+    end else begin
+      data_q1 <= data_i;
+      data_q2 <= data_q1;
+      activation_q1 <= activation_i;
+      activation_q2 <= activation_q1;
+    end
+  end
 endmodule
