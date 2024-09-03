@@ -26,6 +26,7 @@ exp_n_outputs_K=${exp_n_outputs_Q}
 exp_n_outputs_V=${exp_n_outputs_Q}
 exp_n_outputs_OW=$((ita_s * ita_e / ITA_N))
 exp_n_outputs_FF1=$((ita_s * ita_f / ITA_N))
+exp_n_outputs_FF2=$((ita_s * ita_e / ITA_N))
 
 # Check if the simulation log exists
 if [[ ! -f ${SIM_LOG} ]]; then
@@ -53,6 +54,8 @@ then
     check_n_outputs "${exp_n_outputs_K}" 1
     check_n_outputs "${exp_n_outputs_V}" 2
     check_n_outputs "${exp_n_outputs_OW}" 4
+    check_n_outputs "${exp_n_outputs_FF1}" 5
+    check_n_outputs "${exp_n_outputs_FF2}" 6
 
     n_error_lines=$(grep -c "Wrong value" "${SIM_LOG}")
 # HWPE TB
