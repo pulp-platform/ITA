@@ -27,15 +27,16 @@ module gelu_tb;
   integer SEQUENCE_LEN, PROJECTION_SIZE, EMBEDDING_SIZE, FEEDFORWARD_SIZE;
 
   logic         clk, rst_n;
-  logic signed [WI-1:0] preactivation_input;
-  logic signed [WI-1:0] expected_postactivation;
-  logic signed [WI-1:0] acquired_postactivation;
+  requant_oup_t preactivation_input;
+  requant_oup_t expected_postactivation;
+  requant_oup_t acquired_postactivation;
   logic signed [GELU_CONSTANTS_WIDTH-1:0] one;
   logic signed [GELU_CONSTANTS_WIDTH-1:0] b;
   logic signed [GELU_CONSTANTS_WIDTH-1:0] c;
   logic signed [EMS-1:0] eps_mult;
   logic signed [EMS-1:0] right_shift;
   requant_t add;
+  activation_e selected_activation;
 
   string simdir;
   integer is_end_of_file;
@@ -69,7 +70,7 @@ module gelu_tb;
     .rst_no(rst_n)
   );
 
-  ita_gelu i_dut (
+  ita_activation i_dut (
     .clk_i        (clk  ),
     .rst_ni       (rst_n),
     .one_i        (one  ),
@@ -78,6 +79,7 @@ module gelu_tb;
     .data_i       (preactivation_input),
     .eps_mult_i   (eps_mult),
     .right_shift_i(right_shift),
+    .activation_i (selected_activation),
     .add_i        (add  ),
     .data_o       (acquired_postactivation)
   );
@@ -93,44 +95,48 @@ module gelu_tb;
     return stim_fd;
   endfunction
 
-  function automatic void read_constant_one(integer stim_fd, string filename);
+  function automatic void read_constant_one(integer stim_fd);
     int return_code;
     return_code = $fscanf(stim_fd, "%d", one);
   endfunction
 
-  function automatic void read_constant_b(integer stim_fd, string filename);
+  function automatic void read_constant_b(integer stim_fd);
     int return_code;
     return_code = $fscanf(stim_fd, "%d", b);
   endfunction
 
-  function automatic void read_constant_c(integer stim_fd, string filename);
+  function automatic void read_constant_c(integer stim_fd);
     int return_code;
     return_code = $fscanf(stim_fd, "%d", c);
   endfunction
 
-  function automatic void read_constant_rqs_mul(integer stim_fd, string filename);
+  function automatic void read_constant_rqs_mul(integer stim_fd);
     int return_code;
     return_code = $fscanf(stim_fd, "%d", eps_mult);
   endfunction
 
-  function automatic void read_constant_rqs_shift(integer stim_fd, string filename);
+  function automatic void read_constant_rqs_shift(integer stim_fd);
     int return_code;
     return_code = $fscanf(stim_fd, "%d", right_shift);
   endfunction
 
-  function automatic void read_constant_add(integer stim_fd, string filename);
+  function automatic void read_constant_add(integer stim_fd);
     int return_code;
     return_code = $fscanf(stim_fd, "%d", add);
   endfunction
 
-  function automatic void read_preactivation(integer stim_fd, string filename);
+  function automatic void read_preactivation(integer stim_fd);
     int return_code;
-    return_code = $fscanf(stim_fd, "%d", preactivation_input);
+    for (int i = 0; i < 1; i++) begin
+      return_code = $fscanf(stim_fd, "%d", preactivation_input[i]);
+    end
   endfunction
 
-  function automatic void read_postactivation(integer stim_fd, string filename);
+  function automatic void read_postactivation(integer stim_fd);
     int return_code;
-    return_code = $fscanf(stim_fd, "%d", expected_postactivation);
+    for (int i = 0; i < 1; i++) begin
+      return_code = $fscanf(stim_fd, "%d", expected_postactivation[i]);
+    end
   endfunction
 
   initial begin: application_block
@@ -156,18 +162,19 @@ module gelu_tb;
     input_fd = open_stim_file(input_file);
     output_fd = open_stim_file(output_file);
 
-    read_constant_one(one_fd, constant_one_file);
-    read_constant_b(b_fd, constant_b_file);
-    read_constant_c(c_fd, constant_c_file);
-    read_constant_rqs_mul(rqs_mul_fd, constant_rqs_mul_file);
-    read_constant_rqs_shift(rqs_shift_fd, constant_rqs_shift_file);
-    read_constant_add(add_fd, constant_add_file);
+    read_constant_one(one_fd);
+    read_constant_b(b_fd);
+    read_constant_c(c_fd);
+    read_constant_rqs_mul(rqs_mul_fd);
+    read_constant_rqs_shift(rqs_shift_fd);
+    read_constant_add(add_fd);
+    selected_activation = GELU;
 
     while (!is_end_of_file) begin
       @(posedge clk);
       #(APPL_DELAY);
-      read_preactivation(input_fd, input_file);
-      read_postactivation(output_fd, output_file);
+      read_preactivation(input_fd);
+      read_postactivation(output_fd);
       is_end_of_file = $feof(input_fd);
     end
     
@@ -194,18 +201,18 @@ module gelu_tb;
       #(ACQ_DELAY);
 
       n_checks += 1;
-      if (acquired_postactivation != expected_postactivation) begin
+      if (acquired_postactivation[0] != expected_postactivation[0]) begin
         n_errors += 1;
-        $display("X expected %d, not %d for input\n", expected_postactivation, acquired_postactivation, preactivation_input);
+        $display(":=( expected %d, not %d for input\n", expected_postactivation[0], acquired_postactivation[0], preactivation_input[0]);
       end
     end
     
     @(posedge clk);
 
     if (n_errors > 0) begin
-      $display("X Test failed with ", n_errors, " mismatches out of ", n_checks, " checks!");
+      $display(":=( Test failed with ", n_errors, " mismatches out of ", n_checks, " checks!");
     end else begin
-      $display("v Test passed with ", n_errors, " mismatches out of ", n_checks, " checks!");
+      $display(":=) Test passed with ", n_errors, " mismatches out of ", n_checks, " checks!");
     end
 
     #(300*CLK_PERIOD);
