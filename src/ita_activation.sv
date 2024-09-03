@@ -39,7 +39,7 @@ module ita_activation
   );
 
   generate
-    for (genvar i = 0; i < N; i++) begin: relu_loop
+    for (genvar i = 0; i < N; i++) begin: relu_instances
       ita_relu i_relu (
         .data_i(data_q2[i]),
         .data_o(relu_out[i])
@@ -48,7 +48,7 @@ module ita_activation
   endgenerate
 
   generate
-    for (genvar i = 0; i < N; i++) begin: gelu_loop
+    for (genvar i = 0; i < N; i++) begin: gelu_instances
       ita_gelu i_gelu (
         .one_i(one_i),
         .b_i(b_i),
@@ -61,12 +61,13 @@ module ita_activation
 
 
   always_comb begin
-    if (activation_q2 == IDENTITY) begin
-      data_o = data_q2;
-    end else if (activation_q2 == RELU) begin
-      data_o = relu_out;
-    end else if (activation_q2 == GELU) begin
+    if (activation_q2 === GELU) begin
       data_o = gelu_out_requant;
+    end else if (activation_q2 === RELU) begin
+      data_o = relu_out;
+    end else begin
+      assert (activation_q2 === IDENTITY);
+      data_o = data_q2;
     end
   end
 
