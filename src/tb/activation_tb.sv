@@ -6,7 +6,7 @@ module activation_tb;
 
   timeunit 10ps;
   timeprecision 1ps;
-  
+
   import ita_package::*;
 
   localparam time CLK_PERIOD          = 2000ps;
@@ -176,11 +176,11 @@ module activation_tb;
     is_end_of_file = 0;
 
     input_fd = open_stim_file(input_file);
-    
+
     if (activation == GELU) begin
       read_gelu_constants(gelu_one, gelu_b, gelu_c, activation_requant_mult, activation_requant_shift, activation_requant_add);
     end
-    
+
     $display("Starting to apply activations for %s with latency %0d after %0d", activation, latency, $time);
 
     while (!is_end_of_file) begin
@@ -239,11 +239,11 @@ module activation_tb;
     input_fd = open_stim_file(input_file);
     gelu_output_fd = open_stim_file(gelu_output_file);
     relu_output_fd = open_stim_file(relu_output_file);
-    
+
     repeat(latency) @(posedge clk);
 
     $display("Starting to check activations for %s with latency %0d after %0d", activation, latency, $time);
-    
+
     while (!is_end_of_file) begin
       @(posedge clk);
       #(ACQ_DELAY);
@@ -273,7 +273,7 @@ module activation_tb;
     check_activations(IDENTITY, 2, n_checks, n_errors);
     check_activations(GELU, 2, n_checks, n_errors);
     check_activations(RELU, 2, n_checks, n_errors);
-    
+
     @(posedge clk);
 
     if (n_errors > 0) begin
