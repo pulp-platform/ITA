@@ -51,6 +51,8 @@ sources:
   - src/ita.sv
   - src/ita_max_finder.sv
   - src/ita_gelu.sv
+  - src/ita_relu.sv
+  - src/ita_activation.sv
 
   # HWPE sources
   - target: ita_hwpe
@@ -73,7 +75,7 @@ sources:
       - src/tb/ita_tb.sv
       - src/tb/clk_rst_gen.sv
       - src/tb/rst_gen.sv
-      - src/tb/gelu_tb.sv
+      - src/tb/activation_tb.sv
 
   # HWPE TB sources
   - target: ita_hwpe_test

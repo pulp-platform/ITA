@@ -13,7 +13,7 @@ if {$DEBUG == "ON"} {
 
 quit -sim
 
-vsim -voptargs=$VOPT_ARG $DB_SW -pedanticerrors -lib $LIB gelu_tb
+vsim -voptargs=$VOPT_ARG $DB_SW -pedanticerrors -lib $LIB activation_tb
 
 if {$DEBUG == "ON"} {
     add log -r /*

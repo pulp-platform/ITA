@@ -2,7 +2,7 @@
 // Solderpad Hardware License, Version 0.51, see LICENSE for details.
 // SPDX-License-Identifier: SHL-0.51
 
-module gelu_tb;
+module activation_tb;
 
   timeunit 10ps;
   timeprecision 1ps;
@@ -70,7 +70,7 @@ module gelu_tb;
     .rst_no(rst_n)
   );
 
-  ita_activation i_dut (
+  activation dut (
     .clk_i        (clk  ),
     .rst_ni       (rst_n),
     .one_i        (one  ),
