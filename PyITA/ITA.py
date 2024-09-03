@@ -245,8 +245,8 @@ class Transformer:
     def _init_gelu_constants(self):
         CLIP_LO = -4
         D = 2**20
-        
-        S, _ = get_almost_symmetric_scaling_factor(CLIP_LO, n_bits=8)
+
+        S, _ = get_almost_symmetric_scaling_factor(CLIP_LO, n_bits = 8)
         self.q_1, self.q_b, self.q_c, _, _, _, self.gelu_rqs_mul, self.gelu_rqs_shift, self.gelu_rqs_add, S_out = get_i_gelu_requantized_constants(
             S, D)
 
@@ -520,16 +520,20 @@ class Transformer:
             for i in range(self.Out_soft_requant[h].shape[0]):
                 for j in range(self.Out_soft_requant[h].shape[1]):
                     if self.activation == "gelu":
-                        self.postactivation[h, i, j] = i_gelu_requantized(self.Out_soft_requant[h, i, j], self.q_1, self.q_b, self.q_c, self.gelu_rqs_mul, self.gelu_rqs_shift, self.gelu_rqs_add)
+                        self.postactivation[h, i, j] = i_gelu_requantized(self.Out_soft_requant[h, i, j], self.q_1,
+                                                                          self.q_b, self.q_c, self.gelu_rqs_mul,
+                                                                          self.gelu_rqs_shift, self.gelu_rqs_add)
                     elif self.activation == "relu":
-                        self.postactivation[h, i, j] = self.Out_soft_requant[h, i, j] if self.Out_soft_requant[h, i, j] > 0 else 0
-                        self.postactivation[h, i, j] = gelu_requantize(self.postactivation[h, i, j], self.gelu_rqs_mul, self.gelu_rqs_shift, self.gelu_rqs_add)
+                        self.postactivation[h, i, j] = self.Out_soft_requant[h, i,
+                                                                             j] if self.Out_soft_requant[h, i,
+                                                                                                         j] > 0 else 0
+                        self.postactivation[h, i, j] = gelu_requantize(self.postactivation[h, i, j], self.gelu_rqs_mul,
+                                                                  self.gelu_rqs_shift, self.gelu_rqs_add)
                     elif self.activation == "identity":
                         self.postactivation[h, i, j] = self.Out_soft_requant[h, i, j]
                     else:
                         raise ValueError("Activation function not supported")
-        self.tiler_Out(self.O_soft_requant, self.Wo, self.Bo, self.postactivation, "O_soft_in", "Wo", "Bo",
-                       "Out_soft")
+        self.tiler_Out(self.O_soft_requant, self.Wo, self.Bo, self.postactivation, "O_soft_in", "Wo", "Bo", "Out_soft")
 
     def step7_Osum(self):
         self.Out_soft_sum = np.sum(self.Out_soft_requant, axis = 0, dtype = np.int32, keepdims = True)
@@ -542,7 +546,8 @@ class Transformer:
         relu = np.zeros(self.preactivation.shape, dtype = np.int8)
         for i in range(self.preactivation.shape[0]):
             for j in range(self.preactivation.shape[1]):
-                gelu[i, j] = i_gelu_requantized(self.preactivation[i, j], self.q_1, self.q_b, self.q_c, self.gelu_rqs_mul, self.gelu_rqs_shift, self.gelu_rqs_add)
+                gelu[i, j] = i_gelu_requantized(self.preactivation[i, j], self.q_1, self.q_b, self.q_c,
+                                                self.gelu_rqs_mul, self.gelu_rqs_shift, self.gelu_rqs_add)
                 relu[i, j] = self.preactivation[i, j] if self.preactivation[i, j] > 0 else 0
                 relu[i, j] = requantize(relu[i, j], self.gelu_rqs_mul, self.gelu_rqs_shift, self.gelu_rqs_add)
 
@@ -854,28 +859,34 @@ class Transformer:
 
 
 def round(x: f32, n_bits: int = 8):
-    x_clip = np.clip(x, -2**(n_bits-1), 2**(n_bits-1) - 1)
+    x_clip = np.clip(x, -2**(n_bits - 1), 2**(n_bits - 1) - 1)
     return np.floor(x_clip + 0.5 + np.finfo(f32).eps).astype(int)
 
+
 def clip(x: f32, n_bits: int = 8) -> f32:
-    return np.clip(x, -2**(n_bits-1), 2**(n_bits-1) - 1)
+    return np.clip(x, -2**(n_bits - 1), 2**(n_bits - 1) - 1)
+
 
 def round_and_clip(x: f32, n_bits: int = 8) -> f32:
     x_rounded = np.floor(x + 0.5 + np.finfo(f32).eps)
     x_clipped = clip(x_rounded, n_bits)
     return x_clipped
 
+
 def round_to_i8(x: f32) -> i8:
     x_rounded_clipped: f32 = round_and_clip(x, 8)
     return x_rounded_clipped.astype(i8)
+
 
 def round_to_u8(x: f32) -> u8:
     x_rounded_clipped: f32 = round_and_clip(x, 8)
     return x_rounded_clipped.astype(u8)
 
+
 def round_to_i16(x: f32) -> i16:
     x_rounded_clipped: f32 = round_and_clip(x, 16)
     return x_rounded_clipped.astype(i16)
+
 
 def i_gelu(q: i8, q_1: i16, q_b: i16, q_c: i16) -> i32:
     q_clipped = max(q, -2**7 + 1)
@@ -889,10 +900,12 @@ def gelu_requantize(q: i32, eps_mul: i8, eps_shift: u8, eps_add: u8) -> i8:
     q_req: i8 = round_to_i8(shifted)
     return q_req
 
+
 def i_gelu_requantized(q: i8, q_1: i16, q_b: i16, q_c: i16, eps_mul: u8, eps_shift: u8, eps_add: u8) -> i8:
     q_out: i32 = i_gelu(q, q_1, q_b, q_c)
     q_req: i8 = gelu_requantize(q_out, eps_mul, eps_shift, eps_add)
     return q_req
+
 
 def get_i_gelu_constants(S: f32) -> Tuple[i16, i16, i16, float, float, float]:
     a: float = -0.2888
@@ -903,6 +916,7 @@ def get_i_gelu_constants(S: f32) -> Tuple[i16, i16, i16, float, float, float]:
     q_b: i16 = round_to_i16(b / S_2)
     q_c: i16 = round_to_i16(c / (a * S_2**2))
     return q_1, q_b, q_c, a, b, c
+
 
 def get_i_gelu_requantized_constants(S: f32, D: i32) -> Tuple[i16, i16, i16, float, float, float, u8, u8, u8, f32]:
     q_1, q_b, q_c, a, b, c = get_i_gelu_constants(S)
@@ -923,10 +937,12 @@ def i_gelu_wrapper(q: i8, S: f32) -> Tuple[i32, f32]:
     S_out: f32 = S * a * S_2**2 / 2
     return q_out, S_out
 
+
 def i_gelu_wrapper_requantized(q: i8, S: f32, D: i32) -> Tuple[i8, f32]:
     q_1, q_b, q_c, a, _, _, eps_mul, eps_shift, eps_add, S_out = get_i_gelu_requantized_constants(S, D)
     q_out: i32 = i_gelu_requantized(q, q_1, q_b, q_c, eps_mul, eps_shift, eps_add)
     return q_out, S_out
+
 
 def i_erf(q: i8, q_b: i16, q_c: i16) -> i32:
     q_sgn: i8 = np.sign(q)
@@ -957,16 +973,16 @@ def i_poly(q: i8, q_b: i16, q_c: i16) -> i32:
     return q_out.astype(i32)
 
 
-def i_poly_wrapper(q: i8, S: f32, a: f32, b: f32,
-                   c: f32) -> Tuple[i32, f32]:
+def i_poly_wrapper(q: i8, S: f32, a: f32, b: f32, c: f32) -> Tuple[i32, f32]:
     q_b: i16 = round_to_i16(b / S)
     q_c: i16 = round_to_i16(c / (a * S**2))
     S_out: f32 = a * S**2
     q_out: i32 = i_poly(q, q_b, q_c)
     return q_out, S_out
 
+
 def get_scaling_factor(alpha: f32, n_bits: int = 8) -> f32:
-    S: f32 = alpha / (2**(n_bits-1) - 1)
+    S: f32 = alpha / (2**(n_bits - 1) - 1)
     return S
 
 
@@ -978,10 +994,12 @@ def quantize(activations: np.ndarray, alpha: f32, n_bits: int = 8, S: Optional[f
     x_q = np.array(list(map(round, x_q)))
     return x_q, S
 
+
 def dequantize(quantized_activations: np.ndarray, alpha: f32, n_bits: int = 8) -> np.ndarray:
     S = get_scaling_factor(alpha, n_bits)
     activations = quantized_activations * S
     return activations
+
 
 def get_almost_symmetric_scaling_factor(clip_lo: f32, n_bits: int = 8) -> Tuple[f32, f32]:
     if 2**n_bits == 2:
@@ -989,7 +1007,7 @@ def get_almost_symmetric_scaling_factor(clip_lo: f32, n_bits: int = 8) -> Tuple[
     n_levels = 2**n_bits
     scale = (-n_levels + 2) / n_levels
     clip_hi = clip_lo * scale
-    S = clip_hi / (n_levels/2 - 1)
+    S = clip_hi / (n_levels / 2 - 1)
     return S, clip_hi
 
 
@@ -1000,10 +1018,12 @@ def almost_symmetric_quantize(activations: np.ndarray, clip_lo: f32, n_bits: int
     x_q = np.array(list(map(round, x_q)))
     return x_q, S
 
+
 def almost_symmetric_dequantize(quantized_activations: np.ndarray, clip_lo: f32, n_bits: int = 8) -> np.ndarray:
     S, _ = get_almost_symmetric_scaling_factor(clip_lo, n_bits)
     activations = quantized_activations * S
     return activations
+
 
 def generateTestVectors(path, **kwargs):
     s = kwargs['S']
@@ -1014,7 +1034,7 @@ def generateTestVectors(path, **kwargs):
     activation = kwargs['activation']
     bias = int(not kwargs['no_bias'])
 
-    acc1 = Transformer(s, p, e, f, h, bias = bias, path = path, activation=activation)
+    acc1 = Transformer(s, p, e, f, h, bias = bias, path = path, activation = activation)
 
     if kwargs['verbose']:
         print("=> Generating test vectors...")
