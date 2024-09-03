@@ -8,6 +8,8 @@ import seaborn as sns
 
 from .ITA import *
 
+N_SAMPLES = 75
+
 
 def pretty_print(x, x_q, S, res_q, res_S, deq_res, exp_res):
     print(
@@ -20,7 +22,7 @@ plot_dir = os.path.join(file_dir, 'plots')
 
 
 def plot(data: pd.DataFrame, title: str, quantized_y_label: str, expected_y_label: str, alpha: float):
-    l2_error = np.linalg.norm(data['deq_res'] - data['exp_res']) / len(data)
+    l2_error = np.mean(np.sqrt((data['deq_res'] - data['exp_res'])**2))
     l_inf_error = np.max(np.abs(data['deq_res'] - data['exp_res']))
     print(f'alpha: {alpha}, average L2 error: {l2_error:.4f}, Linf error: {l_inf_error:.3f}')
     sns.set_theme()
@@ -45,7 +47,7 @@ def plot(data: pd.DataFrame, title: str, quantized_y_label: str, expected_y_labe
 def test_i_gelu_requant():
     n_bits = 8
     D = 2**20
-    xs = np.linspace(-4, 4, 69)
+    xs = np.linspace(-4, 4, N_SAMPLES)
     clip_lo = -np.abs(xs).max()
     qs, S = almost_symmetric_quantize(xs, clip_lo, n_bits)
     data = []
@@ -79,7 +81,7 @@ def test_i_gelu_edge_cases():
 
 def test_gelu():
     n_bits = 8
-    xs = np.linspace(-4, 4, 69)
+    xs = np.linspace(-4, 4, N_SAMPLES)
     # xs = np.linspace(-1.769, 1.769, 25)
     clip_lo = -np.abs(xs).max()
     # alpha = 4
@@ -123,7 +125,7 @@ def test_gelu_simple():
 
 
 def test_erf():
-    xs = np.linspace(-4, 4, 69)
+    xs = np.linspace(-4, 4, N_SAMPLES)
     # xs = np.linspace(-1.769, 1.769, 25)
     n_bits = 8
     clip_lo = -np.abs(xs).max()
