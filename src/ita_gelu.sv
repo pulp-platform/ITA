@@ -4,15 +4,15 @@
 
 module ita_gelu
   import ita_package::*;
-(
-  input  logic           clk_i        ,
-  input  logic           rst_ni       ,
-  input logic signed [GELU_CONSTANTS_WIDTH-1:0] one_i,
-  input logic signed [GELU_CONSTANTS_WIDTH-1:0] b_i,
-  input logic signed [GELU_CONSTANTS_WIDTH-1:0] c_i,
-  input logic signed [WI-1:0]  data_i,
-  output logic signed [GELU_OUT_WIDTH-1:0] data_o
-);
+  (
+    input  logic           clk_i        ,
+    input  logic           rst_ni       ,
+    input logic signed [GELU_CONSTANTS_WIDTH-1:0] one_i,
+    input logic signed [GELU_CONSTANTS_WIDTH-1:0] b_i,
+    input logic signed [GELU_CONSTANTS_WIDTH-1:0] c_i,
+    input logic signed [WI-1:0]  data_i,
+    output logic signed [GELU_OUT_WIDTH-1:0] data_o
+  );
 
   localparam signed [WI-1:0] LOWER_BOUND = -2**(WI-1) + 1;
 
@@ -34,7 +34,7 @@ module ita_gelu
     poly_sq = poly_d * poly_d;
 
     erf_L = poly_sq + c_i;
-    
+
     gelu_erf = erf_sgn * erf_L;
     gelu_sum = gelu_erf + one_i;
     gelu_out = data_i * gelu_sum;
