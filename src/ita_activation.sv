@@ -15,16 +15,17 @@ module ita_activation
     input requant_const_t requant_shift_i,
     input requant_t requant_add_i,
     input activation_e activation_i,
-    input logic calc_en_i,
     input logic calc_en_q_i,
     input requant_oup_t  data_i,
     output requant_oup_t data_o
   );
 
-  requant_oup_t data_q1, data_q2;
+  requant_oup_t data_q1, data_q2, data_q3, data_q4;
   activation_e activation_q1, activation_q2;
-  oup_t gelu_out, relu_out_sign_ext, requant_in;
+  oup_t relu_out_sign_ext_d, relu_out_sign_ext_q1, relu_out_sign_ext_q2;
+  oup_t gelu_out, requant_in;
   requant_oup_t relu_out, requant_out;
+  logic calc_en_q2, calc_en_q3;
 
   ita_requantizer i_requantizer (
     .clk_i(clk_i),
@@ -33,8 +34,8 @@ module ita_activation
     .eps_mult_i(requant_mult_i),
     .right_shift_i(requant_shift_i),
     .add_i({N{requant_add_i}}),
-    .calc_en_i(calc_en_i),
-    .calc_en_q_i(calc_en_q_i),
+    .calc_en_i(calc_en_q2),
+    .calc_en_q_i(calc_en_q3),
     .result_i(requant_in),
     .requant_oup_o(requant_out)
   );
@@ -45,13 +46,15 @@ module ita_activation
         .data_i(data_q2[i]),
         .data_o(relu_out[i])
       );
-      assign relu_out_sign_ext[i] = {{(WO-WI){relu_out[i][WI-1]}}, relu_out[i]};
+      assign relu_out_sign_ext_d[i] = {{(WO-WI){relu_out[i][WI-1]}}, relu_out[i]};
     end
   endgenerate
 
   generate
     for (genvar i = 0; i < N; i++) begin: gelu_instances
       ita_gelu i_gelu (
+        .clk_i(clk_i),
+        .rst_ni(rst_ni),
         .one_i(one_i),
         .b_i(b_i),
         .c_i(c_i),
@@ -67,7 +70,7 @@ module ita_activation
         requant_in = gelu_out;
       end
       Relu: begin
-        requant_in = relu_out_sign_ext;
+        requant_in = relu_out_sign_ext_q2;
       end
       default: begin
         requant_in = '0;
@@ -82,7 +85,7 @@ module ita_activation
         data_o = requant_out;
       end
       default: begin
-        data_o = data_q2;
+        data_o = data_q4;
       end
     endcase
   end
@@ -93,11 +96,23 @@ module ita_activation
       activation_q2 <= Identity;
       data_q1 <= '0;
       data_q2 <= '0;
+      data_q3 <= '0;
+      data_q4 <= '0;
+      calc_en_q2 <= 0;
+      calc_en_q3 <= 0;
+      relu_out_sign_ext_q1 <= '0;
+      relu_out_sign_ext_q2 <= '0;
     end else begin
       activation_q1 <= activation_i;
       activation_q2 <= activation_q1;
       data_q1 <= data_i;
       data_q2 <= data_q1;
+      data_q3 <= data_q2;
+      data_q4 <= data_q3;
+      calc_en_q2 <= calc_en_q_i;
+      calc_en_q3 <= calc_en_q2;
+      relu_out_sign_ext_q1 <= relu_out_sign_ext_d;
+      relu_out_sign_ext_q2 <= relu_out_sign_ext_q1;
     end
   end
 endmodule

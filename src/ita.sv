@@ -33,9 +33,9 @@ module ita
 );
 
   step_e  step, step_q1, step_q2, step_q3, step_q4, step_q5, step_q6;
-  logic   calc_en, calc_en_q1, calc_en_q2, calc_en_q3, calc_en_q4, calc_en_q5, calc_en_q6, calc_en_q7, calc_en_q8;
+  logic   calc_en, calc_en_q1, calc_en_q2, calc_en_q3, calc_en_q4, calc_en_q5, calc_en_q6, calc_en_q7, calc_en_q8, calc_en_q9, calc_en_q10;
   logic   first_inner_tile, first_inner_tile_q1, first_inner_tile_q2, first_inner_tile_q3;
-  logic   last_inner_tile, last_inner_tile_q1, last_inner_tile_q2, last_inner_tile_q3, last_inner_tile_q4, last_inner_tile_q5, last_inner_tile_q6, last_inner_tile_q7, last_inner_tile_q8;
+  logic   last_inner_tile, last_inner_tile_q1, last_inner_tile_q2, last_inner_tile_q3, last_inner_tile_q4, last_inner_tile_q5, last_inner_tile_q6, last_inner_tile_q7, last_inner_tile_q8, last_inner_tile_q9, last_inner_tile_q10;
 
   logic         weight_valid, weight_ready;
   inp_t         inp, inp_stream_soft;
@@ -69,6 +69,8 @@ module ita
 
   always_ff @(posedge clk_i, negedge rst_ni) begin
     if (!rst_ni) begin
+      calc_en_q10           <= 0;
+      calc_en_q9            <= 0;
       calc_en_q8            <= 0;
       calc_en_q7            <= 0;
       calc_en_q6            <= 0;
@@ -80,6 +82,8 @@ module ita
       first_inner_tile_q3   <= 0;
       first_inner_tile_q2   <= 0;
       first_inner_tile_q1   <= 0;
+      last_inner_tile_q10    <= 0;
+      last_inner_tile_q9    <= 0;
       last_inner_tile_q8    <= 0;
       last_inner_tile_q7    <= 0;
       last_inner_tile_q6    <= 1'b0;
@@ -103,6 +107,8 @@ module ita
       activation_q2         <= Identity;
       activation_q1         <= Identity;
     end else begin
+      calc_en_q10           <= calc_en_q9;
+      calc_en_q9            <= calc_en_q8;
       calc_en_q8            <= calc_en_q7;
       calc_en_q7            <= calc_en_q6;
       calc_en_q6            <= calc_en_q5;
@@ -114,6 +120,8 @@ module ita
       first_inner_tile_q3   <= first_inner_tile_q2;
       first_inner_tile_q2   <= first_inner_tile_q1;
       first_inner_tile_q1   <= first_inner_tile;
+      last_inner_tile_q10    <= last_inner_tile_q9;
+      last_inner_tile_q9    <= last_inner_tile_q8;
       last_inner_tile_q8    <= last_inner_tile_q7;
       last_inner_tile_q7    <= last_inner_tile_q6;
       last_inner_tile_q6    <= last_inner_tile_q5;
@@ -282,7 +290,6 @@ module ita
     .rst_ni        (rst_ni      ),
 
     .activation_i  (activation_q8),
-    .calc_en_i    (calc_en_q6  ),
     .calc_en_q_i  (calc_en_q7  ),
     .one_i         (ctrl_i.gelu_one),
     .b_i           (ctrl_i.gelu_b  ),
@@ -300,7 +307,7 @@ module ita
     .rst_ni        (rst_ni      ),
 
     .requant_oup_i (post_activation),
-    .activation_done_i     (calc_en_q8 && last_inner_tile_q8 ),
+    .activation_done_i     (calc_en_q10 && last_inner_tile_q10 ),
     .fifo_full_i   (fifo_full   ),
     .push_to_fifo_o(push_to_fifo),
     .data_to_fifo_o(data_to_fifo)
@@ -394,8 +401,12 @@ module ita
         fifo_usage_max <= FifoDepth;
       step_q <= step;
     end
-    if ((step_q==OW) && (step==Idle))
-      $display("[ITA] Max FIFO usage: %d", fifo_usage_max);
+    if ((step_q==OW) && (step==Idle)) begin
+      $display("[ITA] Max FIFO usage during Attention: %d", fifo_usage_max);
+    end
+    if ((step_q==FF) && (step==Idle)) begin
+      $display("[ITA] Max FIFO usage during Feedforward: %d", fifo_usage_max);
+    end
   end
   // pragma translate_on
 endmodule
