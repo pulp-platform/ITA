@@ -8,3 +8,4 @@ onnxruntime
 netron
 seaborn
 matplotlib
+torch
