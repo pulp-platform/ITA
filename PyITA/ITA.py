@@ -613,13 +613,14 @@ class Transformer:
         # WIESEP: Delete the old file otherwise it will lead to mismatches during RTL simulations as the files are memory mapped
         mem_file = "mem"
         files = [
-            f"{mem_file}.txt", "Output.txt", "Q.txt", "K.txt", "V.txt", "QK.txt", "A.txt", "AV.txt", "OW.txt", "FF.txt",
-            "FF2.txt"
+            f"{mem_file}.txt", "Output.txt", "Q.txt", "K.txt", "V.txt", "QK.txt", "A.txt", "AV.txt", "OW.txt", "F1.txt",
+            "F2.txt"
         ]
         for file in files:
             remove_if_exists(f"{path}/{file}")
 
         # Write the new mem file
+        # Layer: Attention
         for h in range(self.H):
             q = split_matrix(self.Q, (self.ITA_M, self.ITA_M))
             write_matrix_mem_hex(pack_array_8b_to_word(q, hex_string = False), mem_file, path)
@@ -680,6 +681,33 @@ class Transformer:
 
             out = split_matrix(self.Out_soft_requant[h], (self.ITA_M, self.ITA_M))
             write_matrix_mem_hex(pack_array_8b_to_word(out, hex_string = False), "OW", path)
+
+        # Layer: Feedforward
+        ff = split_matrix(self.FF, (self.ITA_M, self.ITA_M))
+        write_matrix_mem_hex(pack_array_8b_to_word(ff, hex_string = False), mem_file, path)
+
+        wff = split_matrix(np.transpose(self.Wff[0]), (self.ITA_M, self.ITA_M))
+        write_matrix_mem_hex(pack_array_8b_to_word(wff, hex_string = False), mem_file, path)
+
+        wff2 = split_matrix(np.transpose(self.Wff2[0]), (self.ITA_M, self.ITA_M))
+        write_matrix_mem_hex(pack_array_8b_to_word(wff2, hex_string = False), mem_file, path)
+
+        bff_hex = np.vectorize(lambda val: to_hex(val, bit_size = 24))(self.Bff[0])
+        # pack 24-bit values into 32-bit words
+        packed_bff_hex = np.array(pack_hex_24b(bff_hex))
+        write_vector_mem_hex(packed_bff_hex, mem_file, path)
+
+        bff2_hex = np.vectorize(lambda val: to_hex(val, bit_size = 24))(self.Bff2[0])
+        # pack 24-bit values into 32-bit words
+        packed_bff2_hex = np.array(pack_hex_24b(bff2_hex))
+        write_vector_mem_hex(packed_bff2_hex, mem_file, path)
+
+        # Write output
+        ff = split_matrix(self.FFp_requant[0], (self.ITA_M, self.ITA_M))
+        write_matrix_mem_hex(pack_array_8b_to_word(ff, hex_string = False), "F1", path)
+
+        ff2 = split_matrix(self.FF2p_requant[0], (self.ITA_M, self.ITA_M))
+        write_matrix_mem_hex(pack_array_8b_to_word(ff2, hex_string = False), "F2", path)
 
     def generate_snitch_cluster(self) -> str:
         """
