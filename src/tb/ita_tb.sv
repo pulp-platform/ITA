@@ -330,6 +330,9 @@ task automatic apply_ITA_inputs(input integer phase);
           is_end_of_input = $feof(stim_fd_inp) != 0;
         end
       end
+      @(posedge clk);
+      #(APPL_DELAY);
+      inp_valid = 1'b0; // Set back to default
       $fclose(stim_fd_inp);
       $fclose(stim_fd_bias);
 endtask
