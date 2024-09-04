@@ -116,10 +116,13 @@ module ita_controller
           if(ctrl_i.layer == Attention) begin
             step_d = Q;
           end else if (ctrl_i.layer == Feedforward) begin
-            step_d = FF;
+            step_d = F1;
+          end else if (ctrl_i.layer == Linear) begin
+            step_d = MatMul;
           end
         end
       end
+      // Attention
       Q : begin
         if (inner_tile_q == ctrl_i.tile_e-1) begin
           last_inner_tile_o = 1'b1;
@@ -204,7 +207,8 @@ module ita_controller
           end
         end
       end
-      FF: begin
+      // Feedforward
+      F1: begin
         if (inner_tile_q == ctrl_i.tile_e-1) begin
           last_inner_tile_o = 1'b1;
         end
@@ -212,6 +216,33 @@ module ita_controller
           inner_tile_d = '0;
           tile_d = tile_q + 1;
           if (tile_d == ctrl_i.tile_s*ctrl_i.tile_f) begin
+            tile_d = '0;
+            step_d = F2;
+          end
+        end
+      end
+      F2: begin
+        if (inner_tile_q == ctrl_i.tile_f-1) begin
+          last_inner_tile_o = 1'b1;
+        end
+        if (inner_tile_d == ctrl_i.tile_f) begin // end of inner tile
+          inner_tile_d = '0;
+          tile_d = tile_q + 1;
+          if (tile_d == ctrl_i.tile_s*ctrl_i.tile_e) begin
+            tile_d = '0;
+            step_d = Idle;
+          end
+        end
+      end
+      // Linear
+      MatMul: begin
+        if (inner_tile_q == ctrl_i.tile_e-1) begin
+          last_inner_tile_o = 1'b1;
+        end
+        if (inner_tile_d == ctrl_i.tile_e) begin // end of inner tile
+          inner_tile_d = '0;
+          tile_d = tile_q + 1;
+          if (tile_d == ctrl_i.tile_s*ctrl_i.tile_p) begin
             tile_d = '0;
             step_d = Idle;
           end

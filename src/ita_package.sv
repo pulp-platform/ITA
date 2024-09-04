@@ -19,8 +19,8 @@ package ita_package;
   localparam int unsigned Latency = 7                                  ;
   localparam int unsigned GELU_CONSTANTS_WIDTH = 16                    ;
   localparam int unsigned GELU_OUT_WIDTH = 26                          ;
-  localparam int unsigned N_ATTENTION_STEPS = 6;
-  localparam int unsigned N_FEEDFORWARD_STEPS = 1;
+  localparam int unsigned N_ATTENTION_STEPS = 6                        ;
+  localparam int unsigned N_FEEDFORWARD_STEPS = 2                      ;
   localparam int unsigned N_STATES = N_ATTENTION_STEPS + N_FEEDFORWARD_STEPS + 1;
   localparam int unsigned N_REQUANT_CONSTS = N_ATTENTION_STEPS         ;
 
@@ -35,7 +35,7 @@ package ita_package;
   parameter  int unsigned N_WRITE_EN     = `ifdef TARGET_ITA_HWPE 8 `else M `endif;
 
   // Feedforward
-  typedef enum bit {Attention=0, Feedforward=1} layer_e;
+  typedef enum bit [1:0] {Attention=0, Feedforward=1, Linear=2} layer_e;
   typedef enum bit [1:0] {Identity=0, Gelu=1, Relu=2} activation_e;
   typedef logic signed [GELU_CONSTANTS_WIDTH-1:0] gelu_const_t;
   typedef logic signed [GELU_OUT_WIDTH-1:0] gelu_out_t;
@@ -73,7 +73,7 @@ package ita_package;
   } write_port_t;
 
   // States
-  typedef enum {Idle=0, Q=1, K=2, V=3, QK=4, AV=5, OW=6, FF=7} step_e;
+  typedef enum {Idle=0, Q=1, K=2, V=3, QK=4, AV=5, OW=6, F1=7, F2=8, MatMul=9} step_e;
 
   // Inputs and weights
   typedef logic signed [M-1:0][  WI-1:0] inp_t;

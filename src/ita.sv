@@ -405,7 +405,7 @@ module ita
     if ((step_q==OW) && (step==Idle)) begin
       $display("[ITA] Max FIFO usage during Attention: %d", fifo_usage_max);
     end
-    if ((step_q==FF) && (step==Idle)) begin
+    if ((step_q==F2) && (step==Idle)) begin
       $display("[ITA] Max FIFO usage during Feedforward: %d", fifo_usage_max);
     end
   end

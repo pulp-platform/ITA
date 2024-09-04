@@ -91,8 +91,8 @@ module ita_hwpe_ctrl
     ctrl_engine_o.activation_requant_mult = reg_file.hwpe_params[ITA_REG_ACTIVATION_REQUANT][7:0];
     ctrl_engine_o.activation_requant_shift = reg_file.hwpe_params[ITA_REG_ACTIVATION_REQUANT][15:8];
     ctrl_engine_o.activation_requant_add = reg_file.hwpe_params[ITA_REG_ACTIVATION_REQUANT][23:16];
-    ctrl_engine_o.layer = layer_e'(reg_file.hwpe_params[ITA_REG_CTRL_ENGINE][0]);
-    ctrl_engine_o.activation = activation_e'(reg_file.hwpe_params[ITA_REG_CTRL_ENGINE][2:1]);
+    ctrl_engine_o.layer = layer_e'(reg_file.hwpe_params[ITA_REG_CTRL_ENGINE][1:0]);
+    ctrl_engine_o.activation = activation_e'(reg_file.hwpe_params[ITA_REG_CTRL_ENGINE][3:2]);
     ctrl_stream_o.weight_preload = reg_file.hwpe_params[ITA_REG_CTRL_STREAM][0];
     ctrl_stream_o.weight_nextload = reg_file.hwpe_params[ITA_REG_CTRL_STREAM][1];
     ctrl_stream_o.bias_disable  = reg_file.hwpe_params[ITA_REG_CTRL_STREAM][2];
