@@ -978,7 +978,7 @@ def i_gelu(q: i8, q_1: i16, q_b: i16, q_c: i16) -> i32:
 
 def gelu_requantize(q: i32, eps_mul: i8, eps_shift: u8, eps_add: u8) -> i8:
     q_mul: i64 = eps_mul * q
-    shifted: f32 = q_mul / 2**eps_shift + eps_add
+    shifted: f32 = q_mul / 2**float(eps_shift) + eps_add
     q_req: i8 = round_to_i8(shifted)
     return q_req
 
