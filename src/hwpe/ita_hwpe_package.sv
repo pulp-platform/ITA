@@ -12,7 +12,7 @@ package ita_hwpe_package;
   parameter int unsigned N_CORES     = 9;
   parameter int unsigned N_CONTEXT   = 2;
   parameter int unsigned ID_WIDTH    = 2;
-  parameter int unsigned ITA_IO_REGS = 15; // 5 address + 9 parameters + 1 sync
+  parameter int unsigned ITA_IO_REGS = 17; // 5 address + 11 parameters + 1 sync
 
   parameter int unsigned ITA_TCDM_DW = 1024;
   parameter int unsigned ITA_INPUT_DW  = M*WI;
@@ -36,10 +36,8 @@ package ita_hwpe_package;
   parameter int unsigned ITA_REG_ADD1         = 12; // add[4] [7:0], add[5] [15:8]
   parameter int unsigned ITA_REG_CTRL_ENGINE  = 13; // layer [0], activation [1:0]
   parameter int unsigned ITA_REG_CTRL_STREAM  = 14; // ctrl_stream [0]: weight preload, ctrl_stream [1]: weight nextload, ctrl_stream [2]: bias disable, ctrl_stream [3]: bias direction, ctrl_stream [4]: output disable
-
-  // Reusing registers which are not used during execution of feedforward layer
-  parameter int unsigned ITA_REG_GELU_B_C     = 8; // gelu_b [15:0], gelu_c [31:16]
-  parameter int unsigned ITA_REG_ACTIVATION_REQUANT = 10; // activation_requant_mult [7:0], activation_requant_shift [15:8], activation_requant_add [23:16]
+  parameter int unsigned ITA_REG_GELU_B_C     = 15; // gelu_b [15:0], gelu_c [31:16]
+  parameter int unsigned ITA_REG_ACTIVATION_REQUANT = 16; // activation_requant_mult [7:0], activation_requant_shift [15:8], activation_requant_add [23:16]
 
 
   typedef struct packed {
