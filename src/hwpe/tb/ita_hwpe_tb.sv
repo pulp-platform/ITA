@@ -43,13 +43,21 @@ module ita_hwpe_tb;
   // 7:  Bk (P*3 bytes) (four 24bit values per 32bit word)
   // 8:  Bv (P*3 bytes) (four 24bit values per 32bit word)
   // 9:  Bo (E*3 bytes) (four 24bit values per 32bit word)
-  // 10: Q  (SxP bytes)
-  // 11: K  (SxP bytes)
-  // 12: V  (SxP bytes)
-  // 13: QK (SxS bytes)
-  // 14: AV (SxP bytes)
-  // 15: OW (SxE bytes)
-  integer BASE_PTR[16];
+  // 10: ff (SxE bytes)
+  // 11: Wf1 (ExF bytes)
+  // 12: Wf2 (FxE bytes)
+  // 13: Bf1 (F*3 bytes) (four 24bit values per 32bit word)
+  // 14: Bf2 (E*3 bytes) (four 24bit values per 32bit word)
+  // 15: Q  (SxP bytes)
+  // 16: K  (SxP bytes)
+  // 17: V  (SxP bytes)
+  // 18: QK (SxS bytes)
+  // 19: AV (SxP bytes)
+  // 20: OW (SxE bytes)
+  // 21: F1 (SxF bytes)
+  // 22: F2 (SxE bytes)
+
+  integer BASE_PTR[23];
 
   logic [N_STATES][31:0] BASE_PTR_INPUT;
   logic [N_STATES][31:0] BASE_PTR_WEIGHT0;
@@ -60,7 +68,7 @@ module ita_hwpe_tb;
   // HWPE Parameters
   localparam unsigned ITA_REG_OFFSET  = 32'h20;
   parameter real PROB_STALL = 0.1;
-  parameter MEMORY_SIZE = SEQUENCE_LEN*EMBEDDING_SIZE*3+EMBEDDING_SIZE*PROJECTION_SPACE*4+PROJECTION_SPACE*3*3+EMBEDDING_SIZE*3+SEQUENCE_LEN*PROJECTION_SPACE*4+SEQUENCE_LEN*SEQUENCE_LEN;
+  parameter MEMORY_SIZE = SEQUENCE_LEN*EMBEDDING_SIZE*4+EMBEDDING_SIZE*PROJECTION_SPACE*4+PROJECTION_SPACE*3*3+EMBEDDING_SIZE*3+SEQUENCE_LEN*PROJECTION_SPACE*4+SEQUENCE_LEN*SEQUENCE_LEN+EMBEDDING_SIZE*FEEDFORWARD_SIZE*2+FEEDFORWARD_SIZE*3+EMBEDDING_SIZE*3;
 
   parameter int unsigned AccDataWidth = ITA_TCDM_DW;
   parameter int unsigned IdWidth      = 8;
@@ -139,6 +147,8 @@ module ita_hwpe_tb;
     N_TILES_OUTER_X[QK] = N_TILES_SEQUENCE_DIM;
     N_TILES_OUTER_X[AV] = N_TILES_PROJECTION_DIM;
     N_TILES_OUTER_X[OW] = N_TILES_EMBEDDING_DIM;
+    N_TILES_OUTER_X[F1] = N_TILES_FEEDFORWARD_DIM;
+    N_TILES_OUTER_X[F2] = N_TILES_EMBEDDING_DIM;
     // Number of output tiles in Y direction per step
     N_TILES_OUTER_Y[Q ] = N_TILES_SEQUENCE_DIM;
     N_TILES_OUTER_Y[K ] = N_TILES_SEQUENCE_DIM;
@@ -146,6 +156,8 @@ module ita_hwpe_tb;
     N_TILES_OUTER_Y[QK] = 1; // Only one tile row is calculated before switching to AV)
     N_TILES_OUTER_Y[AV] = 1; // Only one tile row is calculated before switching to QK)
     N_TILES_OUTER_Y[OW] = N_TILES_SEQUENCE_DIM;
+    N_TILES_OUTER_Y[F1] = N_TILES_SEQUENCE_DIM;
+    N_TILES_OUTER_Y[F2] = N_TILES_SEQUENCE_DIM;
     // Number of inner tiles per step
     N_TILES_INNER_DIM[Q ] = N_TILES_EMBEDDING_DIM;
     N_TILES_INNER_DIM[K ] = N_TILES_EMBEDDING_DIM;
@@ -153,6 +165,8 @@ module ita_hwpe_tb;
     N_TILES_INNER_DIM[QK] = N_TILES_PROJECTION_DIM;
     N_TILES_INNER_DIM[AV] = N_TILES_SEQUENCE_DIM;
     N_TILES_INNER_DIM[OW] = N_TILES_PROJECTION_DIM;
+    N_TILES_INNER_DIM[F1] = N_TILES_EMBEDDING_DIM;
+    N_TILES_INNER_DIM[F2] = N_TILES_FEEDFORWARD_DIM;
 
     BASE_PTR[0 ] = 0;
     BASE_PTR[1 ] = BASE_PTR[0 ] + SEQUENCE_LEN * EMBEDDING_SIZE;
@@ -165,42 +179,57 @@ module ita_hwpe_tb;
     BASE_PTR[8 ] = BASE_PTR[7 ] + PROJECTION_SPACE * 3;
     BASE_PTR[9 ] = BASE_PTR[8 ] + PROJECTION_SPACE * 3;
     BASE_PTR[10] = BASE_PTR[9 ] + EMBEDDING_SIZE * 3;
-    BASE_PTR[11] = BASE_PTR[10] + SEQUENCE_LEN * PROJECTION_SPACE;
-    BASE_PTR[12] = BASE_PTR[11] + SEQUENCE_LEN * PROJECTION_SPACE;
-    BASE_PTR[13] = BASE_PTR[12] + SEQUENCE_LEN * PROJECTION_SPACE;
-    BASE_PTR[14] = BASE_PTR[13] + SEQUENCE_LEN * SEQUENCE_LEN;
-    BASE_PTR[15] = BASE_PTR[14] + SEQUENCE_LEN * PROJECTION_SPACE;
+    BASE_PTR[11] = BASE_PTR[10] + SEQUENCE_LEN * EMBEDDING_SIZE;
+    BASE_PTR[12] = BASE_PTR[11] + EMBEDDING_SIZE * FEEDFORWARD_SIZE;
+    BASE_PTR[13] = BASE_PTR[12] + FEEDFORWARD_SIZE * EMBEDDING_SIZE;
+    BASE_PTR[14] = BASE_PTR[13] + FEEDFORWARD_SIZE * 3;
+    BASE_PTR[15] = BASE_PTR[14] + EMBEDDING_SIZE * 3;
+    BASE_PTR[16] = BASE_PTR[15] + SEQUENCE_LEN * PROJECTION_SPACE;
+    BASE_PTR[17] = BASE_PTR[16] + SEQUENCE_LEN * PROJECTION_SPACE;
+    BASE_PTR[18] = BASE_PTR[17] + SEQUENCE_LEN * PROJECTION_SPACE;
+    BASE_PTR[19] = BASE_PTR[18] + SEQUENCE_LEN * SEQUENCE_LEN;
+    BASE_PTR[20] = BASE_PTR[19] + SEQUENCE_LEN * PROJECTION_SPACE;
+    BASE_PTR[21] = BASE_PTR[20] + SEQUENCE_LEN * EMBEDDING_SIZE;
+    BASE_PTR[22] = BASE_PTR[21] + SEQUENCE_LEN * FEEDFORWARD_SIZE;
 
     // Base pointers
     BASE_PTR_INPUT[Q ]   = BASE_PTR[0 ];  // q
     BASE_PTR_INPUT[K ]   = BASE_PTR[1 ];  // k
     BASE_PTR_INPUT[V ]   = BASE_PTR[4 ];  // Wv
-    BASE_PTR_INPUT[QK]   = BASE_PTR[10];  // Q
-    BASE_PTR_INPUT[AV]   = BASE_PTR[13];  // QK
-    BASE_PTR_INPUT[OW]   = BASE_PTR[14];  // AV
+    BASE_PTR_INPUT[QK]   = BASE_PTR[15];  // Q
+    BASE_PTR_INPUT[AV]   = BASE_PTR[18];  // QK
+    BASE_PTR_INPUT[OW]   = BASE_PTR[19];  // AV
+    BASE_PTR_INPUT[F1]   = BASE_PTR[10];  // ff
+    BASE_PTR_INPUT[F2]   = BASE_PTR[21];  // F1
     BASE_PTR_WEIGHT0[Q ] = BASE_PTR[2 ];  // Wq
     BASE_PTR_WEIGHT0[K ] = BASE_PTR[3 ];  // Wk
     BASE_PTR_WEIGHT0[V ] = BASE_PTR[1 ];  // k
-    BASE_PTR_WEIGHT0[QK] = BASE_PTR[11];  // K
-    BASE_PTR_WEIGHT0[AV] = BASE_PTR[12];  // V
+    BASE_PTR_WEIGHT0[QK] = BASE_PTR[16];  // K
+    BASE_PTR_WEIGHT0[AV] = BASE_PTR[17];  // V
     BASE_PTR_WEIGHT0[OW] = BASE_PTR[5 ];  // Wo
+    BASE_PTR_WEIGHT0[F1] = BASE_PTR[11];  // Wf1
+    BASE_PTR_WEIGHT0[F2] = BASE_PTR[12];  // Wf2
     BASE_PTR_BIAS[Q ]    = BASE_PTR[6 ];  // Bq
     BASE_PTR_BIAS[K ]    = BASE_PTR[7 ];  // Bk
     BASE_PTR_BIAS[V ]    = BASE_PTR[8 ];  // Bv
     BASE_PTR_BIAS[QK]    = 32'hXXXX;
     BASE_PTR_BIAS[AV]    = 32'hXXXX;
     BASE_PTR_BIAS[OW]    = BASE_PTR[9 ];  // Bo
-    BASE_PTR_OUTPUT[Q ]  = BASE_PTR[10];  // Q
-    BASE_PTR_OUTPUT[K ]  = BASE_PTR[11];  // K
-    BASE_PTR_OUTPUT[V ]  = BASE_PTR[12];  // V
-    BASE_PTR_OUTPUT[QK]  = BASE_PTR[13];  // QK
-    BASE_PTR_OUTPUT[AV]  = BASE_PTR[14];  // AV
-    BASE_PTR_OUTPUT[OW]  = BASE_PTR[15];  // OW
+    BASE_PTR_BIAS[F1]    = BASE_PTR[13];  // Bf1
+    BASE_PTR_BIAS[F2]    = BASE_PTR[14];  // Bf2
+    BASE_PTR_OUTPUT[Q ]  = BASE_PTR[15];  // Q
+    BASE_PTR_OUTPUT[K ]  = BASE_PTR[16];  // K
+    BASE_PTR_OUTPUT[V ]  = BASE_PTR[17];  // V
+    BASE_PTR_OUTPUT[QK]  = BASE_PTR[18];  // QK
+    BASE_PTR_OUTPUT[AV]  = BASE_PTR[19];  // AV
+    BASE_PTR_OUTPUT[OW]  = BASE_PTR[20];  // OW
+    BASE_PTR_OUTPUT[F1]  = BASE_PTR[21];  // F1
+    BASE_PTR_OUTPUT[F2]  = BASE_PTR[22];  // F2
 
     for (int i = 0; i < 5; i++) begin
       BASE_PTR_WEIGHT1[i] = BASE_PTR_WEIGHT0[i+1];
     end
-    BASE_PTR_WEIGHT1[5] = 32'hXXXX;
+    BASE_PTR_WEIGHT1[7] = BASE_PTR_WEIGHT0[F2];
 
   end
 
@@ -332,11 +361,11 @@ endfunction
 
 
     for (int group = 0; group < N_TILES_SEQUENCE_DIM; group++) begin
-      BASE_PTR_INPUT[QK]  = BASE_PTR[10] + group * N_TILES_INNER_DIM[QK] * N_ELEMENTS_PER_TILE;
-      BASE_PTR_OUTPUT[QK] = BASE_PTR[13] + group * N_TILES_OUTER_X[QK] * N_ELEMENTS_PER_TILE;
+      BASE_PTR_INPUT[QK]  = BASE_PTR[15] + group * N_TILES_INNER_DIM[QK] * N_ELEMENTS_PER_TILE;
+      BASE_PTR_OUTPUT[QK] = BASE_PTR[18] + group * N_TILES_OUTER_X[QK] * N_ELEMENTS_PER_TILE;
 
-      BASE_PTR_INPUT[AV]  = BASE_PTR[13] + group * N_TILES_INNER_DIM[AV] * N_ELEMENTS_PER_TILE;
-      BASE_PTR_OUTPUT[AV] = BASE_PTR[14] + group * N_TILES_OUTER_X[AV] * N_ELEMENTS_PER_TILE;
+      BASE_PTR_INPUT[AV]  = BASE_PTR[18] + group * N_TILES_INNER_DIM[AV] * N_ELEMENTS_PER_TILE;
+      BASE_PTR_OUTPUT[AV] = BASE_PTR[19] + group * N_TILES_OUTER_X[AV] * N_ELEMENTS_PER_TILE;
 
       // 4: Step QK
       ita_compute_step(QK, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
@@ -353,6 +382,12 @@ endfunction
     // 6: Step OW
     ita_compute_step(OW, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
 
+    // 7: Step FF1
+    ita_compute_step(F1, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
+
+    // 8: Step FF1
+    ita_compute_step(F2, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
+
     // Wait for the last step to finish
     wait(evt);
 
@@ -361,12 +396,14 @@ endfunction
 
     #(10ns);
 
-    compare_output("hwpe/Q.txt",  BASE_PTR[10]);
-    compare_output("hwpe/K.txt",  BASE_PTR[11]);
-    compare_output("hwpe/V.txt",  BASE_PTR[12]);
-    compare_output("hwpe/QK.txt", BASE_PTR[13]);
-    compare_output("hwpe/AV.txt", BASE_PTR[14]);
-    compare_output("hwpe/OW.txt", BASE_PTR[15]);
+    compare_output("hwpe/Q.txt",  BASE_PTR[15]);
+    compare_output("hwpe/K.txt",  BASE_PTR[16]);
+    compare_output("hwpe/V.txt",  BASE_PTR[17]);
+    compare_output("hwpe/QK.txt", BASE_PTR[18]);
+    compare_output("hwpe/AV.txt", BASE_PTR[19]);
+    compare_output("hwpe/OW.txt", BASE_PTR[20]);
+    compare_output("hwpe/F1.txt", BASE_PTR[21]);
+    compare_output("hwpe/F2.txt", BASE_PTR[22]);
 
     // Finish the simulation
     $finish;
@@ -501,6 +538,12 @@ endfunction
     end else if (step == K && N_TILES_OUTER_X[Q]*N_TILES_OUTER_Y[Q]*N_TILES_INNER_DIM[Q] == 1) begin
       if (tile == 0)
         enable = 1'b1;
+    end else if (step == F1) begin
+      if (tile == 0 || tile == 1)
+        enable = 1'b1;
+    end else if (step == F2 && N_TILES_OUTER_X[F1]*N_TILES_OUTER_Y[F1]*N_TILES_INNER_DIM[F1] == 1) begin
+      if (tile == 0)
+        enable = 1'b1;
     end
   endtask
 
@@ -522,7 +565,7 @@ endfunction
     layer_type = Attention;
     activation_function = Identity;
 
-    ctrl_engine_val = layer_type | activation_function << 1;
+    ctrl_engine_val = layer_type | activation_function << 2;
 
     // ctrl_stream [0]: weight preload,
     // ctrl_stream [1]: weight nextload,
@@ -572,6 +615,27 @@ endfunction
         end
         reg_bias_en = 1'b1;
       end
+      F1 : begin
+        ctrl_engine_val = Feedforward | ACTIVATION << 2;
+        if (tile == 0) begin
+          ctrl_stream_val = {28'b0, 4'b0011}; // weight preload and weight nextload
+        end else begin
+          ctrl_stream_val = {28'b0, 4'b0010}; // weight nextload
+        end
+        reg_weight_en = 1'b1;
+        reg_bias_en = 1'b1;   
+      end
+      F2 : begin
+        ctrl_engine_val = Feedforward | Identity << 2;
+        if (tile == (N_TILES_OUTER_X[F2]*N_TILES_OUTER_Y[F2]*N_TILES_INNER_DIM[F2])-1) begin
+          ctrl_stream_val = {28'b0, 4'b0000};
+          reg_weight_en = 1'b0;
+        end else begin
+          ctrl_stream_val = {28'b0, 4'b0010}; // weight nextload
+          reg_weight_en = 1'b1;
+        end
+        reg_bias_en = 1'b1;
+      end
     endcase
 
     ctrl_stream_val[4] = ( (tile+1) % N_TILES_INNER_DIM[step] == 0) ? 1'b0 : 1'b1;
@@ -597,7 +661,7 @@ endfunction
     requant_const_t activation_requant_shift;
     requant_t activation_requant_add;
     read_activation_constants(gelu_b, gelu_c, activation_requant_mult, activation_requant_shift, activation_requant_add);
-    gelu_b_c_reg = gelu_b | gelu_c << 16;
+    gelu_b_c_reg = $unsigned(gelu_b) | gelu_c << 16;
     activation_requant_reg = activation_requant_mult | activation_requant_shift << 8 | activation_requant_add << 16;
   endtask
 
@@ -747,8 +811,11 @@ endfunction
       PERIPH_WRITE( 4*ITA_REG_RIGHT_SHIFT1,ITA_REG_OFFSET, ita_reg_rqs_val[3], clk_i);
       PERIPH_WRITE( 4*ITA_REG_ADD0,        ITA_REG_OFFSET, ita_reg_rqs_val[4], clk_i);
       PERIPH_WRITE( 4*ITA_REG_ADD1,        ITA_REG_OFFSET, ita_reg_rqs_val[5], clk_i);
+      PERIPH_WRITE( 4*ITA_REG_GELU_B_C,    ITA_REG_OFFSET, ita_reg_gelu_b_c_val, clk_i);
+      PERIPH_WRITE( 4*ITA_REG_ACTIVATION_REQUANT, ITA_REG_OFFSET, ita_reg_activation_rqs_val, clk_i);
     end
 
+    PERIPH_WRITE( 4*ITA_REG_CTRL_ENGINE, ITA_REG_OFFSET, ctrl_engine_val, clk_i);
     PERIPH_WRITE( 4*ITA_REG_CTRL_STREAM, ITA_REG_OFFSET, ctrl_stream_val, clk_i);
   endtask : PROGRAM_ITA
 
