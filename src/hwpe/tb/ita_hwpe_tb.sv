@@ -701,16 +701,16 @@ endfunction
   task automatic ita_reg_eps_mult_val_compute(
     output logic [5:0][31:0] reg_val
   );
-    logic [5:0][EMS-1:0] eps_mult;
-    logic [5:0][EMS-1:0] right_shift;
-    logic [5:0][ WI-1:0] add;
+    logic [N_REQUANT_CONSTS][EMS-1:0] eps_mult;
+    logic [N_REQUANT_CONSTS][EMS-1:0] right_shift;
+    logic [N_REQUANT_CONSTS][ WI-1:0] add;
     read_ITA_rqs(eps_mult, right_shift, add);
     reg_val[0] = eps_mult[0] | eps_mult[1] << 8 | eps_mult[2] << 16 | eps_mult[3] << 24;
-    reg_val[1] = eps_mult[4] | eps_mult[5] << 8;
+    reg_val[1] = eps_mult[4] | eps_mult[5] << 8 | eps_mult[6] << 16 | eps_mult[7] << 24;
     reg_val[2] = right_shift[0] | right_shift[1] << 8 | right_shift[2] << 16 | right_shift[3] << 24;
-    reg_val[3] = right_shift[4] | right_shift[5] << 8;
+    reg_val[3] = right_shift[4] | right_shift[5] << 8 | right_shift[6] << 16 | right_shift[7] << 24;
     reg_val[4] = add[0] | add[1] << 8 | add[2] << 16 | add[3] << 24;
-    reg_val[5] = add[4] | add[5] << 8;
+    reg_val[5] = add[4] | add[5] << 8 | add[6] << 16 | add[7] << 24;
   endtask
 
   task automatic compare_output(string STIM_DATA, integer address);
@@ -736,46 +736,36 @@ endfunction
   endtask
 
   task read_ITA_rqs(
-    output logic [5:0][EMS-1:0]  eps_mult,
-    output logic [5:0][EMS-1:0]  right_shift,
-    output logic [5:0][ WI-1:0]  add
+    output logic [N_REQUANT_CONSTS][EMS-1:0]  eps_mult,
+    output logic [N_REQUANT_CONSTS][EMS-1:0]  right_shift,
+    output logic [N_REQUANT_CONSTS][ WI-1:0]  add
   );
-    integer stim_fd_rqs;
+    integer stim_fd_mul, stim_fd_shift, stim_fd_add;
     integer ret_code;
 
-    for (int phase = 0; phase < 3; phase++) begin
-      case(phase)
-        0 : begin
-          stim_fd_rqs = open_stim_file("RQS_MUL.txt");
-        end
-        1 : begin
-          stim_fd_rqs = open_stim_file("RQS_SHIFT.txt");
-        end
-        2 : begin
-          stim_fd_rqs = open_stim_file("RQS_ADD.txt");
-        end
-      endcase
+    stim_fd_mul = open_stim_file("RQS_ATTN_MUL.txt");
+    stim_fd_shift = open_stim_file("RQS_ATTN_SHIFT.txt");
+    stim_fd_add = open_stim_file("RQS_ATTN_ADD.txt");
 
-      case(phase)
-        0 : begin
-          for (int j = 0; j < 6; j++) begin
-            ret_code = $fscanf(stim_fd_rqs, "%d\n", eps_mult[j]);
-          end
-        end
-        1 : begin
-          for (int j = 0; j < 6; j++) begin
-            ret_code = $fscanf(stim_fd_rqs, "%d\n", right_shift[j]);
-          end
-        end
-        2 : begin
-          for (int j = 0; j < 6; j++) begin
-            ret_code = $fscanf(stim_fd_rqs, "%d\n", add[j]);
-          end
-        end
-      endcase
-
-      $fclose(stim_fd_rqs);
+    for (int j = 0; j < N_ATTENTION_STEPS; j++) begin
+      ret_code = $fscanf(stim_fd_mul, "%d\n", eps_mult[j]);
+      ret_code = $fscanf(stim_fd_shift, "%d\n", right_shift[j]);
+      ret_code = $fscanf(stim_fd_add, "%d\n", add[j]);
     end
+
+    stim_fd_mul = open_stim_file("RQS_FFN_MUL.txt");
+    stim_fd_shift = open_stim_file("RQS_FFN_SHIFT.txt");
+    stim_fd_add = open_stim_file("RQS_FFN_ADD.txt");
+
+    for (int j = 0; j < N_FEEDFORWARD_STEPS; j++) begin
+      ret_code = $fscanf(stim_fd_mul, "%d\n", eps_mult[j+N_ATTENTION_STEPS]);
+      ret_code = $fscanf(stim_fd_shift, "%d\n", right_shift[j+N_ATTENTION_STEPS]);
+      ret_code = $fscanf(stim_fd_add, "%d\n", add[j+N_ATTENTION_STEPS]);
+    end
+
+    $fclose(stim_fd_mul);
+    $fclose(stim_fd_shift);
+    $fclose(stim_fd_add);
   endtask
 
   task automatic PROGRAM_ITA(

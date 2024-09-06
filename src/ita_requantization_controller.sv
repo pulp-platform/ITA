@@ -27,7 +27,8 @@ module ita_requatization_controller
       QK: constant_idx = 3;
       AV: constant_idx = 4;
       OW: constant_idx = 5;
-      F1: constant_idx = 0;
+      F1: constant_idx = 6;
+      F2: constant_idx = 7;
       default: constant_idx = 0;
     endcase
   end

@@ -22,7 +22,7 @@ package ita_package;
   localparam int unsigned N_ATTENTION_STEPS = 6                        ;
   localparam int unsigned N_FEEDFORWARD_STEPS = 2                      ;
   localparam int unsigned N_STATES = N_ATTENTION_STEPS + N_FEEDFORWARD_STEPS + 1;
-  localparam int unsigned N_REQUANT_CONSTS = N_ATTENTION_STEPS         ;
+  localparam int unsigned N_REQUANT_CONSTS = N_ATTENTION_STEPS + N_FEEDFORWARD_STEPS;
 
 
   parameter  int unsigned InputAddrWidth = idx_width(S)                                                      ;

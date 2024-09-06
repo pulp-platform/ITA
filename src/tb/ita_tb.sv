@@ -384,42 +384,32 @@ task automatic apply_ITA_weights(input integer phase);
   endtask
 
   task apply_ITA_rqs();
-    integer stim_fd_rqs;
-    integer ret_code, rand_ret_code;
+    integer stim_fd_mul, stim_fd_shift, stim_fd_add;
+    integer ret_code;
 
-    for (int i = 0; i < 3; i++) begin
-      case(i)
-        0 : begin
-          stim_fd_rqs = open_stim_file("RQS_MUL.txt");
-        end
-        1 : begin
-          stim_fd_rqs = open_stim_file("RQS_SHIFT.txt");
-        end
-        2 : begin
-          stim_fd_rqs = open_stim_file("RQS_ADD.txt");
-        end
-      endcase
+    stim_fd_mul = open_stim_file("RQS_ATTN_MUL.txt");
+    stim_fd_shift = open_stim_file("RQS_ATTN_SHIFT.txt");
+    stim_fd_add = open_stim_file("RQS_ATTN_ADD.txt");
 
-      case(i)
-        0 : begin
-          for (int j = 0; j < N_REQUANT_CONSTS; j++) begin
-            ret_code = $fscanf(stim_fd_rqs, "%d\n", ita_ctrl.eps_mult[j]);
-          end
-        end
-        1 : begin
-          for (int j = 0; j < N_REQUANT_CONSTS; j++) begin
-            ret_code = $fscanf(stim_fd_rqs, "%d\n", ita_ctrl.right_shift[j]);
-          end
-        end
-        2 : begin
-          for (int j = 0; j < N_REQUANT_CONSTS; j++) begin
-            ret_code = $fscanf(stim_fd_rqs, "%d\n", ita_ctrl.add[j]);
-          end
-        end
-      endcase
-
-      $fclose(stim_fd_rqs);
+    for (int j = 0; j < N_ATTENTION_STEPS; j++) begin
+      ret_code = $fscanf(stim_fd_mul, "%d\n", ita_ctrl.eps_mult[j]);
+      ret_code = $fscanf(stim_fd_shift, "%d\n", ita_ctrl.right_shift[j]);
+      ret_code = $fscanf(stim_fd_add, "%d\n", ita_ctrl.add[j]);
     end
+
+    stim_fd_mul = open_stim_file("RQS_FFN_MUL.txt");
+    stim_fd_shift = open_stim_file("RQS_FFN_SHIFT.txt");
+    stim_fd_add = open_stim_file("RQS_FFN_ADD.txt");
+
+    for (int j = 0; j < N_FEEDFORWARD_STEPS; j++) begin
+      ret_code = $fscanf(stim_fd_mul, "%d\n", ita_ctrl.eps_mult[j+N_ATTENTION_STEPS]);
+      ret_code = $fscanf(stim_fd_shift, "%d\n", ita_ctrl.right_shift[j+N_ATTENTION_STEPS]);
+      ret_code = $fscanf(stim_fd_add, "%d\n", ita_ctrl.add[j+N_ATTENTION_STEPS]);
+    end
+
+    $fclose(stim_fd_mul);
+    $fclose(stim_fd_shift);
+    $fclose(stim_fd_add);
   endtask
 
   task automatic check_ITA_outputs(input integer phase);

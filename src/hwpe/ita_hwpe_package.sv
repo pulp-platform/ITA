@@ -29,11 +29,11 @@ package ita_hwpe_package;
   parameter int unsigned ITA_REG_SEQ_LENGTH   =  5;
   parameter int unsigned ITA_REG_TILES        =  6; // tile_s [3:0], tile_e [7:4], tile_p [11:8], tile_f [15:12]
   parameter int unsigned ITA_REG_EPS_MULT0    =  7; // eps_mult[0] [7:0], eps_mult[1] [15:8], eps_mult[2] [23:16], eps_mult[3] [31:24]
-  parameter int unsigned ITA_REG_EPS_MULT1    =  8; // eps_mult[4] [7:0], eps_mult[5] [15:8]
+  parameter int unsigned ITA_REG_EPS_MULT1    =  8; // eps_mult[4] [7:0], eps_mult[5] [15:8], eps_mult[6] [23:16], eps_mult[7] [31:24]
   parameter int unsigned ITA_REG_RIGHT_SHIFT0 =  9; // right_shift[0] [7:0], right_shift[1] [15:8], right_shift[2] [23:16], right_shift[3] [31:24]
-  parameter int unsigned ITA_REG_RIGHT_SHIFT1 = 10; // right_shift[4] [7:0], right_shift[5] [15:8]
+  parameter int unsigned ITA_REG_RIGHT_SHIFT1 = 10; // right_shift[4] [7:0], right_shift[5] [15:8], right_shift[6] [23:16], right_shift[7] [31:24]
   parameter int unsigned ITA_REG_ADD0         = 11; // add[0] [7:0], add[1] [15:8], add[2] [23:16], add[3] [31:24]
-  parameter int unsigned ITA_REG_ADD1         = 12; // add[4] [7:0], add[5] [15:8]
+  parameter int unsigned ITA_REG_ADD1         = 12; // add[4] [7:0], add[5] [15:8], add[6] [23:16], add[7] [31:24]
   parameter int unsigned ITA_REG_CTRL_ENGINE  = 13; // layer [1:0], activation [3:2]
   parameter int unsigned ITA_REG_CTRL_STREAM  = 14; // ctrl_stream [0]: weight preload, ctrl_stream [1]: weight nextload, ctrl_stream [2]: bias disable, ctrl_stream [3]: bias direction, ctrl_stream [4]: output disable
   parameter int unsigned ITA_REG_GELU_B_C     = 15; // gelu_b [15:0], gelu_c [31:16]

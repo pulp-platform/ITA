@@ -281,11 +281,13 @@ class Transformer:
 
         for i in range(2):
             self.requant_eps_mult_ffn[i, :] = np.random.randint(64, 127, size = (1, 1), dtype = np.uint8)
-            
+
             if i == 0:
-                max_bit_width = np.log2(self.requant_eps_mult_ffn[i, :].astype(np.uint32) * self.E * 2**9).astype(np.uint32)
+                max_bit_width = np.log2(self.requant_eps_mult_ffn[i, :].astype(np.uint32) * self.E * 2**9).astype(
+                    np.uint32)
             elif i == 1:
-                max_bit_width = np.log2(self.requant_eps_mult_ffn[i, :].astype(np.uint32) * self.F * 2**9).astype(np.uint32)
+                max_bit_width = np.log2(self.requant_eps_mult_ffn[i, :].astype(np.uint32) * self.F * 2**9).astype(
+                    np.uint32)
 
             self.requant_right_shift_ffn[i, :] = max_bit_width - 8 + 2
 
