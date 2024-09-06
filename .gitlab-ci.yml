@@ -64,11 +64,13 @@ run_hwpe_sim:
       E: 64
       P: 64
       F: 64
+      activation: gelu
     - S: 128
       E: 192
       P: 256
       F: 256
+      activation: gelu
   script:
     - make bender
-    - make sim VSIM_FLAGS=-c DEBUG=OFF target=sim_ita_hwpe_tb s=$S e=$E p=$P f=$F bias=1
+    - make sim VSIM_FLAGS=-c DEBUG=OFF target=sim_ita_hwpe_tb s=$S e=$E p=$P f=$F bias=1 activation=$activation
     - ./modelsim/return_status.sh modelsim/build/transcript $S $E $P $F hwpe_tb
