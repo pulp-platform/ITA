@@ -244,7 +244,7 @@ class Transformer:
         self.postactivation = None
 
     def _initialize_quantization_parameters(self):
-        # WIESEP: 6 steps for attention layer and one to requantize the accumulated output
+        # WIESEP: 6 steps for attention layer and one to requantize the accumulated output, 2 for feedforward
         self.requant_eps_mult = np.zeros((7, self.H), dtype = np.uint8)
         self.requant_right_shift = np.zeros((7, self.H), dtype = np.uint8)
 
@@ -271,9 +271,27 @@ class Transformer:
             else:
                 self.requant_right_shift[i, :] = max_bit_width - 8 + 2
 
-        write_matrix([self.requant_eps_mult.T], "RQS_MUL", self.paths["base"])
-        write_matrix([self.requant_right_shift.T], "RQS_SHIFT", self.paths["base"])
-        write_matrix([self.requant_add.T], "RQS_ADD", self.paths["base"])
+        write_matrix([self.requant_eps_mult.T], "RQS_ATTN_MUL", self.paths["base"])
+        write_matrix([self.requant_right_shift.T], "RQS_ATTN_SHIFT", self.paths["base"])
+        write_matrix([self.requant_add.T], "RQS_ATTN_ADD", self.paths["base"])
+
+        self.requant_eps_mult_ffn = np.zeros((2, 1), dtype = np.uint8)
+        self.requant_right_shift_ffn = np.zeros((2, 1), dtype = np.uint8)
+        self.requant_add_ffn = np.zeros((2, 1), dtype = np.int8)
+
+        for i in range(2):
+            self.requant_eps_mult_ffn[i, :] = np.random.randint(64, 127, size = (1, 1), dtype = np.uint8)
+            
+            if i == 0:
+                max_bit_width = np.log2(self.requant_eps_mult_ffn[i, :].astype(np.uint32) * self.E * 2**9).astype(np.uint32)
+            elif i == 1:
+                max_bit_width = np.log2(self.requant_eps_mult_ffn[i, :].astype(np.uint32) * self.F * 2**9).astype(np.uint32)
+
+            self.requant_right_shift_ffn[i, :] = max_bit_width - 8 + 2
+
+        write_matrix([self.requant_eps_mult_ffn.T], "RQS_FFN_MUL", self.paths["base"])
+        write_matrix([self.requant_right_shift_ffn.T], "RQS_FFN_SHIFT", self.paths["base"])
+        write_matrix([self.requant_add_ffn.T], "RQS_FFN_ADD", self.paths["base"])
 
     def _init_gelu_constants(self):
         CLIP_LO = -4
@@ -313,9 +331,12 @@ class Transformer:
             print(f"{'Matrix Feedforward Size' :<{text_align}}: {self.F}")
             print(f"{'Matrix Number of Heads ' :<{text_align}}: {self.H}")
             print(f"{'Bias ' :<{text_align}}: {bool(self.bias)}")
-            print(f"{'Requant Mult ' :<{text_align}}: {list(self.requant_eps_mult)}")
-            print(f"{'Requant Shift ' :<{text_align}}: {list(self.requant_right_shift)}")
-            print(f"{'Requant Add ' :<{text_align}}: {list(self.requant_add)}")
+            print(f"{'Requant Mult Attention ' :<{text_align}}: {list(self.requant_eps_mult)}")
+            print(f"{'Requant Shift Attention ' :<{text_align}}: {list(self.requant_right_shift)}")
+            print(f"{'Requant Add Attention ' :<{text_align}}: {list(self.requant_add)}")
+            print(f"{'Requant Mult FFN ' :<{text_align}}: {list(self.requant_eps_mult_ffn)}")
+            print(f"{'Requant Shift FFN ' :<{text_align}}: {list(self.requant_right_shift_ffn)}")
+            print(f"{'Requant Add FFN ' :<{text_align}}: {list(self.requant_add_ffn)}")
 
     def tiler_QK(self, qk: np.ndarray, weight: np.ndarray, bias: np.ndarray, output: np.ndarray, input_file: str,
                  weight_file: str, bias_file: str, output_file: str):
@@ -571,16 +592,16 @@ class Transformer:
     def feedforward_layer(self):
         self.FFp = np.matmul(self.FF, self.Wff, dtype = np.int32) + self.Bff_broadcast
         self.FFp = np.clip(self.FFp, -2**(self.WO - 1), 2**(self.WO - 1) - 1)
-        self.FFp_requant = requantize(self.FFp, self.requant_eps_mult[0], self.requant_right_shift[0],
-                                      self.requant_add[0])
+        self.FFp_requant = requantize(self.FFp, self.requant_eps_mult_ffn[0], self.requant_right_shift_ffn[0],
+                                      self.requant_add_ffn[0])
         self.FFp_requant = self.apply_activation(self.FFp_requant, self.activation)
 
         self.tiler_QK(self.FF, self.Wff, self.Bff, self.FFp_requant, "FF", "Wff", "Bff", "FFp")
 
         self.FF2p = np.matmul(self.FFp_requant, self.Wff2, dtype = np.int32) + self.Bff2_broadcast
         self.FF2p = np.clip(self.FF2p, -2**(self.WO - 1), 2**(self.WO - 1) - 1)
-        self.FF2p_requant = requantize(self.FF2p, self.requant_eps_mult[0], self.requant_right_shift[0],
-                                       self.requant_add[0])
+        self.FF2p_requant = requantize(self.FF2p, self.requant_eps_mult_ffn[1], self.requant_right_shift_ffn[1],
+                                       self.requant_add_ffn[1])
 
         self.tiler_Out(self.FFp_requant, self.Wff2, self.Bff2, self.FF2p_requant, "FFp_in", "Wff2", "Bff2", "FF2p")
 
