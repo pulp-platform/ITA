@@ -1,12 +1,6 @@
-// Copyright 2014-2018 ETH Zurich and University of Bologna.
-// Copyright and related rights are licensed under the Solderpad Hardware
-// License, Version 0.51 (the "License"); you may not use this file except in
-// compliance with the License.  You may obtain a copy of the License at
-// http://solderpad.org/licenses/SHL-0.51. Unless required by applicable law
-// or agreed to in writing, software, hardware and materials distributed under
-// this License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the
-// specific language governing permissions and limitations under the License.
+// Copyright 2014 ETH Zurich and University of Bologna.
+// Solderpad Hardware License, Version 0.51, see LICENSE for details.
+// SPDX-License-Identifier: SHL-0.51
 
 // From latch_scm { git: "https://github.com/pulp-platform/scm.git", version: "1.1.0" }, added async rst and NUM_BYTE->N_EN.
 
@@ -14,7 +8,7 @@ module ita_register_file_1w_multi_port_read_we
 #(
     parameter ADDR_WIDTH    = 5,
     parameter DATA_WIDTH    = 32,
-    
+
     parameter N_READ        = 2,
     parameter N_WRITE       = 1,
     parameter N_EN          = 4
@@ -89,7 +83,7 @@ module ita_register_file_1w_multi_port_read_we
 
     //-----------------------------------------------------------------------------
     //-- READ : Read address decoder RAD
-    //-----------------------------------------------------------------------------  
+    //-----------------------------------------------------------------------------
             always @(*)
             begin : p_RAD
               RAddrOneHotxD[z] = '0;
@@ -143,7 +137,7 @@ module ita_register_file_1w_multi_port_read_we
 
     //-----------------------------------------------------------------------------
     // WRITE : SAMPLE INPUT DATA
-    //---------------------------------------------------------------------------  
+    //---------------------------------------------------------------------------
     always_ff @(posedge clk, negedge rst_n)
     begin : sample_waddr
       if(rst_n == 1'b0)
@@ -164,7 +158,7 @@ module ita_register_file_1w_multi_port_read_we
 
     //-----------------------------------------------------------------------------
     //-- WRITE : Write operation
-    //-----------------------------------------------------------------------------  
+    //-----------------------------------------------------------------------------
     //-- Generate M = WORDS sequential processes, each of which describes one
     //-- word of the memory. The processes are synchronized with the clocks
     //-- ClocksxC(i), i = 0, 1, ..., M-1
