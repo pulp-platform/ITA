@@ -1,0 +1,63 @@
+# Copyright 2023 ETH Zurich and University of Bologna.
+# Licensed under the Apache License, Version 2.0, see LICENSE for details.
+# SPDX-License-Identifier: Apache-2.0
+
+# Author: Paul Scheffler <paulsc@iis.ee.ethz.ch>
+
+name: lint
+
+on: [ push, pull_request, workflow_dispatch ]
+
+jobs:
+  ling-py:
+    runs-on: ubuntu-latest
+    steps:
+    -
+      name: Checkout
+      uses: actions/checkout@v3
+    -
+      name: Check Python
+      uses: diegovalenzuelaiturra/yapf-action@master
+      with:
+        args: . --verbose --recursive --diff --parallel
+
+  lint-license:
+    runs-on: ubuntu-latest
+    steps:
+    -
+      name: Checkout
+      uses: actions/checkout@v3
+    -
+      name: Check license
+      uses: pulp-platform/pulp-actions/lint-license@v2
+      with:
+        license: |
+          Copyright (\d{4}(-\d{4})?\s)?.*
+          (Solderpad Hardware License, Version 0.51|Licensed under the Apache License, Version 2.0), see LICENSE for details.
+          SPDX-License-Identifier: (SHL-0.51|Apache-2.0)
+        # Exclude generated headers (no license checker support for optional lines)
+        exclude_paths: |
+          .github/*
+          quantlib/*
+          tests/*
+
+  lint-sv:
+    runs-on: ubuntu-latest
+    steps:
+    -
+      name: Checkout
+      uses: actions/checkout@v3
+    -
+      name: Run Verible
+      uses: chipsalliance/verible-linter-action@main
+      with:
+        paths: |
+          ./src
+        extra_args: "--waiver_files .github/verible.waiver"
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        tfsec_version: "v1.28.1"
+        tfsec_flags: "--concise-output"
+        fail_on_error: true
+        reviewdog_reporter: github-check
+        verible_version: "v0.0-3318-g8d254167"
+
