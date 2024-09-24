@@ -8,3 +8,7 @@ onnxruntime
 netron
 seaborn
 matplotlib
+torch
+pytest
+pytest-check
+pre-commit

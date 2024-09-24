@@ -6,6 +6,7 @@ simvectors/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
+.pytest_cache/
 *.py[cod]
 *$py.class
 
@@ -22,10 +23,9 @@ dist
 # Jupyter Notebook
 .ipynb_checkpoints
 
-# Ignore everything in .vscode except launch.json
+# Ignore everything in .vscode with some exceptions
 .vscode/*
 !.vscode/launch.json
-!.vscode/settings.json
 !.vscode/c_cpp_properties.json
 
 simvectors

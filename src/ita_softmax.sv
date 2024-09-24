@@ -39,7 +39,7 @@ module ita_softmax
   input  requant_t [1:0]                      read_max_data_i,
   output logic                                write_max_en_o,
   output logic [InputAddrWidth-1:0]           write_max_addr_o,
-  output requant_t                            write_max_data_o    
+  output requant_t                            write_max_data_o
 );
 
   counter_t tile_d, tile_q1, tile_q2, tile_q3, tile_q4;
@@ -307,5 +307,5 @@ module ita_softmax
     .data_o    (data_from_fifo),
     .pop_i     (pop_from_fifo )
   );
-  
+
 endmodule : ita_softmax

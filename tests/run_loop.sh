@@ -58,7 +58,7 @@ do
                 echo "Testing S=$s E=$e P=$p bias=$bias" >> $log_file
 
                 # Run the test
-                make sim VSIM_FLAGS=-c no_stalls=$no_stalls s=$s e=$e p=$p bias=$bias 
+                make sim VSIM_FLAGS=-c no_stalls=$no_stalls s=$s e=$e p=$p bias=$bias
                 ./modelsim/return_status.sh modelsim/build/transcript $s $e ita_tb >> $log_file
 
                 # Remove the test vectors

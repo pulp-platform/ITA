@@ -9,7 +9,7 @@ module ita_fifo_controller
   input  logic         clk_i         ,
   input  logic         rst_ni        ,
   input  requant_oup_t requant_oup_i ,
-  input  logic         ready_i       ,
+  input logic         activation_done_i,
   input  logic         fifo_full_i   ,
   output logic         push_to_fifo_o,
   output fifo_data_t   data_to_fifo_o
@@ -18,10 +18,9 @@ module ita_fifo_controller
   always_comb begin
     push_to_fifo_o = 0;
     data_to_fifo_o = '0;
-    if (&ready_i) begin
+    if (activation_done_i) begin
       push_to_fifo_o = 1;
       data_to_fifo_o = {>>WI{requant_oup_i}};
     end
   end
-
  endmodule

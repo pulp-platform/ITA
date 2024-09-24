@@ -16,10 +16,12 @@
 # ----------------------------------------------------------------------
 
 import os
-from typing import SupportsIndex, Tuple, Union
+from typing import Optional, SupportsIndex, Tuple, Union
 
 import numpy as np
 from numpy.typing import DTypeLike
+
+from numpy import int8 as i8, int16 as i16, int32 as i32, float32 as f32, uint8 as u8, uint16 as u16
 
 
 def random_shuffled_tensor(shape, bitwidth: int, type: DTypeLike = np.int8, scaling = 1 / 4) -> np.ndarray:
@@ -441,3 +443,77 @@ def split_matrix(m: np.ndarray, block_shape: Tuple[SupportsIndex, SupportsIndex]
             return res
     else:
         raise ValueError("Matrix must be 2D")
+
+
+def round(x: f32, n_bits: int = 8):
+    x_clip = np.clip(x, -2**(n_bits - 1), 2**(n_bits - 1) - 1)
+    return np.floor(x_clip + 0.5 + np.finfo(f32).eps).astype(int)
+
+
+def clip(x: f32, n_bits: int = 8) -> f32:
+    return np.clip(x, -2**(n_bits - 1), 2**(n_bits - 1) - 1)
+
+
+def round_and_clip(x: f32, n_bits: int = 8) -> f32:
+    x_rounded = np.floor(x + 0.5 + np.finfo(f32).eps)
+    x_clipped = clip(x_rounded, n_bits)
+    return x_clipped
+
+
+def round_to_i8(x: f32) -> i8:
+    x_rounded_clipped: f32 = round_and_clip(x, 8)
+    return x_rounded_clipped.astype(i8)
+
+
+def round_to_u8(x: f32) -> u8:
+    x_rounded_clipped: f32 = round_and_clip(x, 8)
+    return x_rounded_clipped.astype(u8)
+
+
+def round_to_i16(x: f32) -> i16:
+    x_rounded_clipped: f32 = round_and_clip(x, 16)
+    return x_rounded_clipped.astype(i16)
+
+
+def get_scaling_factor(alpha: f32, n_bits: int = 8) -> f32:
+    S: f32 = alpha / (2**(n_bits - 1) - 1)
+    return S
+
+
+def quantize(activations: np.ndarray, alpha: f32, n_bits: int = 8, S: Optional[f32] = None) -> Tuple[np.ndarray, f32]:
+    x_q = np.clip(activations, -alpha, alpha)
+    if S is None:
+        S = get_scaling_factor(alpha, n_bits)
+    x_q = x_q / S
+    x_q = np.array(list(map(round, x_q)))
+    return x_q, S
+
+
+def dequantize(quantized_activations: np.ndarray, alpha: f32, n_bits: int = 8) -> np.ndarray:
+    S = get_scaling_factor(alpha, n_bits)
+    activations = quantized_activations * S
+    return activations
+
+
+def get_almost_symmetric_scaling_factor(clip_lo: f32, n_bits: int = 8) -> Tuple[f32, f32]:
+    if 2**n_bits == 2:
+        return 1
+    n_levels = 2**n_bits
+    scale = (-n_levels + 2) / n_levels
+    clip_hi = clip_lo * scale
+    S = clip_hi / (n_levels / 2 - 1)
+    return S, clip_hi
+
+
+def almost_symmetric_quantize(activations: np.ndarray, clip_lo: f32, n_bits: int = 8) -> Tuple[np.ndarray, f32]:
+    S, clip_hi = get_almost_symmetric_scaling_factor(clip_lo, n_bits)
+    x_q = np.clip(activations, clip_lo, clip_hi)
+    x_q = x_q / S
+    x_q = np.array(list(map(round, x_q)))
+    return x_q, S
+
+
+def almost_symmetric_dequantize(quantized_activations: np.ndarray, clip_lo: f32, n_bits: int = 8) -> np.ndarray:
+    S, _ = get_almost_symmetric_scaling_factor(clip_lo, n_bits)
+    activations = quantized_activations * S
+    return activations

@@ -16,26 +16,34 @@ module ita_tb;
   // Set to 1 to run the simulation without stalls
   localparam unsigned CONT            = `ifdef NO_STALLS `NO_STALLS `else 0 `endif;
   localparam unsigned ITERS           = 1;
+  localparam unsigned N_PHASES        = 7;
 
   // Stimuli files
-  string INPUT_FILES[5] = {"standalone/Q.txt", "standalone/K.txt", "standalone/Wv_0.txt", "standalone/Qp_in_0.txt", "standalone/O_soft_in_0.txt"};
+  string INPUT_FILES[N_PHASES] = {"standalone/Q.txt", "standalone/K.txt", "standalone/Wv_0.txt", "standalone/Qp_in_0.txt", "standalone/O_soft_in_0.txt", "standalone/FF.txt", "standalone/FFp_in_0.txt"};
   string ATTENTION_INPUT_FILES[1] = {"standalone/A_stream_soft_in_0.txt"};
-  string INPUT_BIAS_FILES[5] = {"standalone/Bq_0.txt", "standalone/Bk_0.txt", "standalone/Bv_0.txt", "", "standalone/Bo_0.txt"};
-  string WEIGHT_FILES[5] = {"standalone/Wq_0.txt", "standalone/Wk_0.txt", "standalone/V.txt", "standalone/Kp_in_0.txt", "standalone/Wo_0.txt"};
+  string INPUT_BIAS_FILES[N_PHASES] = {"standalone/Bq_0.txt", "standalone/Bk_0.txt", "standalone/Bv_0.txt", "", "standalone/Bo_0.txt", "standalone/Bff_0.txt", "standalone/Bff2_0.txt"};
+  string WEIGHT_FILES[N_PHASES] = {"standalone/Wq_0.txt", "standalone/Wk_0.txt", "standalone/V.txt", "standalone/Kp_in_0.txt", "standalone/Wo_0.txt", "standalone/Wff_0.txt", "standalone/Wff2_0.txt"};
   string ATTENTION_WEIGHT_FILES[1] = {"standalone/Vp_in_0.txt"};
-  string OUTPUT_FILES[5] = {"standalone/Qp_0.txt", "standalone/Kp_0.txt", "standalone/Vp_0.txt", "standalone/A_0.txt", "standalone/Out_soft_0.txt"};
+  string OUTPUT_FILES[N_PHASES] = {"standalone/Qp_0.txt", "standalone/Kp_0.txt", "standalone/Vp_0.txt", "standalone/A_0.txt", "standalone/Out_soft_0.txt", "standalone/FFp_0.txt", "standalone/FF2p_0.txt"};
   string ATTENTION_OUTPUT_FILES[2] = {"standalone/A_0.txt", "standalone/O_soft_0.txt"};
+  string gelu_b_file = "GELU_B.txt";
+  string gelu_c_file = "GELU_C.txt";
+  string activation_requant_mult_file = "activation_requant_mult.txt";
+  string activation_requant_shift_file = "activation_requant_shift.txt";
+  string activation_requant_add_file = "activation_requant_add.txt";
 
   // Parameters
   integer N_PE, M_TILE_LEN;
   integer N_ENTRIES_PER_TILE;
-  integer SEQUENCE_LEN, PROJECTION_SPACE, EMBEDDING_SIZE;
+  integer SEQUENCE_LEN, PROJECTION_SPACE, EMBEDDING_SIZE, FEEDFORWARD_SIZE;
   integer N_TILES_SEQUENCE_DIM, N_TILES_EMBEDDING_DIM, N_TILES_PROJECTION_DIM;
+  integer N_TILES_FEEDFORWARD;
   integer N_TILES_LINEAR_PROJECTION, N_TILES_ATTENTION;
   integer N_TILES_LINEAR_OUTPUT;
   integer N_ENTRIES_LINEAR_OUTPUT, N_ENTRIES_PER_PROJECTION_DIM, N_ENTRIES_PER_SEQUENCE_DIM;
-  integer N_TILES_INNER_DIM_LINEAR_PROJECTION[5];
+  integer N_TILES_INNER_DIM_LINEAR_PROJECTION[N_PHASES];
   integer N_ATTENTION_TILE_ROWS, N_GROUPS;
+  activation_e ACTIVATION;
 
   // Signals
   logic         clk, rst_n;
@@ -59,6 +67,9 @@ module ita_tb;
     SEQUENCE_LEN = `ifdef SEQ_LENGTH `SEQ_LENGTH `else M_TILE_LEN `endif;
     PROJECTION_SPACE = `ifdef PROJ_SPACE `PROJ_SPACE `else M_TILE_LEN `endif;
     EMBEDDING_SIZE = `ifdef EMBED_SIZE `EMBED_SIZE `else M_TILE_LEN `endif;
+    FEEDFORWARD_SIZE = `ifdef FF_SIZE `FF_SIZE `else M_TILE_LEN `endif;
+    ACTIVATION = activation_e'(`ifdef ACTIVATION `ACTIVATION `else Identity `endif);
+
     simdir = {
       "../../simvectors/data_S",
       $sformatf("%0d", SEQUENCE_LEN),
@@ -66,6 +77,8 @@ module ita_tb;
       $sformatf("%0d", EMBEDDING_SIZE),
       "_P",
       $sformatf("%0d", PROJECTION_SPACE),
+      "_F",
+      $sformatf("%0d", FEEDFORWARD_SIZE),
       "_H1_B",
       $sformatf("%0d", `ifdef BIAS `BIAS `else 0 `endif)
     };
@@ -81,11 +94,14 @@ module ita_tb;
     N_ENTRIES_PER_SEQUENCE_DIM = N_ENTRIES_PER_TILE * N_TILES_SEQUENCE_DIM;
     N_ATTENTION_TILE_ROWS = N_TILES_SEQUENCE_DIM;
     N_GROUPS = 2 * N_ATTENTION_TILE_ROWS;
+    N_TILES_FEEDFORWARD = FEEDFORWARD_SIZE / M_TILE_LEN;
     N_TILES_INNER_DIM_LINEAR_PROJECTION[0] = N_TILES_EMBEDDING_DIM;
     N_TILES_INNER_DIM_LINEAR_PROJECTION[1] = N_TILES_EMBEDDING_DIM;
     N_TILES_INNER_DIM_LINEAR_PROJECTION[2] = N_TILES_EMBEDDING_DIM;
     N_TILES_INNER_DIM_LINEAR_PROJECTION[3] = '0; // Not used, no bias
     N_TILES_INNER_DIM_LINEAR_PROJECTION[4] = N_TILES_PROJECTION_DIM;
+    N_TILES_INNER_DIM_LINEAR_PROJECTION[5] = N_TILES_EMBEDDING_DIM;
+    N_TILES_INNER_DIM_LINEAR_PROJECTION[6] = N_TILES_FEEDFORWARD;
   end
 
   clk_rst_gen #(
@@ -121,7 +137,7 @@ function automatic integer open_stim_file(string filename);
     return 0;
   stim_fd = $fopen({simdir,"/",filename}, "r");
   if (stim_fd == 0) begin
-    $fatal("[TB] ITA: Could not open %s stim file!", filename);
+    $fatal(1, "[TB] ITA: Could not open %s stim file!", filename);
   end
   return stim_fd;
 endfunction
@@ -193,7 +209,7 @@ task automatic toggle_input(inout integer tile_entry, inout integer group, inout
   group += 1;
 endtask
 
-function integer get_random();
+function bit get_random();
     logic value;
     integer ret_code;
       if (CONT)
@@ -222,17 +238,50 @@ function bit did_finish_output_dot_product(input integer tile_entry);
     return tile_entry >= N_ENTRIES_PER_SEQUENCE_DIM;
 endfunction
 
-function bit is_last_entry_of_output_group(input integer input_file_index, input integer tile_entry);
+function bit is_last_entry_of_output_group(input bit input_file_index, input integer tile_entry);
     return is_output_group(input_file_index) && did_finish_output_dot_product(tile_entry);
 endfunction
 
-function bit is_last_entry_of_attention_group(input integer input_file_index, input integer tile_entry);
+function bit is_last_entry_of_attention_group(input bit input_file_index, input integer tile_entry);
     return is_attention_group(input_file_index) && did_finish_attention_dot_product(tile_entry);
 endfunction
 
 function bit should_toggle_output(input bit input_file_index, input integer tile_entry);
     return is_last_entry_of_output_group(input_file_index, tile_entry) || is_last_entry_of_attention_group(input_file_index, tile_entry);
 endfunction
+
+task automatic read_activation_constants(
+  output gelu_const_t gelu_b,
+  output gelu_const_t gelu_c,
+  output requant_const_t activation_requant_mult,
+  output requant_const_t activation_requant_shift,
+  output requant_t activation_requant_add
+);
+  integer b_fd;
+  integer c_fd;
+  integer rqs_mul_fd;
+  integer rqs_shift_fd;
+  integer add_fd;
+  int return_code;
+
+  b_fd = open_stim_file(gelu_b_file);
+  c_fd = open_stim_file(gelu_c_file);
+  rqs_mul_fd = open_stim_file(activation_requant_mult_file);
+  rqs_shift_fd = open_stim_file(activation_requant_shift_file);
+  add_fd = open_stim_file(activation_requant_add_file);
+
+  return_code = $fscanf(b_fd, "%d", gelu_b);
+  return_code = $fscanf(c_fd, "%d", gelu_c);
+  return_code = $fscanf(rqs_mul_fd, "%d", activation_requant_mult);
+  return_code = $fscanf(rqs_shift_fd, "%d", activation_requant_shift);
+  return_code = $fscanf(add_fd, "%d", activation_requant_add);
+
+  $fclose(b_fd);
+  $fclose(c_fd);
+  $fclose(rqs_mul_fd);
+  $fclose(rqs_shift_fd);
+  $fclose(add_fd);
+endtask
 
 task automatic apply_ITA_inputs(input integer phase);
       integer stim_fd_inp_attn[2];
@@ -278,9 +327,12 @@ task automatic apply_ITA_inputs(input integer phase);
           if (is_end_of_tile(tile_entry) && phase != 3)
             reset_tile(tile, tile_entry);
           stim_fd_inp = stim_fd_inp_attn[input_file_index];
-          is_end_of_input = $feof(stim_fd_inp);
+          is_end_of_input = $feof(stim_fd_inp) != 0;
         end
       end
+      @(posedge clk);
+      #(APPL_DELAY);
+      inp_valid = 1'b0; // Set back to default
       $fclose(stim_fd_inp);
       $fclose(stim_fd_bias);
 endtask
@@ -332,42 +384,32 @@ task automatic apply_ITA_weights(input integer phase);
   endtask
 
   task apply_ITA_rqs();
-    integer stim_fd_rqs;
-    integer ret_code, rand_ret_code;
+    integer stim_fd_mul, stim_fd_shift, stim_fd_add;
+    integer ret_code;
 
-    for (int phase = 0; phase < 3; phase++) begin
-      case(phase)
-        0 : begin
-          stim_fd_rqs = open_stim_file("RQS_MUL.txt");
-        end
-        1 : begin
-          stim_fd_rqs = open_stim_file("RQS_SHIFT.txt");
-        end
-        2 : begin
-          stim_fd_rqs = open_stim_file("RQS_ADD.txt");
-        end
-      endcase
+    stim_fd_mul = open_stim_file("RQS_ATTN_MUL.txt");
+    stim_fd_shift = open_stim_file("RQS_ATTN_SHIFT.txt");
+    stim_fd_add = open_stim_file("RQS_ATTN_ADD.txt");
 
-      case(phase)
-        0 : begin
-          for (int j = 0; j < 6; j++) begin
-            ret_code = $fscanf(stim_fd_rqs, "%d\n", ita_ctrl.eps_mult[j]);
-          end
-        end
-        1 : begin
-          for (int j = 0; j < 6; j++) begin
-            ret_code = $fscanf(stim_fd_rqs, "%d\n", ita_ctrl.right_shift[j]);
-          end
-        end
-        2 : begin
-          for (int j = 0; j < 6; j++) begin
-            ret_code = $fscanf(stim_fd_rqs, "%d\n", ita_ctrl.add[j]);
-          end
-        end
-      endcase
-
-      $fclose(stim_fd_rqs);
+    for (int j = 0; j < N_ATTENTION_STEPS; j++) begin
+      ret_code = $fscanf(stim_fd_mul, "%d\n", ita_ctrl.eps_mult[j]);
+      ret_code = $fscanf(stim_fd_shift, "%d\n", ita_ctrl.right_shift[j]);
+      ret_code = $fscanf(stim_fd_add, "%d\n", ita_ctrl.add[j]);
     end
+
+    stim_fd_mul = open_stim_file("RQS_FFN_MUL.txt");
+    stim_fd_shift = open_stim_file("RQS_FFN_SHIFT.txt");
+    stim_fd_add = open_stim_file("RQS_FFN_ADD.txt");
+
+    for (int j = 0; j < N_FEEDFORWARD_STEPS; j++) begin
+      ret_code = $fscanf(stim_fd_mul, "%d\n", ita_ctrl.eps_mult[j+N_ATTENTION_STEPS]);
+      ret_code = $fscanf(stim_fd_shift, "%d\n", ita_ctrl.right_shift[j+N_ATTENTION_STEPS]);
+      ret_code = $fscanf(stim_fd_add, "%d\n", ita_ctrl.add[j+N_ATTENTION_STEPS]);
+    end
+
+    $fclose(stim_fd_mul);
+    $fclose(stim_fd_shift);
+    $fclose(stim_fd_add);
   endtask
 
   task automatic check_ITA_outputs(input integer phase);
@@ -402,8 +444,9 @@ task automatic apply_ITA_weights(input integer phase);
       oup_ready_q = oup_ready;
       if (successful_handshake(oup_valid, oup_ready)) begin
         tile_entry += 1;
-        if (requant_oup !== exp_res)
-          $display("[TB] ITA: Wrong value received %x, instead of %x at %0t.", requant_oup, exp_res, $time);
+        if (requant_oup !== exp_res) begin
+          $display("[TB] ITA: Wrong value received %x, instead of %x at %0t. (phase: %d)", requant_oup, exp_res, $time, phase);
+        end
         if (!is_last_group(group) && phase == 3 && should_toggle_output(input_file_index, tile_entry)) begin
             $display("[TB] ITA: %0d outputs were checked in phase %0d.",tile_entry, phase);
             $display("[TB] ITA: Output Switch: tile_entry: %0d, group: %0d at %0t.", tile_entry, group, $time);
@@ -423,11 +466,12 @@ task automatic apply_ITA_weights(input integer phase);
     ita_ctrl.eps_mult   = 1;
     ita_ctrl.right_shift = 8;
     ita_ctrl.add = 0;
-    ita_ctrl.lin_tiles = N_TILES_LINEAR_PROJECTION;
-    ita_ctrl.attn_tiles = N_TILES_ATTENTION;
     ita_ctrl.tile_e = N_TILES_EMBEDDING_DIM;
     ita_ctrl.tile_p = N_TILES_PROJECTION_DIM;
     ita_ctrl.tile_s = N_TILES_SEQUENCE_DIM;
+    ita_ctrl.tile_f = N_TILES_FEEDFORWARD;
+
+    read_activation_constants(ita_ctrl.gelu_b, ita_ctrl.gelu_c, ita_ctrl.activation_requant_mult, ita_ctrl.activation_requant_shift, ita_ctrl.activation_requant_add);
 
     inp_valid = 1'b0;
     inp = '0;
@@ -440,6 +484,8 @@ task automatic apply_ITA_weights(input integer phase);
       @(posedge clk);
       #(APPL_DELAY);
       ita_ctrl.start = 1'b1;
+      ita_ctrl.layer = Attention;
+      ita_ctrl.activation = Identity;
       stim_applied = 1;
 
       @(posedge clk);
@@ -449,6 +495,22 @@ task automatic apply_ITA_weights(input integer phase);
       for (int phase = 0; phase < 5; phase++) begin
         apply_ITA_inputs(phase);
       end
+
+      @(posedge clk);
+      #(APPL_DELAY);
+      ita_ctrl.start = 1'b1;
+      ita_ctrl.layer = Feedforward;
+      ita_ctrl.activation = ACTIVATION;
+
+      @(posedge clk);
+      #(APPL_DELAY);      
+      ita_ctrl.start = 1'b0;
+
+      apply_ITA_inputs(5);
+
+      ita_ctrl.activation = Identity;
+      
+      apply_ITA_inputs(6);
 
       @(posedge clk);
       #(APPL_DELAY);
@@ -471,6 +533,10 @@ task automatic apply_ITA_weights(input integer phase);
       for (int phase = 0; phase < 5; phase++) begin
         apply_ITA_weights(phase);
       end
+
+      apply_ITA_weights(5);
+
+      apply_ITA_weights(6);
 
       @(posedge clk);
       #(APPL_DELAY);
@@ -496,9 +562,10 @@ task automatic apply_ITA_weights(input integer phase);
 
     for (int i = 0; i < ITERS; i++) begin
       @(posedge clk);
-      for (int phase = 0; phase < 5; phase++) begin
+      for (int phase = 0; phase < 7; phase++) begin
         check_ITA_outputs(phase);
       end
+
     end
 
     #(50*CLK_PERIOD);

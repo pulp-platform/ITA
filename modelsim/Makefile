@@ -25,3 +25,6 @@ sim_ita_tb: lib build
 
 sim_ita_hwpe_tb: lib build
 	cd $(buildpath) && $(VSIM) $(VSIM_FLAGS) -do 'set DEBUG $(DEBUG); source ../sim_ita_hwpe_tb.tcl'
+
+sim_activation_tb: lib build
+	cd $(buildpath) && $(VSIM) $(VSIM_FLAGS) -do 'source ../sim_activation_tb.tcl'

@@ -43,14 +43,16 @@ def generateMHA(**args):
     S = args['S']
     P = args['P']
     E = args['E']
+    F = args['F']
     H = args['H']
     NO_BIAS = args['no_bias']
     NO_PARTIAL_SOFTMAX = args['no_partial_softmax']
+    base_path = f'{current_dir}/simvectors/data_S{S}_E{E}_P{P}_F{F}_H{H}_B{int(not NO_BIAS)}'
 
     if NO_PARTIAL_SOFTMAX:
-        path = f'{current_dir}/simvectors/data_S{S}_E{E}_P{P}_H{H}_B{int(not NO_BIAS)}_noPartialSoftmax/'
+        path = f'{base_path}_noPartialSoftmax/'
     else:
-        path = f'{current_dir}/simvectors/data_S{S}_E{E}_P{P}_H{H}_B{int(not NO_BIAS)}/'
+        path = f'{base_path}/'
     os.makedirs(path, exist_ok = True)
 
     ITA.generateTestVectors(path, **args)
@@ -91,12 +93,21 @@ class TestParser(argparse.ArgumentParser):
         self.group1.add_argument('-B', default = 1, type = int, help = 'Number of batches')
         self.group1.add_argument('-S', default = 64, type = int, help = 'Sequence length')
         self.group1.add_argument('-E', default = 64, type = int, help = 'Embedding size')
+        self.group1.add_argument('-F', default = 64, type = int, help = 'Feedforward size')
         self.group1.add_argument('-P', default = 64, type = int, help = 'Projection size')
         self.group1.add_argument('-H', default = 1, type = int, help = 'Number of heads')
+        self.group1.add_argument('--activation',
+                                 default = 'identity',
+                                 type = str,
+                                 help = 'Activation function',
+                                 choices = ['gelu', 'relu', 'identity'])
         self.group1.add_argument('--no-partial-softmax',
                                  action = 'store_true',
                                  help = 'Disable partial softmax calculation')
         self.group1.add_argument('--no-bias', default = False, action = 'store_true', help = 'Disable bias')
+        self.group1.add_argument('--export-snitch-cluster', action = 'store_true', help = 'Export for snitch cluster')
+        self.group1.add_argument('--export-mempool', action = 'store_true', help = 'Export for mempool')
+        self.group1.add_argument('--export-rom', action = 'store_true', help = 'Export ROM configuration')
 
 
 if __name__ == "__main__":

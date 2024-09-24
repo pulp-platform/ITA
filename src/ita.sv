@@ -33,16 +33,20 @@ module ita
 );
 
   step_e  step, step_q1, step_q2, step_q3, step_q4, step_q5, step_q6;
-  logic   calc_en, calc_en_q1, calc_en_q2, calc_en_q3, calc_en_q4, calc_en_q5, calc_en_q6;
-  logic   first_inner_tile, first_inner_tile_q1, first_inner_tile_q2, first_inner_tile_q3, first_inner_tile_q4, first_inner_tile_q5, first_inner_tile_q6;
-  logic   last_inner_tile, last_inner_tile_q1, last_inner_tile_q2, last_inner_tile_q3, last_inner_tile_q4, last_inner_tile_q5, last_inner_tile_q6;
+  logic   calc_en, calc_en_q1, calc_en_q2, calc_en_q3, calc_en_q4, calc_en_q5, calc_en_q6, calc_en_q7, calc_en_q8, calc_en_q9, calc_en_q10;
+  logic   first_inner_tile, first_inner_tile_q1, first_inner_tile_q2, first_inner_tile_q3;
+  logic   last_inner_tile, last_inner_tile_q1, last_inner_tile_q2, last_inner_tile_q3, last_inner_tile_q4, last_inner_tile_q5, last_inner_tile_q6, last_inner_tile_q7, last_inner_tile_q8, last_inner_tile_q9, last_inner_tile_q10;
 
   logic         weight_valid, weight_ready;
   inp_t         inp, inp_stream_soft;
   weight_t      inp1, inp1_q, inp2, inp2_q;
   bias_t        inp_bias, inp_bias_q1, inp_bias_q2;
-  oup_t         oup, oup_q, result;
+  oup_t         oup, oup_q, accumulator_oup;
+  requant_const_t    requant_mult, requant_shift, activation_requant_mult, activation_requant_shift;
   requant_oup_t requant_oup;
+  requant_t         requant_add, activation_requant_add;
+  requant_mode_e    requant_mode, activation_requant_mode;
+  requant_oup_t post_activation;
 
   // FIFO signals
   logic        fifo_full, fifo_empty, push_to_fifo, pop_from_fifo;
@@ -60,20 +64,28 @@ module ita
   write_data_t   write_data  ;
   write_select_t write_select;
 
+  // Activation signals
+  activation_e activation_q1, activation_q2, activation_q3, activation_q4, activation_q5, activation_q6, activation_q7, activation_q8, activation_q9, activation_q10;
+
   always_ff @(posedge clk_i, negedge rst_ni) begin
     if (!rst_ni) begin
+      calc_en_q10           <= 0;
+      calc_en_q9            <= 0;
+      calc_en_q8            <= 0;
+      calc_en_q7            <= 0;
       calc_en_q6            <= 0;
       calc_en_q5            <= 0;
       calc_en_q4            <= 0;
       calc_en_q3            <= 0;
       calc_en_q2            <= 0;
       calc_en_q1            <= 0;
-      first_inner_tile_q6   <= 0;
-      first_inner_tile_q5   <= 0;
-      first_inner_tile_q4   <= 0;
       first_inner_tile_q3   <= 0;
       first_inner_tile_q2   <= 0;
       first_inner_tile_q1   <= 0;
+      last_inner_tile_q10    <= 0;
+      last_inner_tile_q9    <= 0;
+      last_inner_tile_q8    <= 0;
+      last_inner_tile_q7    <= 0;
       last_inner_tile_q6    <= 1'b0;
       last_inner_tile_q5    <= 1'b0;
       last_inner_tile_q4    <= 1'b0;
@@ -86,19 +98,32 @@ module ita
       step_q3               <= Idle;
       step_q2               <= Idle;
       step_q1               <= Idle;
+      activation_q8         <= Identity;
+      activation_q7         <= Identity;
+      activation_q6         <= Identity;
+      activation_q5         <= Identity;
+      activation_q4         <= Identity;
+      activation_q3         <= Identity;
+      activation_q2         <= Identity;
+      activation_q1         <= Identity;
     end else begin
+      calc_en_q10           <= calc_en_q9;
+      calc_en_q9            <= calc_en_q8;
+      calc_en_q8            <= calc_en_q7;
+      calc_en_q7            <= calc_en_q6;
       calc_en_q6            <= calc_en_q5;
       calc_en_q5            <= calc_en_q4;
       calc_en_q4            <= calc_en_q3;
       calc_en_q3            <= calc_en_q2;
       calc_en_q2            <= calc_en_q1;
       calc_en_q1            <= calc_en;
-      first_inner_tile_q6   <= first_inner_tile_q5;
-      first_inner_tile_q5   <= first_inner_tile_q4;
-      first_inner_tile_q4   <= first_inner_tile_q3;
       first_inner_tile_q3   <= first_inner_tile_q2;
       first_inner_tile_q2   <= first_inner_tile_q1;
       first_inner_tile_q1   <= first_inner_tile;
+      last_inner_tile_q10    <= last_inner_tile_q9;
+      last_inner_tile_q9    <= last_inner_tile_q8;
+      last_inner_tile_q8    <= last_inner_tile_q7;
+      last_inner_tile_q7    <= last_inner_tile_q6;
       last_inner_tile_q6    <= last_inner_tile_q5;
       last_inner_tile_q5    <= last_inner_tile_q4;
       last_inner_tile_q4    <= last_inner_tile_q3;
@@ -111,6 +136,16 @@ module ita
       step_q3               <= step_q2;
       step_q2               <= step_q1;
       step_q1               <= step;
+      activation_q10        <= activation_q9;
+      activation_q9         <= activation_q8;
+      activation_q8         <= activation_q7;
+      activation_q7         <= activation_q6;
+      activation_q6         <= activation_q5;
+      activation_q5         <= activation_q4;
+      activation_q4         <= activation_q3;
+      activation_q3         <= activation_q2;
+      activation_q2         <= activation_q1;
+      activation_q1         <= ctrl_i.activation;
     end
   end
 
@@ -205,7 +240,7 @@ module ita
 
     .oup_i         (oup_q              ),
     .inp_bias_i    (inp_bias_q2        ),
-    .result_o      (result             )
+    .result_o      (accumulator_oup    )
   );
 
   ita_softmax_top i_softmax_top (
@@ -223,20 +258,19 @@ module ita
     .inp_stream_soft_o    (inp_stream_soft                 )
   );
 
-  oup_t         requant_result;
-  logic         requant_mode  ;
-  eps_mult_t    requant_mult  ;
-  right_shift_t requant_shift ;
-  add_t         requant_add ;
 
-  assign requant_result = result;
-  assign requant_mode   = 1'b0;
-
-  always_comb begin
-    requant_mult  = ctrl_i.eps_mult[step_q4];
-    requant_shift = ctrl_i.right_shift[step_q4];
-    requant_add   = ctrl_i.add[step_q4];
-  end
+  ita_requatization_controller i_requantization_controller (
+    .ctrl_i             (ctrl_i            ),
+    .requantizer_step_i (step_q4         ),
+    .requant_mult_o     (requant_mult     ),
+    .requant_shift_o    (requant_shift    ),
+    .requant_add_o      (requant_add      ),
+    .requant_mode_o     (requant_mode     ),
+    .activation_requant_mult_o (activation_requant_mult),
+    .activation_requant_shift_o(activation_requant_shift),
+    .activation_requant_add_o  (activation_requant_add  ),
+    .activation_requant_mode_o (activation_requant_mode )
+  );
 
   ita_requantizer i_requantizer (
     .clk_i        ( clk_i             ),
@@ -248,18 +282,33 @@ module ita
 
     .calc_en_i    ( calc_en_q4 && last_inner_tile_q4       ),
     .calc_en_q_i  ( calc_en_q5 && last_inner_tile_q5       ),
-    .result_i     ( requant_result    ),
+    .result_i     ( accumulator_oup    ),
     .add_i        ( {N {requant_add}} ),
     .requant_oup_o( requant_oup       )
+  );
+
+  ita_activation i_activation (
+    .clk_i         (clk_i       ),
+    .rst_ni        (rst_ni      ),
+    .activation_i  (activation_q10),
+    .calc_en_i     (calc_en_q6 && last_inner_tile_q6  ),
+    .calc_en_q_i  (calc_en_q7 && last_inner_tile_q7  ),
+    .b_i           (ctrl_i.gelu_b  ),
+    .c_i           (ctrl_i.gelu_c  ),
+    .requant_mode_i  (activation_requant_mode),
+    .requant_mult_i    (activation_requant_mult),
+    .requant_shift_i (activation_requant_shift),
+    .requant_add_i         (activation_requant_add),
+    .data_i        (requant_oup),
+    .data_o        (post_activation)
   );
 
   ita_fifo_controller i_fifo_controller (
     .clk_i         (clk_i       ),
     .rst_ni        (rst_ni      ),
 
-    .requant_oup_i (requant_oup ),
-    .ready_i       (calc_en_q6 && last_inner_tile_q6 ),
-
+    .requant_oup_i (post_activation),
+    .activation_done_i     (calc_en_q10 && last_inner_tile_q10 ),
     .fifo_full_i   (fifo_full   ),
     .push_to_fifo_o(push_to_fifo),
     .data_to_fifo_o(data_to_fifo)
@@ -353,8 +402,12 @@ module ita
         fifo_usage_max <= FifoDepth;
       step_q <= step;
     end
-    if ((step_q==OW) && (step==Idle))
-      $display("[ITA] Max FIFO usage: %d", fifo_usage_max);
+    if ((step_q==OW) && (step==Idle)) begin
+      $display("[ITA] Max FIFO usage during Attention: %d", fifo_usage_max);
+    end
+    if ((step_q==F2) && (step==Idle)) begin
+      $display("[ITA] Max FIFO usage during Feedforward: %d", fifo_usage_max);
+    end
   end
   // pragma translate_on
 endmodule
