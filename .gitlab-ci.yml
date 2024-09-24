@@ -49,6 +49,11 @@ run_sim:
       P: 256
       F: 256
       activation: gelu
+    - S: 192
+      E: 256
+      P: 128
+      F: 128
+      activation: relu
   script:
     - make bender
     - make sim VSIM_FLAGS=-c s=$S e=$E p=$P f=$F bias=1 activation=$activation
@@ -70,6 +75,11 @@ run_hwpe_sim:
       P: 256
       F: 256
       activation: gelu
+    - S: 192
+      E: 256
+      P: 128
+      F: 128
+      activation: relu
   script:
     - make bender
     - make sim VSIM_FLAGS=-c DEBUG=OFF target=sim_ita_hwpe_tb s=$S e=$E p=$P f=$F bias=1 activation=$activation
