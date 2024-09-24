@@ -54,6 +54,7 @@ To install the required Python packages, create a virtual environment. Make sure
 $> python -m venv venv
 $> source venv/bin/activate
 $> pip install -r requirements.txt
+$> pip install -r requirements.dev.txt # Only required for PyITA/test_gelu.py
 ```
 
 If you want to enable pre-commit hooks, which perform code formatting and linting, run the following command:
