@@ -33,6 +33,12 @@ module ita_requatization_controller
     endcase
   end
 
+  // always_comb begin
+  //   requant_mult  = ctrl_i.eps_mult[step_q4];
+  //   requant_shift = ctrl_i.right_shift[step_q4];
+  //   requant_add   = ctrl_i.add[step];
+  // end
+
   assign requant_mult_o = ctrl_i.eps_mult[constant_idx];
   assign requant_shift_o = ctrl_i.right_shift[constant_idx];
   assign requant_add_o = ctrl_i.add[constant_idx];

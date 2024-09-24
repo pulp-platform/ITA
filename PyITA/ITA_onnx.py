@@ -259,8 +259,8 @@ def exportONNX(path, verbose = False, **kwargs):
     # Transform from MUL-DIV-ADD to MUL-ADD-DIV
     RQ_ADD = (RQ_ADD * 2**RQ_SHIFT.astype(np.float32))
 
-    input0_values = np.expand_dims(inputs['q'][:(S * E // 64), :].reshape(S, E), axis = 0)
-    input1_values = np.expand_dims(inputs['k'][:(S * E // 64), :].reshape(S, E), axis = 0)
+    input0_values = np.expand_dims(inputs['q'].reshape(S, E), axis = 0)
+    input1_values = np.expand_dims(inputs['k'].reshape(S, E), axis = 0)
 
     np.savez(path + "inputs.npz", input0_values, input1_values)
 

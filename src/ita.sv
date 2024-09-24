@@ -171,6 +171,12 @@ module ita
 
   assign oup_o = valid_o ? data_from_fifo : '0;
 
+  requant_oup_t requant_add_o;
+
+  counter_t inner_tile;
+  counter_t tile_x;
+  counter_t tile_y;
+
   ita_controller i_controller (
     .clk_i                (clk_i              ),
     .rst_ni               (rst_ni             ),
@@ -190,6 +196,11 @@ module ita
     .calc_en_o            (calc_en            ),
     .first_inner_tile_o   (first_inner_tile   ),
     .last_inner_tile_o    (last_inner_tile    ),
+    .tile_x_o             (tile_x             ),
+    .tile_y_o             (tile_y             ),
+    .inner_tile_o         (inner_tile         ),
+    .requant_add_i        (requant_add        ),
+    .requant_add_o        (requant_add_o      ),
     .busy_o               (busy_o             )
   );
 
@@ -255,13 +266,16 @@ module ita
     .soft_addr_div_o      (soft_addr_div                   ),
     .softmax_done_o       (softmax_done                    ),
     .pop_softmax_fifo_o   (pop_softmax_fifo                ),
-    .inp_stream_soft_o    (inp_stream_soft                 )
+    .inp_stream_soft_o    (inp_stream_soft                 ),
+    .tile_x_i             (tile_x                          ),
+    .tile_y_i             (tile_y                          ),
+    .inner_tile_i         (inner_tile                      )
   );
 
 
   ita_requatization_controller i_requantization_controller (
     .ctrl_i             (ctrl_i            ),
-    .requantizer_step_i (step_q4         ),
+    .requantizer_step_i (step_q4          ),
     .requant_mult_o     (requant_mult     ),
     .requant_shift_o    (requant_shift    ),
     .requant_add_o      (requant_add      ),
@@ -282,8 +296,8 @@ module ita
 
     .calc_en_i    ( calc_en_q4 && last_inner_tile_q4       ),
     .calc_en_q_i  ( calc_en_q5 && last_inner_tile_q5       ),
-    .result_i     ( accumulator_oup    ),
-    .add_i        ( {N {requant_add}} ),
+    .result_i     ( accumulator_oup   ),
+    .add_i        ( requant_add_o     ),
     .requant_oup_o( requant_oup       )
   );
 
