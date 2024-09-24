@@ -23,6 +23,7 @@ from numpy.typing import DTypeLike
 
 from numpy import int8 as i8, int16 as i16, int32 as i32, float32 as f32, uint8 as u8, uint16 as u16
 
+
 def random_shuffled_tensor(shape, bitwidth: int, type: DTypeLike = np.int8, scaling = 1 / 4) -> np.ndarray:
     """
     Generates a random shuffled tensor with a specified shape, bit width, and type.
