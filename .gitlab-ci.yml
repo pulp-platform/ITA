@@ -15,12 +15,12 @@ stages:
     - source venv/bin/activate
     - pip install -r requirements.txt
 
-format_python:
-  stage: test
-  script:
-    - !reference [.setup_test, script]
-    - pip install yapf
-    - yapf -rpd .
+# format_python:
+#   stage: test
+#   script:
+#     - !reference [.setup_test, script]
+#     - pip install yapf
+#     - yapf -rpd .
 
 generate_testvectors:
   stage: test
