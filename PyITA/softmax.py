@@ -14,6 +14,8 @@
 #
 # ----------------------------------------------------------------------
 
+import argparse
+
 import numpy as np
 
 
@@ -71,10 +73,7 @@ def streamingPartialSoftmax(x, integerize = True):
 
     seq_length = x.shape[-1]
     n_heads = x.shape[-3]
-    width = 16  # 16 PE (processing units)
-    groups = seq_length // width
-
-    assert seq_length % width == 0, f"Sequence length must be a multiple of width ({width})"
+    PE = 16  # 16 PE (processing units)
 
     # Number of bits
     B = 8
@@ -101,12 +100,14 @@ def streamingPartialSoftmax(x, integerize = True):
         global_max = np.full((n_heads, seq_length), -np.Infinity, dtype = np.float32)
 
     ## STAGE 1: Compute the denominator of the softmax
-    for i in range(groups):
+    for i in range((seq_length + PE - 1) // PE):
+        width = seq_length % PE if i * PE + PE > seq_length else PE
+
         # Find the maximum for each row in the current column block (consisting of 16 columns)
         if integerize:
-            current_max = np.max(x[..., 0 + i * width:width + i * width].astype(np.int32), axis = -1)
+            current_max = np.max(x[..., 0 + i * PE:width + i * PE].astype(np.int32), axis = -1)
         else:
-            current_max = np.max(x[..., 0 + i * width:width + i * width].astype(np.float32), axis = -1)
+            current_max = np.max(x[..., 0 + i * PE:width + i * PE].astype(np.float32), axis = -1)
 
         # Initialize all shift values for each row to zero
         if integerize:
@@ -129,11 +130,11 @@ def streamingPartialSoftmax(x, integerize = True):
 
         # Find the difference between the maximum and x in the current part of the row
         if integerize:
-            diff = np.repeat(global_max, width).reshape(
-                n_heads, seq_length, width) - x[..., 0 + i * width:width + i * width].astype(np.int32)
+            diff = np.repeat(global_max, width).reshape(n_heads, seq_length,
+                                                        width) - x[..., 0 + i * PE:width + i * PE].astype(np.int32)
         else:
-            diff = np.repeat(global_max, width).reshape(
-                n_heads, seq_length, width) - x[..., 0 + i * width:width + i * width].astype(np.float32)
+            diff = np.repeat(global_max, width).reshape(n_heads, seq_length,
+                                                        width) - x[..., 0 + i * PE:width + i * PE].astype(np.float32)
 
         # Shift the values by B-log2B -> multiply by B/2**B = log2e*eps_x
         # Make sure to do use round-half-up instead of round-half-to-even
@@ -177,7 +178,7 @@ def streamingPartialSoftmax(x, integerize = True):
         # A_partial_softmax[0] = np.repeat(exp_partial_sum_inverse, seq_length).reshape(seq_length, seq_length) >> shift
         return np.floor(
             np.repeat(exp_partial_sum_inverse, seq_length).reshape(n_heads, seq_length, seq_length) / 2**shift).astype(
-                np.int8)
+                np.uint8)
     else:
         return np.repeat(exp_partial_sum_inverse, seq_length).reshape(n_heads, seq_length, seq_length) / 2**shift
 
@@ -195,7 +196,66 @@ def realSoftmax(A_requant, integerize = True):
         x = A_requant.astype(np.float64)
 
     exp = np.exp(x - np.max(x, axis = 2).reshape(n_heads, -1, 1))
+
+    # Replace nan with zero
+    exp = np.nan_to_num(exp)
+
     if integerize:
         return (exp / exp.sum(axis = 2).reshape(n_heads, -1, 1) * (2**7 - 1)).astype(A_requant.dtype)
     else:
         return exp / exp.sum(axis = 2).reshape(n_heads, -1, 1)
+
+
+if __name__ == "__main__":
+    np.set_printoptions(linewidth = 120)
+    np.set_printoptions(precision = 4)
+
+    # Always print whole array
+    np.set_printoptions(threshold = np.inf)
+
+    parser = argparse.ArgumentParser(description = "Test Utility for Softmax.")
+    # Sequence length
+    parser.add_argument("-S", default = 64, type = int, help = "Sequence length")
+
+    # ITA sequence length
+    parser.add_argument("-M", default = 64, type = int, help = "ITA sequence length")
+
+    # Quantiztion (float or int)
+    parser.add_argument("--int", action = "store_true", help = "Quantize to int")
+    parser.add_argument('--seed', default = 0, type = int, help = 'Random seed')
+
+    args = parser.parse_args()
+
+    ITA_WI = 8
+    WO = 26
+    ITA_N = 16
+    ITA_M = args.M
+
+    if args.seed != -1:
+        np.random.seed(args.seed)
+
+    if args.int:
+        x = np.random.randint(-128, 128, (1, 1, args.S, args.S)).astype(np.int8)
+    else:
+        x = np.random.randn(1, 1, 16, 16).astype(np.float32)
+
+    print("Input:")
+    print(x)
+
+    # Pad last two dimensions to be a multiple of ITA_M
+    pad_x = (ITA_M - x.shape[-1] % ITA_M) % ITA_M
+    pad_y = (ITA_M - x.shape[-2] % ITA_M) % ITA_M
+    pad_value = -2**(ITA_WI - 1) if args.int else -np.inf
+
+    print(f"Padding x by ({pad_y}, {pad_x}) with {pad_value}")
+    x_pad = np.pad(x, ((0, 0), (0, 0), (0, pad_y), (0, pad_x)), mode = 'constant', constant_values = pad_value)
+
+    res = realSoftmax(x, integerize = args.int)
+    res_pad = realSoftmax(x_pad, integerize = args.int)
+
+    res_unpad = res_pad[:, :, :args.S, :args.S]
+
+    # Compare results
+    print(f"Equal: {np.allclose(res, res_unpad, atol = 1e-3)}")
+    print(res)
+    print(res_unpad)

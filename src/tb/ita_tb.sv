@@ -91,9 +91,10 @@ module ita_tb;
       "_",
       $sformatf( "%s", ACTIVATION)
     };
-    N_TILES_SEQUENCE_DIM = SEQUENCE_LEN / M_TILE_LEN;
-    N_TILES_EMBEDDING_DIM = EMBEDDING_SIZE / M_TILE_LEN;
-    N_TILES_PROJECTION_DIM = PROJECTION_SPACE / M_TILE_LEN;
+    // Round up
+    N_TILES_SEQUENCE_DIM = (SEQUENCE_LEN + M_TILE_LEN -1 ) / M_TILE_LEN;
+    N_TILES_EMBEDDING_DIM = (EMBEDDING_SIZE+ M_TILE_LEN -1 ) / M_TILE_LEN;
+    N_TILES_PROJECTION_DIM = (PROJECTION_SPACE + M_TILE_LEN -1 ) / M_TILE_LEN;
     N_TILES_LINEAR_PROJECTION = N_TILES_SEQUENCE_DIM * N_TILES_EMBEDDING_DIM * N_TILES_PROJECTION_DIM;
     N_TILES_ATTENTION = N_TILES_SEQUENCE_DIM * N_TILES_PROJECTION_DIM;
     N_ENTRIES_PER_TILE = M_TILE_LEN * M_TILE_LEN / N_PE;
@@ -489,6 +490,9 @@ task automatic apply_ITA_weights(input integer phase);
     ita_ctrl.tile_p = N_TILES_PROJECTION_DIM;
     ita_ctrl.tile_s = N_TILES_SEQUENCE_DIM;
     ita_ctrl.tile_f = N_TILES_FEEDFORWARD;
+    ita_ctrl.seq_length = SEQUENCE_LEN;
+    ita_ctrl.proj_space = PROJECTION_SPACE;
+    ita_ctrl.embed_size = EMBEDDING_SIZE;
 
     read_activation_constants(ita_ctrl.gelu_b, ita_ctrl.gelu_c, ita_ctrl.activation_requant_mult, ita_ctrl.activation_requant_shift, ita_ctrl.activation_requant_add);
 
