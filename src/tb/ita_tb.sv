@@ -69,9 +69,10 @@ module ita_tb;
       "_H1_B",
       $sformatf("%0d", `ifdef BIAS `BIAS `else 0 `endif)
     };
-    N_TILES_SEQUENCE_DIM = SEQUENCE_LEN / M_TILE_LEN;
-    N_TILES_EMBEDDING_DIM = EMBEDDING_SIZE / M_TILE_LEN;
-    N_TILES_PROJECTION_DIM = PROJECTION_SPACE / M_TILE_LEN;
+    // Round up
+    N_TILES_SEQUENCE_DIM = (SEQUENCE_LEN + M_TILE_LEN -1 ) / M_TILE_LEN;
+    N_TILES_EMBEDDING_DIM = (EMBEDDING_SIZE+ M_TILE_LEN -1 ) / M_TILE_LEN;
+    N_TILES_PROJECTION_DIM = (PROJECTION_SPACE + M_TILE_LEN -1 ) / M_TILE_LEN;
     N_TILES_LINEAR_PROJECTION = N_TILES_SEQUENCE_DIM * N_TILES_EMBEDDING_DIM * N_TILES_PROJECTION_DIM;
     N_TILES_ATTENTION = N_TILES_SEQUENCE_DIM * N_TILES_PROJECTION_DIM;
     N_ENTRIES_PER_TILE = M_TILE_LEN * M_TILE_LEN / N_PE;
@@ -403,7 +404,7 @@ task automatic apply_ITA_weights(input integer phase);
       if (successful_handshake(oup_valid, oup_ready)) begin
         tile_entry += 1;
         if (requant_oup !== exp_res)
-          $display("[TB] ITA: Wrong value received %x, instead of %x at %0t.", requant_oup, exp_res, $time);
+          $display("[TB] ITA: Wrong value received %x, instead of %x at %0t. in step %d", requant_oup, exp_res, $time, phase);
         if (!is_last_group(group) && phase == 3 && should_toggle_output(input_file_index, tile_entry)) begin
             $display("[TB] ITA: %0d outputs were checked in phase %0d.",tile_entry, phase);
             $display("[TB] ITA: Output Switch: tile_entry: %0d, group: %0d at %0t.", tile_entry, group, $time);
@@ -428,6 +429,10 @@ task automatic apply_ITA_weights(input integer phase);
     ita_ctrl.tile_e = N_TILES_EMBEDDING_DIM;
     ita_ctrl.tile_p = N_TILES_PROJECTION_DIM;
     ita_ctrl.tile_s = N_TILES_SEQUENCE_DIM;
+    ita_ctrl.seq_length = SEQUENCE_LEN;
+    ita_ctrl.proj_space = PROJECTION_SPACE;
+    ita_ctrl.embed_size = EMBEDDING_SIZE;
+    ita_ctrl.n_heads = 1;
 
     inp_valid = 1'b0;
     inp = '0;

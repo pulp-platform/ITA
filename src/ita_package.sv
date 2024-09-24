@@ -29,9 +29,9 @@ package ita_package;
   parameter  int unsigned N_WRITE_EN     = `ifdef TARGET_ITA_HWPE 8 `else M `endif;
 
   // IO
-  typedef logic [idx_width(S+1)-1:0] seq_length_t;
-  typedef logic [idx_width(P+1)-1:0] proj_space_t;
-  typedef logic [idx_width(E+1)-1:0] embed_size_t;
+  typedef logic [WO-WI*2-2:0] seq_length_t;
+  typedef logic [WO-WI*2-2:0] proj_space_t;
+  typedef logic [WO-WI*2-2:0] embed_size_t;
   typedef logic [idx_width(H+1)-1:0] n_heads_t;
   typedef logic [           EMS-1:0] eps_mult_t;
   typedef logic [           EMS-1:0] right_shift_t;

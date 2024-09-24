@@ -136,6 +136,21 @@ module ita
 
   assign oup_o = valid_o ? data_from_fifo : '0;
 
+  eps_mult_t    requant_mult  ;
+  right_shift_t requant_shift ;
+  add_t         requant_add ;
+  requant_oup_t requant_add_o;
+
+  counter_t inner_tile;
+  counter_t tile_x;
+  counter_t tile_y;
+
+  always_comb begin
+    requant_mult  = ctrl_i.eps_mult[step_q4];
+    requant_shift = ctrl_i.right_shift[step_q4];
+    requant_add   = ctrl_i.add[step];
+  end
+
   ita_controller i_controller (
     .clk_i                (clk_i              ),
     .rst_ni               (rst_ni             ),
@@ -155,6 +170,11 @@ module ita
     .calc_en_o            (calc_en            ),
     .first_inner_tile_o   (first_inner_tile   ),
     .last_inner_tile_o    (last_inner_tile    ),
+    .tile_x_o             (tile_x             ),
+    .tile_y_o             (tile_y             ),
+    .inner_tile_o         (inner_tile         ),
+    .requant_add_i        (requant_add        ),
+    .requant_add_o        (requant_add_o      ),
     .busy_o               (busy_o             )
   );
 
@@ -220,23 +240,17 @@ module ita
     .soft_addr_div_o      (soft_addr_div                   ),
     .softmax_done_o       (softmax_done                    ),
     .pop_softmax_fifo_o   (pop_softmax_fifo                ),
-    .inp_stream_soft_o    (inp_stream_soft                 )
+    .inp_stream_soft_o    (inp_stream_soft                 ),
+    .tile_x_i             (tile_x                          ),
+    .tile_y_i             (tile_y                          ),
+    .inner_tile_i         (inner_tile                      )
   );
 
   oup_t         requant_result;
   logic         requant_mode  ;
-  eps_mult_t    requant_mult  ;
-  right_shift_t requant_shift ;
-  add_t         requant_add ;
 
   assign requant_result = result;
   assign requant_mode   = 1'b0;
-
-  always_comb begin
-    requant_mult  = ctrl_i.eps_mult[step_q4];
-    requant_shift = ctrl_i.right_shift[step_q4];
-    requant_add   = ctrl_i.add[step_q4];
-  end
 
   ita_requantizer i_requantizer (
     .clk_i        ( clk_i             ),
@@ -249,7 +263,7 @@ module ita
     .calc_en_i    ( calc_en_q4 && last_inner_tile_q4       ),
     .calc_en_q_i  ( calc_en_q5 && last_inner_tile_q5       ),
     .result_i     ( requant_result    ),
-    .add_i        ( {N {requant_add}} ),
+    .add_i        ( requant_add_o     ),
     .requant_oup_o( requant_oup       )
   );
 

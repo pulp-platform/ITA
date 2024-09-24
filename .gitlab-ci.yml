@@ -28,6 +28,10 @@ generate_testvectors:
     - !reference [.setup_test, script]
     - python testGenerator.py -H 1 -S 64 -E 64 -P 64
     - python testGenerator.py -H 1 -S 128 -E 192 -P 256
+    - python testGenerator.py -H 1 -S 1 -E 2 -P 3 --no-bias
+    - python testGenerator.py -H 1 -S 63 -E 62 -P 61 --no-bias
+    - python testGenerator.py -H 1 -S 65 -E 130 -P 195 --no-bias
+    - python testGenerator.py -H 1 -S 127 -E 190 -P 253 --no-bias
   artifacts:
     paths:
       - simvectors
@@ -48,6 +52,29 @@ run_sim:
   script:
     - make bender
     - make sim VSIM_FLAGS=-c s=$S e=$E p=$P bias=1
+    - ./modelsim/return_status.sh modelsim/build/transcript $S $E ita_tb
+
+run_sim_padding:
+  stage: sim
+  needs:
+    - generate_testvectors
+  parallel:
+    matrix:
+    - S: 1
+      E: 2
+      P: 3
+    - S: 63
+      E: 62
+      P: 61
+    - S: 65
+      E: 130
+      P: 195
+    - S: 127
+      E: 190
+      P: 253
+  script:
+    - make bender
+    - make sim VSIM_FLAGS=-c s=$S e=$E p=$P bias=0
     - ./modelsim/return_status.sh modelsim/build/transcript $S $E ita_tb
 
 run_hwpe_sim:
