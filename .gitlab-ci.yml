@@ -28,6 +28,7 @@ generate_testvectors:
     - !reference [.setup_test, script]
     - python testGenerator.py -H 1 -S 64 -E 64 -P 64 -F 64 --activation gelu
     - python testGenerator.py -H 1 -S 128 -E 192 -P 256 -F 256 --activation gelu
+    - python testGenerator.py -H 1 -S 192 -E 256 -P 128 -F 128 --activation relu
   artifacts:
     paths:
       - simvectors
