@@ -325,9 +325,14 @@ endfunction
     logic [31:0] status;
     string STIM_DATA;
     logic [31:0] ita_reg_tiles_val;
+    logic [31:0] ita_reg_length_val;
     logic [5:0][31:0] ita_reg_rqs_val;
     logic [31:0] ita_reg_gelu_b_c_val;
     logic [31:0] ita_reg_activation_rqs_val;
+
+    ita_reg_length_val[7:0] = SEQUENCE_LEN;
+    ita_reg_length_val[15:8] = PROJECTION_SPACE;
+    ita_reg_length_val[23:16] = EMBEDDING_SIZE;
 
     $timeformat(-9, 2, " ns", 10);
 
@@ -351,13 +356,13 @@ endfunction
       PERIPH_READ( 32'h04, 32'h0, status, clk);
 
     // 1: Step Q
-    ita_compute_step(Q, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
+    ita_compute_step(Q, ita_reg_tiles_val, ita_reg_length_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
 
     // 2: Step K
-    ita_compute_step(K, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
+    ita_compute_step(K, ita_reg_tiles_val, ita_reg_length_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
 
     // 3: Step V
-    ita_compute_step(V, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
+    ita_compute_step(V, ita_reg_tiles_val, ita_reg_length_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
 
 
     for (int group = 0; group < N_TILES_SEQUENCE_DIM; group++) begin
@@ -368,7 +373,7 @@ endfunction
       BASE_PTR_OUTPUT[AV] = BASE_PTR[19] + group * N_TILES_OUTER_X[AV] * N_ELEMENTS_PER_TILE;
 
       // 4: Step QK
-      ita_compute_step(QK, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
+      ita_compute_step(QK, ita_reg_tiles_val, ita_reg_length_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
 
       // WIESEP: Hack to ensure that during the last tile of AV, the weight pointer is set correctly
       if (group == N_TILES_SEQUENCE_DIM-1) begin
@@ -376,17 +381,17 @@ endfunction
       end
 
       // 5: Step AV
-      ita_compute_step(AV, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
+      ita_compute_step(AV, ita_reg_tiles_val, ita_reg_length_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
     end
 
     // 6: Step OW
-    ita_compute_step(OW, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
+    ita_compute_step(OW, ita_reg_tiles_val, ita_reg_length_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
 
     // 7: Step FF1
-    ita_compute_step(F1, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
+    ita_compute_step(F1, ita_reg_tiles_val, ita_reg_length_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
 
     // 8: Step FF1
-    ita_compute_step(F2, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
+    ita_compute_step(F2, ita_reg_tiles_val, ita_reg_length_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
 
     // Wait for the last step to finish
     wait(evt);
@@ -412,6 +417,7 @@ endfunction
   task automatic ita_compute_step(
     input  step_e       step,
     input  logic [31:0] ita_reg_tiles_val,
+    input  logic [31:0] ita_reg_length_val,
     input  logic [5:0][31:0] ita_reg_rqs_val,
     input  logic [31:0] ita_reg_gelu_b_c_val,
     input  logic [31:0] ita_reg_activation_rqs_val,
@@ -459,7 +465,7 @@ endfunction
           $display(" - ITA Reg En 0x%0h, Ctrl Stream Val 0x%0h, Weight Ptr En %0d, Bias Ptr En %0d", ita_reg_en, ctrl_stream_val, weight_ptr_en, bias_ptr_en);
 
           // Program ITA
-          PROGRAM_ITA(input_ptr, weight_ptr0, weight_ptr1, weight_ptr_en, bias_ptr, bias_ptr_en, output_ptr, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, ita_reg_en, ctrl_engine_val, ctrl_stream_val, clk_i);
+          PROGRAM_ITA(input_ptr, weight_ptr0, weight_ptr1, weight_ptr_en, bias_ptr, bias_ptr_en, output_ptr, ita_reg_tiles_val, ita_reg_length_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, ita_reg_en, ctrl_engine_val, ctrl_stream_val, clk_i);
 
           // Wait for ITA to finish
           @(posedge clk_i);
@@ -623,7 +629,7 @@ endfunction
           ctrl_stream_val = {28'b0, 4'b0010}; // weight nextload
         end
         reg_weight_en = 1'b1;
-        reg_bias_en = 1'b1;   
+        reg_bias_en = 1'b1;
       end
       F2 : begin
         ctrl_engine_val = Feedforward | Identity << 2;
@@ -777,6 +783,7 @@ endfunction
     input  logic        bias_ptr_en,
     input  logic [31:0] output_ptr,
     input  logic [31:0] ita_reg_tiles_val,
+    input  logic [31:0] ita_reg_length_val,
     input  logic [5:0][31:0] ita_reg_rqs_val,
     input  logic [31:0] ita_reg_gelu_b_c_val,
     input  logic [31:0] ita_reg_activation_rqs_val,
@@ -794,6 +801,7 @@ endfunction
     PERIPH_WRITE( 4*ITA_REG_OUTPUT_PTR,  ITA_REG_OFFSET, output_ptr, clk_i);
 
     if (ita_reg_en) begin
+      PERIPH_WRITE( 4*ITA_REG_LENGTH,      ITA_REG_OFFSET, ita_reg_length_val, clk_i);
       PERIPH_WRITE( 4*ITA_REG_TILES,       ITA_REG_OFFSET, ita_reg_tiles_val, clk_i);
       PERIPH_WRITE( 4*ITA_REG_EPS_MULT0,   ITA_REG_OFFSET, ita_reg_rqs_val[0], clk_i);
       PERIPH_WRITE( 4*ITA_REG_EPS_MULT1,   ITA_REG_OFFSET, ita_reg_rqs_val[1], clk_i);

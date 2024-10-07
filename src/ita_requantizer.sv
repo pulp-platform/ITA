@@ -22,7 +22,8 @@ module ita_requantizer
   logic signed [EMS+WO:0]               product      ;
   logic signed [EMS+WO:0]               shifted_added;
   logic signed [     N-1:0][EMS+WO-1:0] shifted_d, shifted_q;
-  requant_oup_t                         add_q1, requant_oup_d, requant_oup_q;
+  requant_oup_t                         add_q1, add_q2, add_q3, add_q4;
+  requant_oup_t                         requant_oup_d, requant_oup_q;
 
   assign requant_oup_o   = requant_oup_q;
 
@@ -49,7 +50,7 @@ module ita_requantizer
         end
       end
       if (calc_en_q_i) begin
-        shifted_added    = shifted_q[i] + (EMS+WO)'(signed'(add_q1[i]));
+        shifted_added    = shifted_q[i] + (EMS+WO)'(signed'(add_q4[i]));
         requant_oup_d[i] = shifted_added[WI-1:0];
         if (~shifted_added[EMS+WO-1] & (|(shifted_added[EMS+WO-2:WI-1]))) begin
           requant_oup_d[i]       = '1;
@@ -76,8 +77,14 @@ module ita_requantizer
   always_ff @(posedge clk_i, negedge rst_ni) begin
     if (!rst_ni) begin
       add_q1         <= '0;
+      add_q2         <= '0;
+      add_q3         <= '0;
+      add_q4         <= '0;
     end else begin
       add_q1         <= add_i;
+      add_q2         <= add_q1;
+      add_q3         <= add_q2;
+      add_q4         <= add_q3;
     end
   end
 endmodule
