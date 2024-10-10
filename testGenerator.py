@@ -47,7 +47,8 @@ def generateMHA(**args):
     H = args['H']
     NO_BIAS = args['no_bias']
     NO_PARTIAL_SOFTMAX = args['no_partial_softmax']
-    base_path = f'{current_dir}/simvectors/data_S{S}_E{E}_P{P}_F{F}_H{H}_B{int(not NO_BIAS)}'
+    ACTIVATION = args['activation'].capitalize()
+    base_path = f'{current_dir}/simvectors/data_S{S}_E{E}_P{P}_F{F}_H{H}_B{int(not NO_BIAS)}_{ACTIVATION}'
 
     if NO_PARTIAL_SOFTMAX:
         path = f'{base_path}_noPartialSoftmax/'

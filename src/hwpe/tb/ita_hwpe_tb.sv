@@ -128,7 +128,9 @@ module ita_hwpe_tb;
       "_F",
       $sformatf("%0d", FEEDFORWARD_SIZE),
       "_H1_B",
-      $sformatf("%0d", `ifdef BIAS `BIAS `else 0 `endif)
+      $sformatf("%0d", `ifdef BIAS `BIAS `else 0 `endif),
+      "_",
+      $sformatf( "%s", ACTIVATION)
     };
     // Number of tiles in the sequence dimension
     N_TILES_SEQUENCE_DIM = SEQUENCE_LEN / M_TILE_LEN;

@@ -80,7 +80,9 @@ module ita_tb;
       "_F",
       $sformatf("%0d", FEEDFORWARD_SIZE),
       "_H1_B",
-      $sformatf("%0d", `ifdef BIAS `BIAS `else 0 `endif)
+      $sformatf("%0d", `ifdef BIAS `BIAS `else 0 `endif),
+      "_",
+      $sformatf( "%s", ACTIVATION)
     };
     N_TILES_SEQUENCE_DIM = SEQUENCE_LEN / M_TILE_LEN;
     N_TILES_EMBEDDING_DIM = EMBEDDING_SIZE / M_TILE_LEN;
