@@ -45,19 +45,34 @@ run_sim:
       P: 64
       F: 64
       activation: gelu
+      no_stalls: 0
+    - S: 64
+      E: 64
+      P: 64
+      F: 64
+      activation: gelu
+      no_stalls: 1
     - S: 128
       E: 192
       P: 256
       F: 256
       activation: gelu
+      no_stalls: 0
+    - S: 128
+      E: 192
+      P: 256
+      F: 256
+      activation: gelu
+      no_stalls: 1
     - S: 192
       E: 256
       P: 128
       F: 128
       activation: relu
+      no_stalls: 1
   script:
     - make bender
-    - make sim VSIM_FLAGS=-c s=$S e=$E p=$P f=$F bias=1 activation=$activation
+    - make sim VSIM_FLAGS=-c s=$S e=$E p=$P f=$F bias=1 activation=$activation no_stalls=$no_stalls
     - ./modelsim/return_status.sh modelsim/build/transcript $S $E $P $F ita_tb
 
 run_hwpe_sim:
@@ -71,17 +86,32 @@ run_hwpe_sim:
       P: 64
       F: 64
       activation: gelu
+      no_stalls: 0
+    - S: 64
+      E: 64
+      P: 64
+      F: 64
+      activation: gelu
+      no_stalls: 1
     - S: 128
       E: 192
       P: 256
       F: 256
       activation: gelu
+      no_stalls: 0
+    - S: 128
+      E: 192
+      P: 256
+      F: 256
+      activation: gelu
+      no_stalls: 1
     - S: 192
       E: 256
       P: 128
       F: 128
       activation: relu
+      no_stalls: 1
   script:
     - make bender
-    - make sim VSIM_FLAGS=-c DEBUG=OFF target=sim_ita_hwpe_tb s=$S e=$E p=$P f=$F bias=1 activation=$activation
+    - make sim VSIM_FLAGS=-c DEBUG=OFF target=sim_ita_hwpe_tb s=$S e=$E p=$P f=$F bias=1 activation=$activation no_stalls=$no_stalls
     - ./modelsim/return_status.sh modelsim/build/transcript $S $E $P $F hwpe_tb
