@@ -23,7 +23,7 @@ module ita_activation
   requant_oup_t data_q1, data_q2, data_q3, data_q4;
   activation_e activation_q1, activation_q2;
   oup_t gelu_out, requant_in;
-  requant_oup_t relu_out_d, relu_out_q1, relu_out_q2, requant_out;
+  requant_oup_t relu_out, requant_out;
   logic calc_en_q2, calc_en_q3;
 
   ita_requantizer i_requantizer (
@@ -43,7 +43,7 @@ module ita_activation
     for (genvar i = 0; i < N; i++) begin: relu_instances
       ita_relu i_relu (
         .data_i(data_q2[i]),
-        .data_o(relu_out_d[i])
+        .data_o(relu_out[i])
       );
     end
   endgenerate
@@ -70,7 +70,7 @@ module ita_activation
       end
       Relu: begin
         for (int i = 0; i < N; i++) begin
-          requant_in[i] = {{(WO-WI){relu_out_q2[i][WI-1]}}, relu_out_q2[i]};
+          requant_in[i] = {{(WO-WI){relu_out[i][WI-1]}}, relu_out[i]};
         end
       end
       default: begin
@@ -101,8 +101,6 @@ module ita_activation
       data_q4 <= '0;
       calc_en_q2 <= 0;
       calc_en_q3 <= 0;
-      relu_out_q1 <= '0;
-      relu_out_q2 <= '0;
     end else begin
       activation_q1 <= activation_i;
       activation_q2 <= activation_q1;
@@ -112,8 +110,6 @@ module ita_activation
       data_q4 <= data_q3;
       calc_en_q2 <= calc_en_q_i;
       calc_en_q3 <= calc_en_q2;
-      relu_out_q1 <= relu_out_d;
-      relu_out_q2 <= relu_out_q1;
     end
   end
 endmodule
