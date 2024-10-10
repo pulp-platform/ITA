@@ -290,7 +290,8 @@ module ita
   ita_activation i_activation (
     .clk_i           (clk_i        ),
     .rst_ni          (rst_ni       ),
-    .activation_i    (activation_q9),
+    .activation_i    (activation_q7),
+    .activation_q2_i (activation_q9),
     .calc_en_i       (calc_en_q6 && last_inner_tile_q6),
     .calc_en_q_i     (calc_en_q7 && last_inner_tile_q7),
     .b_i             (ctrl_i.gelu_b),
