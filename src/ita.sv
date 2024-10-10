@@ -288,19 +288,20 @@ module ita
   );
 
   ita_activation i_activation (
-    .clk_i         (clk_i       ),
-    .rst_ni        (rst_ni      ),
-    .activation_i  (activation_q10),
-    .calc_en_i     (calc_en_q6 && last_inner_tile_q6  ),
-    .calc_en_q_i  (calc_en_q7 && last_inner_tile_q7  ),
-    .b_i           (ctrl_i.gelu_b  ),
-    .c_i           (ctrl_i.gelu_c  ),
+    .clk_i           (clk_i        ),
+    .rst_ni          (rst_ni       ),
+    .activation_i    (activation_q7),
+    .activation_q2_i (activation_q9),
+    .calc_en_i       (calc_en_q6 && last_inner_tile_q6),
+    .calc_en_q_i     (calc_en_q7 && last_inner_tile_q7),
+    .b_i             (ctrl_i.gelu_b),
+    .c_i             (ctrl_i.gelu_c),
     .requant_mode_i  (activation_requant_mode),
-    .requant_mult_i    (activation_requant_mult),
+    .requant_mult_i  (activation_requant_mult),
     .requant_shift_i (activation_requant_shift),
-    .requant_add_i         (activation_requant_add),
-    .data_i        (requant_oup),
-    .data_o        (post_activation)
+    .requant_add_i   (activation_requant_add),
+    .data_i          (requant_oup),
+    .data_o          (post_activation)
   );
 
   ita_fifo_controller i_fifo_controller (

@@ -555,8 +555,10 @@ class Transformer:
             write_matrix(A_save, f"A_soft_{h}", self.paths["standalone"])
 
     def step5_AV(self):
-        self.O_soft = np.array(
-            [np.matmul(self.A_partial_softmax[i], self.Vp_requant[i], dtype = np.int32) for i in range(self.H)])
+        self.O_soft = np.array([
+            np.matmul(self.A_partial_softmax[i].astype(np.uint8), self.Vp_requant[i], dtype = np.int32)
+            for i in range(self.H)
+        ])
         self.O_soft = np.clip(self.O_soft, -2**(self.WO - 1), 2**(self.WO - 1) - 1)
         self.O_soft_requant = requantize(self.O_soft, self.requant_eps_mult[4], self.requant_right_shift[4],
                                          self.requant_add[4])
