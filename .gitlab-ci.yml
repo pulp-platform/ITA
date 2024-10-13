@@ -26,11 +26,12 @@ generate_testvectors:
   stage: test
   script:
     - !reference [.setup_test, script]
-    - python testGenerator.py -H 1 -S 64 -E 64 -P 64 -F 64 --activation gelu
-    - python testGenerator.py -H 1 -S 128 -E 192 -P 256 -F 256 --activation gelu
-    - python testGenerator.py -H 1 -S 192 -E 256 -P 128 -F 128 --activation relu
-    # - python testGenerator.py -H 1 -S 1 -E 2 -P 3 -F 3 --activation gelu --no-bias
-    - python testGenerator.py -H 1 -S 1 -E 2 -P 3 -F 3 --activation relu --no-bias
+    - python testGenerator.py -H 1 -S 128 -E 128 -P 192 -F 256 --activation identity --no-bias
+    # - python testGenerator.py -H 1 -S 64 -E 128 -P 192 -F 256 --activation identity --no-bias
+    # - python testGenerator.py -H 1 -S 128 -E 192 -P 256 -F 256 --activation gelu
+    # - python testGenerator.py -H 1 -S 192 -E 256 -P 128 -F 128 --activation relu
+    - python testGenerator.py -H 1 -S 1 -E 2 -P 3 -F 3 --activation gelu --no-bias
+    # - python testGenerator.py -H 1 -S 1 -E 2 -P 3 -F 3 --activation relu --no-bias
     - python testGenerator.py -H 1 -S 63 -E 62 -P 61 -F 61 --activation relu --no-bias
     # - python testGenerator.py -H 1 -S 65 -E 130 -P 195 -F 195 --activation relu --no-bias
     # - python testGenerator.py -H 1 -S 127 -E 190 -P 253 -F 253 --activation relu --no-bias
@@ -126,7 +127,7 @@ run_sim_padding:
     #   F: 195
     #   activation: relu
     # - S: 127
-    #   E: 190
+    #   E: 190gelu
     #   P: 253
     #   F: 253
     #   activation: relu
