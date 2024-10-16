@@ -67,7 +67,7 @@ module ita_hwpe_tb;
 
   // HWPE Parameters
   localparam unsigned ITA_REG_OFFSET  = 32'h20;
-  parameter real PROB_STALL = 0.1;
+  parameter real PROB_STALL = `ifdef NO_STALLS ((`NO_STALLS == 1) ? 0 : 0.1) `else 0.1 `endif;
   parameter MEMORY_SIZE = SEQUENCE_LEN*EMBEDDING_SIZE*4+EMBEDDING_SIZE*PROJECTION_SPACE*4+PROJECTION_SPACE*3*3+EMBEDDING_SIZE*3+SEQUENCE_LEN*PROJECTION_SPACE*4+SEQUENCE_LEN*SEQUENCE_LEN+EMBEDDING_SIZE*FEEDFORWARD_SIZE*2+FEEDFORWARD_SIZE*3+EMBEDDING_SIZE*3;
 
   parameter int unsigned AccDataWidth = ITA_TCDM_DW;
@@ -128,7 +128,9 @@ module ita_hwpe_tb;
       "_F",
       $sformatf("%0d", FEEDFORWARD_SIZE),
       "_H1_B",
-      $sformatf("%0d", `ifdef BIAS `BIAS `else 0 `endif)
+      $sformatf("%0d", `ifdef BIAS `BIAS `else 0 `endif),
+      "_",
+      $sformatf( "%s", ACTIVATION)
     };
     // Number of tiles in the sequence dimension
     N_TILES_SEQUENCE_DIM = SEQUENCE_LEN / M_TILE_LEN;

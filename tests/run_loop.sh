@@ -16,6 +16,13 @@ touch $log_file
 # Activate the virtual environment
 source venv/bin/activate
 
+# Set the simulation path
+export buildpath=build
+export SIM_PATH=modelsim/$buildpath
+
+# Set to -gui to use the GUI of QuestaSim
+export vsim_flags=-c
+
 # Set the no_stalls if not set
 if [ -z "$no_stalls" ]
 then
@@ -48,21 +55,32 @@ do
     do
         for p in $(eval echo "{$granularity..512..$granularity}")
         do
-            # Create test vectors
-            python testGenerator.py -S $s -E $e -P $p -H 1 --no-bias
-            python testGenerator.py -S $s -E $e -P $p -H 1
-
-            for bias in {0..1}
+            for f in $(eval echo "{$granularity..512..$granularity}")
             do
-                # Log the test
-                echo "Testing S=$s E=$e P=$p bias=$bias" >> $log_file
+                for activation in {identity,relu,gelu}
+                do
+                    # Create test vectors
+                    python testGenerator.py -H 1 -S $s -P $p -E $e -F $f --activation $activation --no-bias
+                    python testGenerator.py -H 1 -S $s -P $p -E $e -F $f --activation $activation
 
-                # Run the test
-                make sim VSIM_FLAGS=-c no_stalls=$no_stalls s=$s e=$e p=$p bias=$bias
-                ./modelsim/return_status.sh modelsim/build/transcript $s $e ita_tb >> $log_file
+                    for target in {ita_tb,ita_hwpe_tb}
+                    do
+                        for bias in {0..1}
+                        do
+                            # Log the test
+                            echo "Testing $target: S=$s E=$e P=$p F=$f Activation=$activation bias=$bias" >> $log_file
 
-                # Remove the test vectors
-                rm -rf simvectors/data_S${s}_E${e}_P${p}_H1_B${bias}
+                            # Run the test
+                            make sim VSIM_FLAGS=$vsim_flags DEBUG=OFF target=sim_$target no_stalls=$no_stalls s=$s e=$e p=$p f=$f bias=$bias activation=$activation
+                            ./modelsim/return_status.sh ${SIM_PATH}/transcript $s $e $p $f $target >> $log_file
+
+                            # read -p "Press Enter to continue"
+
+                            # Remove the test vectors
+                            rm -rf simvectors/data_S${s}_E${e}_P${p}_F${f}_H1_B${bias}_${activation^}
+                        done
+                    done
+                done
             done
         done
     done
