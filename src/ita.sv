@@ -40,7 +40,7 @@ module ita
   logic         weight_valid, weight_ready;
   inp_t         inp, inp_stream_soft;
   weight_t      inp1, inp1_q, inp2, inp2_q;
-  bias_t        inp_bias, inp_bias_q1, inp_bias_q2;
+  bias_t        inp_bias, inp_bias_padded, inp_bias_q1, inp_bias_q2;
   oup_t         oup, oup_q, accumulator_oup;
   requant_const_t    requant_mult, requant_shift, activation_requant_mult, activation_requant_shift;
   requant_oup_t requant_oup;
@@ -162,7 +162,7 @@ module ita
         oup_q       <= oup;
       end
       if (calc_en_q1) begin
-        inp_bias_q1 <= inp_bias;
+        inp_bias_q1 <= inp_bias_padded;
         inp1_q      <= inp1;
         inp2_q      <= inp2;
       end
@@ -201,6 +201,8 @@ module ita
     .inner_tile_o         (inner_tile         ),
     .requant_add_i        (requant_add        ),
     .requant_add_o        (requant_add_o      ),
+    .inp_bias_pad_i       (inp_bias           ),
+    .inp_bias_pad_o       (inp_bias_padded    ),
     .busy_o               (busy_o             )
   );
 

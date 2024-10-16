@@ -31,9 +31,11 @@ module ita_controller
   output counter_t     tile_x_o             ,
   output counter_t     tile_y_o             ,
   output counter_t     inner_tile_o         ,
-  input  requant_t requant_add_i      ,
+  input  requant_t     requant_add_i        ,
   output requant_oup_t requant_add_o        ,
-  output logic     busy_o
+  input  bias_t        inp_bias_pad_i       ,
+  output bias_t        inp_bias_pad_o       ,
+  output logic         busy_o
 );
 
   step_e    step_d, step_q;
@@ -46,17 +48,21 @@ module ita_controller
   ongoing_t ongoing_d, ongoing_q;
   ongoing_soft_t ongoing_soft_d, ongoing_soft_q;
 
+  bias_t inp_bias_padded;
+
   tile_t inner_tile_dim;
   logic [WO-WI*2-2:0] first_outer_dim, second_outer_dim;
 
   logic softmax_fifo, softmax_div, softmax_div_done_d, softmax_div_done_q, busy_d, busy_q;
   requant_oup_t requant_add_d, requant_add_q;
 
-  assign step_o    = step_q;
-  assign busy_o    = busy_q;
-  assign tile_x_o  = tile_x_q;
-  assign tile_y_o  = tile_y_q;
-  assign inner_tile_o = inner_tile_q;
+  assign step_o         = step_q;
+  assign busy_o         = busy_q;
+  assign tile_x_o       = tile_x_q;
+  assign tile_y_o       = tile_y_q;
+  assign inner_tile_o   = inner_tile_q;
+  assign requant_add_o  = requant_add_q;
+  assign inp_bias_pad_o = inp_bias_padded;
 
   always_comb begin
     count_d            = count_q;
@@ -76,7 +82,8 @@ module ita_controller
     softmax_tile_d     = softmax_tile_q;
     softmax_div_done_d = softmax_div_done_q;
     requant_add_d      = {N {requant_add_i}};
-    requant_add_o      = requant_add_q;
+    inp_bias_padded    = inp_bias_pad_i;
+    
 
     busy_d       = busy_q;
     softmax_fifo = 1'b0;
@@ -97,14 +104,17 @@ module ita_controller
         last_inner_tile_o = 1'b1;
         if ( ( ((count_q & (M-1)) + tile_y_q * M) > ( (first_outer_dim - 1) ) ) ) begin
           requant_add_d = {N {1'b0}};
+          inp_bias_padded = {N {1'b0}};
         end else begin
           if ( (count_q + tile_x_q * M*M/N) >= (second_outer_dim / N) * M ) begin
             if ( ((count_q / M ) * N + tile_x_q * M ) < second_outer_dim) begin
               for (int i = (second_outer_dim & (N-1)); i < N; i++) begin
                 requant_add_d[i] = 1'b0;
+                inp_bias_padded[i] = 1'b0;
               end
             end else begin
               requant_add_d = {N {1'b0}};
+              inp_bias_padded = {N {1'b0}};
             end
           end
         end
