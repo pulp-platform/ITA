@@ -35,6 +35,7 @@ module ita_controller
   output requant_oup_t requant_add_o        ,
   input  bias_t        inp_bias_pad_i       ,
   output bias_t        inp_bias_pad_o       ,
+  input  logic         calc_en_q1_i         ,
   output logic         busy_o
 );
 
@@ -48,7 +49,7 @@ module ita_controller
   ongoing_t ongoing_d, ongoing_q;
   ongoing_soft_t ongoing_soft_d, ongoing_soft_q;
 
-  bias_t inp_bias_padded;
+  bias_t inp_bias_pad_d, inp_bias_pad_q;
 
   tile_t inner_tile_dim;
   logic [WO-WI*2-2:0] first_outer_dim, second_outer_dim;
@@ -62,7 +63,7 @@ module ita_controller
   assign tile_y_o       = tile_y_q;
   assign inner_tile_o   = inner_tile_q;
   assign requant_add_o  = requant_add_q;
-  assign inp_bias_pad_o = inp_bias_padded;
+  assign inp_bias_pad_o = inp_bias_pad_q;
 
   always_comb begin
     count_d            = count_q;
@@ -82,7 +83,7 @@ module ita_controller
     softmax_tile_d     = softmax_tile_q;
     softmax_div_done_d = softmax_div_done_q;
     requant_add_d      = {N {requant_add_i}};
-    inp_bias_padded    = inp_bias_pad_i;
+    inp_bias_pad_d    = inp_bias_pad_i;
     
 
     busy_d       = busy_q;
@@ -99,22 +100,22 @@ module ita_controller
       busy_d = 1'b1;
     end
 
-    if (step_q != Idle && step_q != F1 && step_q != F2 && step_q != MatMul) begin
+    if (step_q != Idle && step_q != MatMul) begin
       if (inner_tile_q == inner_tile_dim) begin
         last_inner_tile_o = 1'b1;
-        if ( ( ((count_q & (M-1)) + tile_y_q * M) > ( (first_outer_dim - 1) ) ) ) begin
+        if ( ( (((count_q & (M-1)) + tile_y_q * M)) > ( (first_outer_dim - 1) ) ) ) begin
           requant_add_d = {N {1'b0}};
-          inp_bias_padded = {N {1'b0}};
+          inp_bias_pad_d = {N {1'b0}};
         end else begin
           if ( (count_q + tile_x_q * M*M/N) >= (second_outer_dim / N) * M ) begin
-            if ( ((count_q / M ) * N + tile_x_q * M ) < second_outer_dim) begin
+            if ( ((count_q / M) * N + tile_x_q * M ) < second_outer_dim) begin
               for (int i = (second_outer_dim & (N-1)); i < N; i++) begin
                 requant_add_d[i] = 1'b0;
-                inp_bias_padded[i] = 1'b0;
+                inp_bias_pad_d[i] = 1'b0;
               end
             end else begin
               requant_add_d = {N {1'b0}};
-              inp_bias_padded = {N {1'b0}};
+              inp_bias_pad_d = {N {1'b0}};
             end
           end
         end
@@ -309,6 +310,9 @@ module ita_controller
       end
       // Feedforward
       F1: begin
+        inner_tile_dim = ctrl_i.tile_e-1;
+        first_outer_dim = ctrl_i.seq_length;
+        second_outer_dim = ctrl_i.embed_size;
         if (inner_tile_q == ctrl_i.tile_e-1) begin
           last_inner_tile_o = 1'b1;
         end
@@ -322,6 +326,9 @@ module ita_controller
         end
       end
       F2: begin
+        inner_tile_dim = ctrl_i.tile_e-1;
+        first_outer_dim = ctrl_i.seq_length;
+        second_outer_dim = ctrl_i.embed_size;
         if (inner_tile_q == ctrl_i.tile_f-1) begin
           last_inner_tile_o = 1'b1;
         end
@@ -376,6 +383,7 @@ module ita_controller
       ongoing_soft_q <= '0;
       softmax_div_done_q <= 1'b0;
       requant_add_q <= '0;
+      inp_bias_pad_q <= '0;
       busy_q <= 1'b0;
     end else begin
       step_q    <= step_d;
@@ -389,6 +397,9 @@ module ita_controller
       ongoing_soft_q <= ongoing_soft_d;
       softmax_div_done_q <= softmax_div_done_d;
       requant_add_q <= requant_add_d;
+      if (calc_en_q1_i) begin
+        inp_bias_pad_q <= inp_bias_pad_d;
+      end
       busy_q <= busy_d;
     end
   end

@@ -22,6 +22,9 @@ from typing import Union
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike
 
+import seaborn as sns
+import matplotlib.pyplot as plt
+
 from .softmax import fastSoftmax, realSoftmax, streamingPartialSoftmax
 from .gelu import gelu_requantize, i_gelu_requantized, get_i_gelu_constants, get_i_gelu_requantized_constants
 from .util import (generate_matrix_mem, pack_8b_to_word, pack_array_8b_to_word, pack_hex_24b, pack_multihead_8b_to_word,
@@ -518,7 +521,10 @@ class Transformer:
         self.Qp = np.clip(self.Qp, -2**(self.WO - 1), 2**(self.WO - 1) - 1)
         self.Qp_requant = requantize(self.Qp, self.requant_eps_mult[0], self.requant_right_shift[0],
                                      self.requant_add[0])
-
+        print(self.Qp[0][0][16:32])
+        sns.set_theme()
+        sns.heatmap(self.Qp[0], annot=False, linewidths=0, linecolor='white', cmap='crest', xticklabels=False, yticklabels=False)
+        plt.show()
         # Set padded values to zero
         if (self.S_ITA - self.S) > 0:
             self.Qp_requant[:, -(self.S_ITA - self.S):, :] = 0
