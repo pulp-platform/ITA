@@ -14,7 +14,7 @@ module ita_tb;
   localparam time ACQ_DELAY           = 1600ps;
   localparam unsigned RST_CLK_CYCLES  = 10;
   // Set to 1 to run the simulation without stalls
-  localparam unsigned CONT            = `ifdef NO_STALLS `NO_STALLS `else 0 `endif;
+  localparam unsigned CONT            = `ifdef NO_STALLS `NO_STALLS `else 1 `endif;
   localparam unsigned ITERS           = 1;
   localparam unsigned N_PHASES        = 7;
 

@@ -8,7 +8,7 @@ def print_matrix(from_txt: bool,
                  cut: bool = False, 
                  matrix: np.array = None, 
                  txt_file: str = 'Qp_0.txt', 
-                 test_vector: str = 'data_S32_E32_P32_F64_H1_B1', 
+                 test_vector: str = 'data_S30_E64_P64_F64_H1_B1', 
                  row: int = 64, col: int = 64):
     
     if (from_txt):
