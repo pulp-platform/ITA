@@ -4,14 +4,30 @@ add wave -noupdate /ita_tb/dut/i_inp1_mux/clk_i
 add wave -noupdate /ita_tb/dut/i_inp1_mux/rst_ni
 add wave -noupdate /ita_tb/dut/i_inp1_mux/inp_i
 add wave -noupdate /ita_tb/dut/i_inp1_mux/inp1_o
-add wave -noupdate /ita_tb/dut/i_inp2_mux/clk_i
 add wave -noupdate /ita_tb/dut/i_inp2_mux/rst_ni
 add wave -noupdate /ita_tb/dut/i_inp2_mux/weight_i
 add wave -noupdate /ita_tb/dut/i_inp2_mux/inp2_o
 add wave -noupdate /ita_tb/dut/i_controller/ctrl_i
-add wave -noupdate /ita_tb/dut/oup_o
 add wave -noupdate /ita_tb/dut/inp1_q
 add wave -noupdate /ita_tb/dut/inp2_q
+add wave -noupdate /ita_tb/dut/oup_o
+add wave -noupdate /ita_tb/dut/inp_bias
+add wave -noupdate /ita_tb/dut/inp_bias_pad_q1
+add wave -noupdate /ita_tb/dut/inp_bias_q2
+add wave -noupdate -radix unsigned /ita_tb/dut/i_controller/count_d
+add wave -noupdate -radix unsigned /ita_tb/dut/i_controller/count_q
+add wave -noupdate /ita_tb/dut/i_inp2_mux/clk_i
+add wave -noupdate -expand -group Calc_en /ita_tb/dut/calc_en
+add wave -noupdate -expand -group Calc_en /ita_tb/dut/calc_en_q1
+add wave -noupdate -expand -group Calc_en /ita_tb/dut/calc_en_q2
+add wave -noupdate -expand -group Calc_en /ita_tb/dut/calc_en_q3
+add wave -noupdate -expand -group Calc_en /ita_tb/dut/calc_en_q4
+add wave -noupdate -expand -group Calc_en /ita_tb/dut/calc_en_q5
+add wave -noupdate -expand -group Calc_en /ita_tb/dut/calc_en_q6
+add wave -noupdate -expand -group Calc_en /ita_tb/dut/calc_en_q7
+add wave -noupdate -expand -group Calc_en /ita_tb/dut/calc_en_q8
+add wave -noupdate -expand -group Calc_en /ita_tb/dut/calc_en_q9
+add wave -noupdate -expand -group Calc_en /ita_tb/dut/calc_en_q10
 add wave -noupdate -group Requantizer /ita_tb/dut/i_requantizer/clk_i
 add wave -noupdate -group Requantizer /ita_tb/dut/i_requantizer/rst_ni
 add wave -noupdate -group Requantizer /ita_tb/dut/i_requantizer/mode_i
@@ -33,77 +49,62 @@ add wave -noupdate -group Requantizer /ita_tb/dut/i_requantizer/add_q3
 add wave -noupdate -group Requantizer /ita_tb/dut/i_requantizer/add_q4
 add wave -noupdate -group Requantizer /ita_tb/dut/i_requantizer/requant_oup_d
 add wave -noupdate -group Requantizer /ita_tb/dut/i_requantizer/requant_oup_q
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/clk_i
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/rst_ni
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/ctrl_i
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/inp_valid_i
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/inp_ready_o
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/weight_valid_i
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/weight_ready_o
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/bias_valid_i
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/bias_ready_o
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/oup_valid_i
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/oup_ready_i
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/pop_softmax_fifo_i
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/step_o
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/soft_addr_div_i
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/softmax_done_i
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/calc_en_o
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/first_inner_tile_o
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/last_inner_tile_o
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/tile_x_o
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/tile_y_o
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/inner_tile_o
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/requant_add_i
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/requant_add_o
-add wave -noupdate -expand -group Controller -radix unsigned /ita_tb/dut/i_controller/count_q
-add wave -noupdate -expand -group Controller -radix hexadecimal /ita_tb/dut/inp_bias_q1
-add wave -noupdate -expand -group Controller -radix hexadecimal -childformat {{{/ita_tb/dut/i_controller/inp_bias_pad_i[15]} -radix hexadecimal} {{/ita_tb/dut/i_controller/inp_bias_pad_i[14]} -radix hexadecimal} {{/ita_tb/dut/i_controller/inp_bias_pad_i[13]} -radix hexadecimal} {{/ita_tb/dut/i_controller/inp_bias_pad_i[12]} -radix hexadecimal} {{/ita_tb/dut/i_controller/inp_bias_pad_i[11]} -radix hexadecimal} {{/ita_tb/dut/i_controller/inp_bias_pad_i[10]} -radix hexadecimal} {{/ita_tb/dut/i_controller/inp_bias_pad_i[9]} -radix hexadecimal} {{/ita_tb/dut/i_controller/inp_bias_pad_i[8]} -radix hexadecimal} {{/ita_tb/dut/i_controller/inp_bias_pad_i[7]} -radix hexadecimal} {{/ita_tb/dut/i_controller/inp_bias_pad_i[6]} -radix hexadecimal} {{/ita_tb/dut/i_controller/inp_bias_pad_i[5]} -radix hexadecimal} {{/ita_tb/dut/i_controller/inp_bias_pad_i[4]} -radix hexadecimal} {{/ita_tb/dut/i_controller/inp_bias_pad_i[3]} -radix hexadecimal} {{/ita_tb/dut/i_controller/inp_bias_pad_i[2]} -radix hexadecimal} {{/ita_tb/dut/i_controller/inp_bias_pad_i[1]} -radix hexadecimal} {{/ita_tb/dut/i_controller/inp_bias_pad_i[0]} -radix hexadecimal}} -subitemconfig {{/ita_tb/dut/i_controller/inp_bias_pad_i[15]} {-radix hexadecimal} {/ita_tb/dut/i_controller/inp_bias_pad_i[14]} {-radix hexadecimal} {/ita_tb/dut/i_controller/inp_bias_pad_i[13]} {-radix hexadecimal} {/ita_tb/dut/i_controller/inp_bias_pad_i[12]} {-radix hexadecimal} {/ita_tb/dut/i_controller/inp_bias_pad_i[11]} {-radix hexadecimal} {/ita_tb/dut/i_controller/inp_bias_pad_i[10]} {-radix hexadecimal} {/ita_tb/dut/i_controller/inp_bias_pad_i[9]} {-radix hexadecimal} {/ita_tb/dut/i_controller/inp_bias_pad_i[8]} {-radix hexadecimal} {/ita_tb/dut/i_controller/inp_bias_pad_i[7]} {-radix hexadecimal} {/ita_tb/dut/i_controller/inp_bias_pad_i[6]} {-radix hexadecimal} {/ita_tb/dut/i_controller/inp_bias_pad_i[5]} {-radix hexadecimal} {/ita_tb/dut/i_controller/inp_bias_pad_i[4]} {-radix hexadecimal} {/ita_tb/dut/i_controller/inp_bias_pad_i[3]} {-radix hexadecimal} {/ita_tb/dut/i_controller/inp_bias_pad_i[2]} {-radix hexadecimal} {/ita_tb/dut/i_controller/inp_bias_pad_i[1]} {-radix hexadecimal} {/ita_tb/dut/i_controller/inp_bias_pad_i[0]} {-radix hexadecimal}} /ita_tb/dut/i_controller/inp_bias_pad_i
-add wave -noupdate -expand -group Controller -radix hexadecimal -childformat {{{/ita_tb/dut/i_controller/inp_bias_pad_o[15]} -radix hexadecimal} {{/ita_tb/dut/i_controller/inp_bias_pad_o[14]} -radix hexadecimal} {{/ita_tb/dut/i_controller/inp_bias_pad_o[13]} -radix hexadecimal} {{/ita_tb/dut/i_controller/inp_bias_pad_o[12]} -radix hexadecimal} {{/ita_tb/dut/i_controller/inp_bias_pad_o[11]} -radix hexadecimal} {{/ita_tb/dut/i_controller/inp_bias_pad_o[10]} -radix hexadecimal} {{/ita_tb/dut/i_controller/inp_bias_pad_o[9]} -radix hexadecimal} {{/ita_tb/dut/i_controller/inp_bias_pad_o[8]} -radix hexadecimal} {{/ita_tb/dut/i_controller/inp_bias_pad_o[7]} -radix hexadecimal} {{/ita_tb/dut/i_controller/inp_bias_pad_o[6]} -radix hexadecimal} {{/ita_tb/dut/i_controller/inp_bias_pad_o[5]} -radix hexadecimal} {{/ita_tb/dut/i_controller/inp_bias_pad_o[4]} -radix hexadecimal} {{/ita_tb/dut/i_controller/inp_bias_pad_o[3]} -radix hexadecimal} {{/ita_tb/dut/i_controller/inp_bias_pad_o[2]} -radix hexadecimal} {{/ita_tb/dut/i_controller/inp_bias_pad_o[1]} -radix hexadecimal} {{/ita_tb/dut/i_controller/inp_bias_pad_o[0]} -radix hexadecimal}} -subitemconfig {{/ita_tb/dut/i_controller/inp_bias_pad_o[15]} {-radix hexadecimal} {/ita_tb/dut/i_controller/inp_bias_pad_o[14]} {-radix hexadecimal} {/ita_tb/dut/i_controller/inp_bias_pad_o[13]} {-radix hexadecimal} {/ita_tb/dut/i_controller/inp_bias_pad_o[12]} {-radix hexadecimal} {/ita_tb/dut/i_controller/inp_bias_pad_o[11]} {-radix hexadecimal} {/ita_tb/dut/i_controller/inp_bias_pad_o[10]} {-radix hexadecimal} {/ita_tb/dut/i_controller/inp_bias_pad_o[9]} {-radix hexadecimal} {/ita_tb/dut/i_controller/inp_bias_pad_o[8]} {-radix hexadecimal} {/ita_tb/dut/i_controller/inp_bias_pad_o[7]} {-radix hexadecimal} {/ita_tb/dut/i_controller/inp_bias_pad_o[6]} {-radix hexadecimal} {/ita_tb/dut/i_controller/inp_bias_pad_o[5]} {-radix hexadecimal} {/ita_tb/dut/i_controller/inp_bias_pad_o[4]} {-radix hexadecimal} {/ita_tb/dut/i_controller/inp_bias_pad_o[3]} {-radix hexadecimal} {/ita_tb/dut/i_controller/inp_bias_pad_o[2]} {-radix hexadecimal} {/ita_tb/dut/i_controller/inp_bias_pad_o[1]} {-radix hexadecimal} {/ita_tb/dut/i_controller/inp_bias_pad_o[0]} {-radix hexadecimal}} /ita_tb/dut/i_controller/inp_bias_pad_o
-add wave -noupdate -expand -group Controller -radix hexadecimal /ita_tb/dut/inp_bias_q2
-add wave -noupdate -expand -group Controller /ita_tb/dut/calc_en_q1
-add wave -noupdate -expand -group Controller /ita_tb/dut/calc_en_q2
-add wave -noupdate -expand -group Controller /ita_tb/dut/calc_en_q3
-add wave -noupdate -expand -group Controller /ita_tb/dut/calc_en_q4
-add wave -noupdate -expand -group Controller /ita_tb/dut/calc_en_q5
-add wave -noupdate -expand -group Controller /ita_tb/dut/calc_en_q6
-add wave -noupdate -expand -group Controller /ita_tb/dut/calc_en_q7
-add wave -noupdate -expand -group Controller /ita_tb/dut/calc_en_q8
-add wave -noupdate -expand -group Controller /ita_tb/dut/calc_en_q9
-add wave -noupdate -expand -group Controller /ita_tb/dut/calc_en_q10
-add wave -noupdate -expand -group Controller /ita_tb/dut/last_inner_tile_q10
-add wave -noupdate -expand -group Controller -radix hexadecimal /ita_tb/dut/oup_o
-add wave -noupdate -expand -group Controller /ita_tb/dut/valid_o
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/busy_o
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/step_d
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/step_q
-add wave -noupdate -expand -group Controller -radix unsigned /ita_tb/dut/i_controller/count_d
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/tile_d
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/tile_q
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/inner_tile_d
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/inner_tile_q
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/tile_x_d
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/tile_x_q
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/tile_y_d
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/tile_y_q
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/softmax_tile_d
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/softmax_tile_q
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/ongoing_d
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/ongoing_q
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/ongoing_soft_d
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/ongoing_soft_q
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/inp_bias_padded
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/inner_tile_dim
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/first_outer_dim
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/second_outer_dim
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/softmax_fifo
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/softmax_div
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/softmax_div_done_d
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/softmax_div_done_q
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/busy_d
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/busy_q
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/requant_add_d
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/requant_add_q
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/clk_i
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/rst_ni
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/ctrl_i
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/inp_valid_i
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/inp_ready_o
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/weight_valid_i
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/weight_ready_o
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/bias_valid_i
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/bias_ready_o
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/oup_valid_i
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/oup_ready_i
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/pop_softmax_fifo_i
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/step_o
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/soft_addr_div_i
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/softmax_done_i
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/calc_en_o
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/first_inner_tile_o
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/last_inner_tile_o
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/tile_x_o
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/tile_y_o
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/inner_tile_o
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/requant_add_i
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/requant_add_o
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/inp_bias_pad_i
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/inp_bias_pad_o
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/calc_en_q1_i
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/busy_o
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/step_d
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/step_q
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/tile_d
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/tile_q
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/inner_tile_d
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/inner_tile_q
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/tile_x_d
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/tile_x_q
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/tile_y_d
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/tile_y_q
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/softmax_tile_d
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/softmax_tile_q
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/ongoing_d
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/ongoing_q
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/ongoing_soft_d
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/ongoing_soft_q
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/inp_bias_pad_d
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/inp_bias_pad_q
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/inner_tile_dim
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/first_outer_dim
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/second_outer_dim
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/softmax_fifo
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/softmax_div
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/softmax_div_done_d
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/softmax_div_done_q
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/busy_d
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/busy_q
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/requant_add_d
+add wave -noupdate -group Controller /ita_tb/dut/i_controller/requant_add_q
 add wave -noupdate -group {Softmax Controller} /ita_tb/dut/i_softmax_top/i_softmax/clk_i
 add wave -noupdate -group {Softmax Controller} /ita_tb/dut/i_softmax_top/i_softmax/rst_ni
 add wave -noupdate -group {Softmax Controller} /ita_tb/dut/i_softmax_top/i_softmax/ctrl_i
@@ -216,8 +217,8 @@ add wave -noupdate -group Accumulator /ita_tb/dut/i_accumulator/write_addr_q
 add wave -noupdate -group Accumulator /ita_tb/dut/i_accumulator/result_d
 add wave -noupdate -group Accumulator /ita_tb/dut/i_accumulator/result_q
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {414600 ps} 1} {{Cursor 2} {550600 ps} 1} {{Cursor 4} {400994 ps} 0}
-quietly wave cursor active 1
+WaveRestoreCursors {{Wrong Output} {2784600 ps} 1} {{Start of Calc} {2775007 ps} 1} {{Calc finish} {2783000 ps} 1} {{Cursor 4} {2783576 ps} 0}
+quietly wave cursor active 4
 configure wave -namecolwidth 150
 configure wave -valuecolwidth 100
 configure wave -justifyvalue left
@@ -232,4 +233,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {394011 ps} {422576 ps}
+WaveRestoreZoom {2768202 ps} {2794772 ps}
