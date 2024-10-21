@@ -178,6 +178,11 @@ class Transformer:
         self.Bq_broadcast = np.reshape(np.repeat(self.Bq, self.S, axis = 0), (self.H, self.S, self.P_ITA))
         self.Bq_broadcast = np.pad(self.Bq_broadcast, ((0, 0), (0, self.S_ITA - self.S), (0, 0)))
 
+        print(self.Bq_broadcast[0][0][16:32])
+        sns.set_theme()
+        sns.heatmap(self.Bq_broadcast[0], annot=False, linewidths=0, linecolor='white', cmap='crest', xticklabels=False, yticklabels=False)
+        plt.show()
+
         if self.bias:
             self.Bk_in = random_shuffled_tensor(
                 (self.H, self.P), int(np.log2(self.P)) + 8, type = np.int32) if Bk is None else Bk
