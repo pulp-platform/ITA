@@ -287,6 +287,16 @@ task automatic read_activation_constants(
   $fclose(add_fd);
 endtask
 
+task automatic trigger_ITA ();
+      @(posedge clk);
+      #(APPL_DELAY);
+      ita_ctrl.start = 1'b1;
+
+      @(posedge clk);
+      #(APPL_DELAY);
+      ita_ctrl.start = 1'b0;
+endtask
+
 task automatic apply_ITA_inputs(input integer phase);
       integer stim_fd_inp_attn[2];
       bit input_file_index = 0;
@@ -487,14 +497,11 @@ task automatic apply_ITA_weights(input integer phase);
     for (int i = 0; i < ITERS; i++) begin
       @(posedge clk);
       #(APPL_DELAY);
-      ita_ctrl.start = 1'b1;
       ita_ctrl.layer = Attention;
       ita_ctrl.activation = Identity;
       stim_applied = 1;
 
-      @(posedge clk);
-      #(APPL_DELAY);
-      ita_ctrl.start = 1'b0;
+      trigger_ITA();
 
       for (int phase = 0; phase < 5; phase++) begin
         apply_ITA_inputs(phase);
@@ -502,13 +509,10 @@ task automatic apply_ITA_weights(input integer phase);
 
       @(posedge clk);
       #(APPL_DELAY);
-      ita_ctrl.start = 1'b1;
       ita_ctrl.layer = Feedforward;
       ita_ctrl.activation = ACTIVATION;
 
-      @(posedge clk);
-      #(APPL_DELAY);      
-      ita_ctrl.start = 1'b0;
+      trigger_ITA();
 
       apply_ITA_inputs(5);
 
