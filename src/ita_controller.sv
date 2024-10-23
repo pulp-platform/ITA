@@ -341,16 +341,30 @@ module ita_controller
         last_inner_tile_o = 1'b1;
         if ( ( (((count_q & (M-1)) + tile_y_q * M)) > ( (first_outer_dim - 1) ) ) ) begin
           requant_add_d = {N {1'b0}};
-          inp_bias = {N {1'b0}};
+          //inp_bias = {N {1'b0}};
         end else begin
           if ( (count_q + tile_x_q * M*M/N) >= (second_outer_dim / N) * M ) begin
             if ( ((count_q / M) * N + tile_x_q * M ) < second_outer_dim) begin
               for (int i = (second_outer_dim & (N-1)); i < N; i++) begin
                 requant_add_d[i] = 1'b0;
-                inp_bias[i] = 1'b0;
+                //inp_bias[i] = 1'b0;
               end
             end else begin
               requant_add_d = {N {1'b0}};
+              //inp_bias = {N {1'b0}};
+            end
+          end
+        end
+
+        if ( ( ((((count_q-1) & (M-1)) + tile_y_q * M)) > ( (first_outer_dim - 1) ) ) ) begin
+          inp_bias = {N {1'b0}};
+        end else begin
+          if ( ((count_q-1) + tile_x_q * M*M/N) >= (second_outer_dim / N) * M ) begin
+            if ( (((count_q-1) / M) * N + tile_x_q * M ) < second_outer_dim) begin
+              for (int i = (second_outer_dim & (N-1)); i < N; i++) begin
+                inp_bias[i] = 1'b0;
+              end
+            end else begin
               inp_bias = {N {1'b0}};
             end
           end
