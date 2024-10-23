@@ -118,6 +118,8 @@ module ita_hwpe_tb;
   `HCI_INTF_ARRAY(tcdm_mem, clk_i, MP-1:0);
 
   initial begin
+    $timeformat(-9, 1, " ns", 11);
+
     simdir = {
       "../../simvectors/data_S",
       $sformatf("%0d", SEQUENCE_LEN),

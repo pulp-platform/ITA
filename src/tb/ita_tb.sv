@@ -62,6 +62,8 @@ module ita_tb;
   integer stim_applied;
 
   initial begin
+    $timeformat(-9, 1, " ns", 11);
+
     N_PE = `ifdef ITA_N `ITA_N `else 16 `endif;
     M_TILE_LEN = `ifdef ITA_M `ITA_M `else 64 `endif;
     SEQUENCE_LEN = `ifdef SEQ_LENGTH `SEQ_LENGTH `else M_TILE_LEN `endif;
@@ -298,7 +300,7 @@ task automatic apply_ITA_inputs(input integer phase);
       integer stim_fd_inp;
       integer stim_fd_bias;
 
-      $display("[TB] ITA: Applying inputs in phase %0d at %0t.", phase, $time);
+      $display("[TB] ITA: Applying  inputs in phase %0d at %t.", phase, $time);
 
       group = 0;
       tile = 0;
@@ -323,7 +325,7 @@ task automatic apply_ITA_inputs(input integer phase);
         if(successful_handshake(inp_valid, inp_ready)) begin
           tile_entry += 1;
           if (should_toggle_input(tile_entry, group) && phase == 3) begin
-            $display("[TB] ITA: Input Switch: tile_entry: %d, group: %d at %t.", tile_entry, group, $time);
+            $display("[TB] ITA: Input Switch:  tile_entry: %0d, group: %0d at %t.", tile_entry, group, $time);
             toggle_input(tile_entry, group, input_file_index);
           end
           if (is_end_of_tile(tile_entry) && phase != 3)
@@ -351,7 +353,7 @@ task automatic apply_ITA_weights(input integer phase);
     integer group;
     integer stim_fd_weight;
 
-    $display("[TB] ITA: Applying weights in phase %0d at %0t.", phase, $time);
+    $display("[TB] ITA: Applying weights in phase %0d at %t.", phase, $time);
 
     group = 0;
     tile = 0;
@@ -375,7 +377,7 @@ task automatic apply_ITA_weights(input integer phase);
       if (successful_handshake(inp_weight_valid, inp_weight_ready)) begin
         tile_entry += 1;
         if (should_toggle_input(tile_entry, group) && phase == 3) begin
-          $display("[TB] ITA: Weight Switch: tile_entry: %0d, group: %0d at %0t.", tile_entry, group, $time);
+          $display("[TB] ITA: Weight Switch: tile_entry: %0d, group: %0d at %t.", tile_entry, group, $time);
           toggle_input(tile_entry, group, input_file_index);
         end
         stim_fd_weight = stim_fd_weight_attn[input_file_index];
@@ -425,7 +427,7 @@ task automatic apply_ITA_weights(input integer phase);
     integer group;
     integer exp_resp_fd;
 
-    $display("[TB] ITA: Checking outputs in phase %d at %t.", phase, $time);
+    $display("[TB] ITA: Checking outputs in phase %0d at %t.", phase, $time);
 
     group = 0;
     tile_entry = 0;
@@ -447,11 +449,11 @@ task automatic apply_ITA_weights(input integer phase);
       if (successful_handshake(oup_valid, oup_ready)) begin
         tile_entry += 1;
         if (requant_oup !== exp_res) begin
-          $display("[TB] ITA: Wrong value received %x, instead of %x at %0t. (phase: %d)", requant_oup, exp_res, $time, phase);
+          $display("[TB] ITA: Wrong value received %x, instead of %x at %t. (phase:  %0d)", requant_oup, exp_res, $time, phase);
         end
         if (!is_last_group(group) && phase == 3 && should_toggle_output(input_file_index, tile_entry)) begin
             $display("[TB] ITA: %0d outputs were checked in phase %0d.",tile_entry, phase);
-            $display("[TB] ITA: Output Switch: tile_entry: %0d, group: %0d at %0t.", tile_entry, group, $time);
+            $display("[TB] ITA: Output Switch: tile_entry: %0d, group: %0d at %t.", tile_entry, group, $time);
             toggle_input(tile_entry, group, input_file_index);
           end
       exp_resp_fd = exp_resp_fd_attn[input_file_index];
