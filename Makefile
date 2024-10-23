@@ -60,7 +60,7 @@ sim-script: clean-sim
 
 sim: sim-script
 	cd modelsim && \
-	$(MAKE) $(target)
+	$(MAKE) $(target) buildpath=$(ROOT_DIR)/$(SIM_PATH)
 
 synopsys-script:
 	rm ../ita-gf22/$(SYNTH_PATH)/scripts/analyze.tcl
