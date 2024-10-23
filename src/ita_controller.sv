@@ -119,6 +119,8 @@ module ita_controller
             step_d = F1;
           end else if (ctrl_i.layer == Linear) begin
             step_d = MatMul;
+          end else if (ctrl_i.layer == SingleAttention) begin
+            step_d = QK;
           end
         end
       end
@@ -187,7 +189,11 @@ module ita_controller
             softmax_tile_d = softmax_tile_q + 1;
             if (softmax_tile_d == ctrl_i.tile_s) begin
               softmax_tile_d = '0;
-              step_d = OW;
+              if (ctrl_i.layer == Attention) begin
+                step_d = OW;
+              end else if (ctrl_i.layer == SingleAttention) begin
+                step_d = Idle;
+              end
             end else begin
               step_d = QK;
             end
