@@ -15,6 +15,8 @@ module ita_tb;
   localparam unsigned RST_CLK_CYCLES  = 10;
   // Set to 1 to run the simulation without stalls
   localparam unsigned CONT            = `ifdef NO_STALLS `NO_STALLS `else 0 `endif;
+  // Set to 1 to run the simulation with single attention layer and linear layers
+  localparam unsigned SINGLE_ATTENTION = `ifdef SINGLE_ATTENTION `SINGLE_ATTENTION `else 0 `endif;
   localparam unsigned ITERS           = 1;
   localparam unsigned N_PHASES        = 7;
 
@@ -56,6 +58,9 @@ module ita_tb;
   requant_oup_t requant_oup     ;
   requant_oup_t exp_res;
   logic         oup_valid, oup_ready;
+  requant_const_array_t stim_eps_mult;
+  requant_const_array_t stim_right_shift;
+  requant_array_t       stim_add;
 
   // Variables
   string simdir;
@@ -406,9 +411,9 @@ task automatic apply_ITA_weights(input integer phase);
     stim_fd_add = open_stim_file("RQS_ATTN_ADD.txt");
 
     for (int j = 0; j < N_ATTENTION_STEPS; j++) begin
-      ret_code = $fscanf(stim_fd_mul, "%d\n", ita_ctrl.eps_mult[j]);
-      ret_code = $fscanf(stim_fd_shift, "%d\n", ita_ctrl.right_shift[j]);
-      ret_code = $fscanf(stim_fd_add, "%d\n", ita_ctrl.add[j]);
+      ret_code = $fscanf(stim_fd_mul, "%d\n", stim_eps_mult[j]);
+      ret_code = $fscanf(stim_fd_shift, "%d\n", stim_right_shift[j]);
+      ret_code = $fscanf(stim_fd_add, "%d\n", stim_add[j]);
     end
 
     stim_fd_mul = open_stim_file("RQS_FFN_MUL.txt");
@@ -416,9 +421,9 @@ task automatic apply_ITA_weights(input integer phase);
     stim_fd_add = open_stim_file("RQS_FFN_ADD.txt");
 
     for (int j = 0; j < N_FEEDFORWARD_STEPS; j++) begin
-      ret_code = $fscanf(stim_fd_mul, "%d\n", ita_ctrl.eps_mult[j+N_ATTENTION_STEPS]);
-      ret_code = $fscanf(stim_fd_shift, "%d\n", ita_ctrl.right_shift[j+N_ATTENTION_STEPS]);
-      ret_code = $fscanf(stim_fd_add, "%d\n", ita_ctrl.add[j+N_ATTENTION_STEPS]);
+      ret_code = $fscanf(stim_fd_mul, "%d\n", stim_eps_mult[j+N_ATTENTION_STEPS]);
+      ret_code = $fscanf(stim_fd_shift, "%d\n", stim_right_shift[j+N_ATTENTION_STEPS]);
+      ret_code = $fscanf(stim_fd_add, "%d\n", stim_add[j+N_ATTENTION_STEPS]);
     end
 
     $fclose(stim_fd_mul);
@@ -497,28 +502,117 @@ task automatic apply_ITA_weights(input integer phase);
     for (int i = 0; i < ITERS; i++) begin
       @(posedge clk);
       #(APPL_DELAY);
-      ita_ctrl.layer = Attention;
+      if (SINGLE_ATTENTION == 1) begin
+        ita_ctrl.layer = Linear;
+      end else begin
+        ita_ctrl.layer = Attention;
+      end
       ita_ctrl.activation = Identity;
       stim_applied = 1;
 
-      trigger_ITA();
+      if (SINGLE_ATTENTION == 1) begin
+        // QKV Generation
+        for (int phase = 0; phase < 3; phase++) begin
+          @(posedge clk);
+          #(APPL_DELAY);
+          ita_ctrl.eps_mult[0] = stim_eps_mult[phase];
+          ita_ctrl.right_shift[0] = stim_right_shift[phase];
+          ita_ctrl.add[0] = stim_add[phase];
 
-      for (int phase = 0; phase < 5; phase++) begin
-        apply_ITA_inputs(phase);
+          trigger_ITA();
+
+          apply_ITA_inputs(phase);
+
+          #(10*CLK_PERIOD);
+        end
+
+        // Attention
+        @(posedge clk);
+        #(APPL_DELAY);
+        ita_ctrl.layer = SingleAttention;
+        ita_ctrl.eps_mult[3] = stim_eps_mult[3];
+        ita_ctrl.right_shift[3] = stim_right_shift[3];
+        ita_ctrl.add[3] = stim_add[3];
+        ita_ctrl.eps_mult[4] = stim_eps_mult[4];
+        ita_ctrl.right_shift[4] = stim_right_shift[4];
+        ita_ctrl.add[4] = stim_add[4];
+
+        trigger_ITA();
+
+        apply_ITA_inputs(3);
+
+        #(10*CLK_PERIOD);
+
+        // OW Generation
+        @(posedge clk);
+        #(APPL_DELAY);
+        ita_ctrl.layer = Linear;
+        ita_ctrl.eps_mult[0] = stim_eps_mult[5];
+        ita_ctrl.right_shift[0] = stim_right_shift[5];
+        ita_ctrl.add[0] = stim_add[5];
+        ita_ctrl.tile_e = N_TILES_PROJECTION_DIM;
+        ita_ctrl.tile_p = N_TILES_EMBEDDING_DIM;
+
+        trigger_ITA();
+
+        apply_ITA_inputs(4);
+
+        #(10*CLK_PERIOD);
+
+        // FF1
+        @(posedge clk);
+        #(APPL_DELAY);
+        ita_ctrl.layer = Linear;
+        ita_ctrl.activation = ACTIVATION;
+        ita_ctrl.tile_e = N_TILES_EMBEDDING_DIM;
+        ita_ctrl.tile_p = N_TILES_FEEDFORWARD;
+        ita_ctrl.eps_mult[0] = stim_eps_mult[6];
+        ita_ctrl.right_shift[0] = stim_right_shift[6];
+        ita_ctrl.add[0] = stim_add[6];
+
+        trigger_ITA();
+
+        apply_ITA_inputs(5);
+
+        #(10*CLK_PERIOD);
+
+        // FF2
+        @(posedge clk);
+        #(APPL_DELAY);
+        ita_ctrl.activation = Identity;
+        ita_ctrl.tile_e = N_TILES_FEEDFORWARD;
+        ita_ctrl.tile_p = N_TILES_EMBEDDING_DIM;
+        ita_ctrl.eps_mult[0] = stim_eps_mult[7];
+        ita_ctrl.right_shift[0] = stim_right_shift[7];
+        ita_ctrl.add[0] = stim_add[7];
+
+        trigger_ITA();
+
+        apply_ITA_inputs(6);
+      end else begin
+        ita_ctrl.eps_mult = stim_eps_mult;
+        ita_ctrl.right_shift = stim_right_shift;
+        ita_ctrl.add = stim_add;
+
+        trigger_ITA();
+
+        for (int phase = 0; phase < 5; phase++) begin
+          apply_ITA_inputs(phase);
+        end
+
+        @(posedge clk);
+        #(APPL_DELAY);
+        ita_ctrl.layer = Feedforward;
+        ita_ctrl.activation = ACTIVATION;
+
+        trigger_ITA();
+
+        apply_ITA_inputs(5);
+
+        ita_ctrl.activation = Identity;
+        
+        apply_ITA_inputs(6);
       end
-
-      @(posedge clk);
-      #(APPL_DELAY);
-      ita_ctrl.layer = Feedforward;
-      ita_ctrl.activation = ACTIVATION;
-
-      trigger_ITA();
-
-      apply_ITA_inputs(5);
-
-      ita_ctrl.activation = Identity;
-      
-      apply_ITA_inputs(6);
 
       @(posedge clk);
       #(APPL_DELAY);
@@ -554,8 +648,6 @@ task automatic apply_ITA_weights(input integer phase);
   end
 
   initial begin: rqs_application_block
-    wait (rst_n);
-
     for (int i = 0; i < ITERS; i++) begin
       @(posedge clk);
       #(APPL_DELAY);
