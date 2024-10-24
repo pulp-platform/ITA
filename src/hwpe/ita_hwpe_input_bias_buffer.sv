@@ -30,6 +30,8 @@ module ita_hwpe_input_bias_buffer #(
   logic write_enable;
   logic [OUTPUT_DATA_WIDTH-1:0] read_data;
 
+  bias_t bias_reshape;
+
   always_comb begin
     // Default assignments
     state_d = state_q;
@@ -43,6 +45,7 @@ module ita_hwpe_input_bias_buffer #(
     data_o.valid = 0;
     data_o.strb  = 48'hFFFFFFFFFFFF;
     data_o.data  = '0;
+    bias_reshape = '0;
 
     case(state_q)
       Write: begin
@@ -60,8 +63,10 @@ module ita_hwpe_input_bias_buffer #(
         data_o.valid = read_enable_q;
         if (read_enable_q) begin
           data_o.data = read_data;
-          if (bias_dir_i)
-            data_o.data = read_data >> read_cnt_q[3:0] * 24;
+          if (bias_dir_i) begin
+            bias_reshape = read_data >> read_cnt_q[3:0] * 24;
+            data_o.data = {N {bias_reshape[0]}};
+          end
         end
         read_enable = 1;
         if(data_o.valid && data_o.ready) begin
