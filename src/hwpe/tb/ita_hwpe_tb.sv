@@ -389,7 +389,7 @@ endfunction
     // 7: Step FF1
     ita_compute_step(F1, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
 
-    // 8: Step FF1
+    // 8: Step FF2
     ita_compute_step(F2, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
 
     // Wait for the last step to finish
