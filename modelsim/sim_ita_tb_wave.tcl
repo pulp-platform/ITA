@@ -16,6 +16,7 @@ add wave -noupdate /ita_tb/dut/inp1_q
 add wave -noupdate /ita_tb/dut/inp2_q
 add wave -noupdate -radix unsigned /ita_tb/dut/i_controller/count_d
 add wave -noupdate -radix unsigned /ita_tb/dut/i_controller/count_q
+add wave -noupdate -radix unsigned /ita_tb/dut/i_controller/count_q2
 add wave -noupdate /ita_tb/dut/calc_en
 add wave -noupdate /ita_tb/dut/calc_en_q1
 add wave -noupdate /ita_tb/dut/calc_en_q2
