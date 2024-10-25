@@ -48,12 +48,14 @@ package ita_package;
   typedef logic [WO-WI*2-2:0] seq_length_t;
   typedef logic [WO-WI*2-2:0] proj_space_t;
   typedef logic [WO-WI*2-2:0] embed_size_t;
+  typedef logic [WO-WI*2-2:0] ff_size_t;
   typedef logic [            32-1:0] tile_t;
   typedef struct packed {
     logic                         start       ;
     seq_length_t                  seq_length  ;
     proj_space_t                  proj_space  ;
     embed_size_t                  embed_size  ;
+    ff_size_t                     ff_size     ;
     layer_e                       layer       ;
     activation_e                  activation  ;
     requant_const_array_t         eps_mult    ;

@@ -291,7 +291,7 @@ module ita_controller
       F1: begin
         inner_tile_dim = ctrl_i.tile_e-1;
         first_outer_dim = ctrl_i.seq_length;
-        second_outer_dim = ctrl_i.embed_size;
+        second_outer_dim = ctrl_i.ff_size;
         if (inner_tile_q == ctrl_i.tile_e-1) begin
           last_inner_tile_o = 1'b1;
         end
@@ -341,17 +341,14 @@ module ita_controller
         last_inner_tile_o = 1'b1;
         if ( ( (((count_q & (M-1)) + tile_y_q * M)) > ( (first_outer_dim - 1) ) ) ) begin
           requant_add_d = {N {1'b0}};
-          //inp_bias = {N {1'b0}};
         end else begin
           if ( (count_q + tile_x_q * M*M/N) >= (second_outer_dim / N) * M ) begin
             if ( ((count_q / M) * N + tile_x_q * M ) < second_outer_dim) begin
               for (int i = (second_outer_dim & (N-1)); i < N; i++) begin
                 requant_add_d[i] = 1'b0;
-                //inp_bias[i] = 1'b0;
               end
             end else begin
               requant_add_d = {N {1'b0}};
-              //inp_bias = {N {1'b0}};
             end
           end
         end

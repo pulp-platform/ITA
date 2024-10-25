@@ -493,6 +493,7 @@ task automatic apply_ITA_weights(input integer phase);
     ita_ctrl.seq_length = SEQUENCE_LEN;
     ita_ctrl.proj_space = PROJECTION_SPACE;
     ita_ctrl.embed_size = EMBEDDING_SIZE;
+    ita_ctrl.ff_size    = FEEDFORWARD_SIZE;
 
     read_activation_constants(ita_ctrl.gelu_b, ita_ctrl.gelu_c, ita_ctrl.activation_requant_mult, ita_ctrl.activation_requant_shift, ita_ctrl.activation_requant_add);
 
