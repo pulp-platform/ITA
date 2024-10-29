@@ -42,8 +42,8 @@ module ita_controller
   counter_t count_d, count_q, bias_count;
   counter_t tile_d, tile_q;
   counter_t inner_tile_d, inner_tile_q;
-  counter_t tile_x_d, tile_x_q;
-  counter_t tile_y_d, tile_y_q;
+  counter_t tile_x_d, tile_x_q, bias_tile_x_d, bias_tile_x_q;
+  counter_t tile_y_d, tile_y_q, bias_tile_y_d, bias_tile_y_q;
   counter_t softmax_tile_d, softmax_tile_q;
   ongoing_t ongoing_d, ongoing_q;
   ongoing_soft_t ongoing_soft_d, ongoing_soft_q;
@@ -67,7 +67,6 @@ module ita_controller
 
   always_comb begin
     count_d            = count_q;
-    bias_count         = count_q - 1;
     tile_d             = tile_q;
     inner_tile_d       = inner_tile_q;
     tile_x_d           = tile_x_q;
@@ -300,14 +299,19 @@ module ita_controller
         inner_tile_dim = ctrl_i.tile_e-1;
         first_outer_dim = ctrl_i.seq_length;
         second_outer_dim = ctrl_i.ff_size;
-        if (inner_tile_q == ctrl_i.tile_e-1) begin
-          last_inner_tile_o = 1'b1;
-        end
         if (inner_tile_d == ctrl_i.tile_e) begin // end of inner tile
           inner_tile_d = '0;
           tile_d = tile_q + 1;
-          if (tile_d == ctrl_i.tile_s*ctrl_i.tile_f) begin
+          if (tile_x_q == (ctrl_i.tile_f-1)) begin // end of step Q
+            tile_x_d = '0;
+            tile_y_d = tile_y_q + 1;
+          end else begin
+            tile_x_d = tile_x_q + 1;
+          end
+          if (tile_d == ctrl_i.tile_s*ctrl_i.tile_f) begin // end of step Q
             tile_d = '0;
+            tile_x_d = '0;
+            tile_y_d = '0;
             step_d = F2;
           end
         end
@@ -316,14 +320,19 @@ module ita_controller
         inner_tile_dim = ctrl_i.tile_f-1;
         first_outer_dim = ctrl_i.seq_length;
         second_outer_dim = ctrl_i.embed_size;
-        if (inner_tile_q == ctrl_i.tile_f-1) begin
-          last_inner_tile_o = 1'b1;
-        end
         if (inner_tile_d == ctrl_i.tile_f) begin // end of inner tile
           inner_tile_d = '0;
           tile_d = tile_q + 1;
-          if (tile_d == ctrl_i.tile_s*ctrl_i.tile_e) begin
+          if (tile_x_q == (ctrl_i.tile_f-1)) begin // end of step Q
+            tile_x_d = '0;
+            tile_y_d = tile_y_q + 1;
+          end else begin
+            tile_x_d = tile_x_q + 1;
+          end
+          if (tile_d == ctrl_i.tile_s*ctrl_i.tile_e) begin // end of step Q
             tile_d = '0;
+            tile_x_d = '0;
+            tile_y_d = '0;
             step_d = Idle;
           end
         end
@@ -349,19 +358,25 @@ module ita_controller
     //   count_d2 = 1'b0;
     // end
 
-    if (count_q == 0 && (tile_x_q > 0 || tile_y_q > 0)) begin
-      bias_count = 255;
-    end
-    
-    if ((step_q != Idle && step_q != MatMul)) begin
+    // if (count_q == 0 && (tile_x_q > 0 || tile_y_q > 0)) begin
+    //   bias_count = 255;
+    // end
+
+
+    bias_count = (count_q == 0) ? 255 : count_q - 1;
+    // bias_count = (count_q == 0 && (tile_x_q > 0 || tile_y_q > 0)) ? 255 : count_q - 1;
+    bias_tile_x_d        = (count_q == 0) ? bias_tile_x_q : tile_x_q;
+    bias_tile_y_d        = (count_q == 0) ? bias_tile_y_q : tile_y_q;
+
+    if ((step_q != Idle && step_q != MatMul) || (step_q == Idle && bias_count == 255)) begin
       if (inner_tile_q == inner_tile_dim) begin
         last_inner_tile_o = 1'b1;
-        if ((((((bias_count) & (M-1)) + tile_y_q * M)) > ((first_outer_dim - 1)))) begin
+        if ((((((bias_count) & (M-1)) + bias_tile_y_d * M)) > ((first_outer_dim - 1)))) begin
           requant_add_d = {N {1'b0}};
           inp_bias = {N {1'b0}};
         end else begin
-          if ( ((bias_count) + tile_x_q * M*M/N) >= (second_outer_dim / N) * M ) begin
-            if ( (((bias_count) / M) * N + tile_x_q * M ) < second_outer_dim) begin
+          if ( ((bias_count) + bias_tile_x_d * M*M/N) >= (second_outer_dim / N) * M ) begin
+            if ( (((bias_count) / M) * N + bias_tile_x_d * M ) < second_outer_dim) begin
               for (int i = (second_outer_dim & (N-1)); i < N; i++) begin
                 requant_add_d[i] = 1'b0;
                 inp_bias[i] = 1'b0;
@@ -412,6 +427,8 @@ module ita_controller
       step_q    <= Idle;
       count_q   <= '0;
       tile_q    <= '0;
+      tile_x_q  <= '0;
+      tile_y_q  <= '0;
       inner_tile_q <= '0;
       softmax_tile_q <= '0;
       ongoing_q <= '0;
@@ -419,6 +436,8 @@ module ita_controller
       softmax_div_done_q <= 1'b0;
       requant_add_q <= '0;
       busy_q <= 1'b0;
+      bias_tile_x_q <= '0;
+      bias_tile_y_q <= '0;
     end else begin
       step_q    <= step_d;
       count_q   <= count_d;
@@ -432,6 +451,8 @@ module ita_controller
       softmax_div_done_q <= softmax_div_done_d;
       requant_add_q <= requant_add_d;
       busy_q <= busy_d;
+      bias_tile_x_q <= bias_tile_x_d;
+      bias_tile_y_q <= bias_tile_y_d;
     end
   end
 endmodule
