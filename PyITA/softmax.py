@@ -157,8 +157,6 @@ def streamingPartialSoftmax(x, integerize = True):
 
     ## STAGE 2: Calculate the softmax activation
     # Invert the partial sum
-    # WIESEP: Scale Softmax to 127
-    # The Softmax values are maximum 127 as sumdotp modules can only do signed-signed operations for now. This is a temporary fix until sumdotp is fixed.
     if integerize:
         exp_partial_sum_inverse = np.floor((2**8 - 1) * 2**8 / exp_partial_sum).astype(np.int32)
     else:
