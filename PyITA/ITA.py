@@ -178,10 +178,6 @@ class Transformer:
         self.Bq_broadcast = np.reshape(np.repeat(self.Bq, self.S, axis = 0), (self.H, self.S, self.P_ITA))
         self.Bq_broadcast = np.pad(self.Bq_broadcast, ((0, 0), (0, self.S_ITA - self.S), (0, 0)))
 
-        print(self.Bq_broadcast[0][0][16:32])
-        sns.set_theme()
-        sns.heatmap(self.Bq_broadcast[0], annot=False, linewidths=0, linecolor='white', cmap='crest', xticklabels=False, yticklabels=False)
-        plt.show()
 
         if self.bias:
             self.Bk_in = random_shuffled_tensor(
@@ -362,6 +358,9 @@ class Transformer:
 
         # Weight Wqk is H x E x P
         # Transpose Wqk to H x P x E
+        # print(f"qk: {qk.shape}")
+        # print(f"qk: {weight.shape}")
+
         weight = np.transpose(weight, (0, 2, 1))
 
         tile_x = qk.shape[0] // self.ITA_M  # S // ITA_M
@@ -376,6 +375,19 @@ class Transformer:
         Input = np.tile(Input, [1, 1, self.split, 1])
         # Repeat each tile number of output row tiles times
         Input = np.tile(Input, [1, tile_y, 1, 1]).reshape((-1, self.ITA_M))
+        # fig, ax = plt.subplots(1, 2)  # Create a figure with two subplots
+        # im0 = ax[0].imshow(Input, cmap='viridis')
+        # im1 = ax[1].imshow(np.squeeze(weight, axis=0))
+
+        # # Add colorbars for each image if needed
+        # fig.colorbar(im0, ax=ax[0])
+        # fig.colorbar(im1, ax=ax[1])
+
+        # # Set titles for each subplot
+        # ax[0].set_title("Inputs")
+        # ax[1].set_title("Weights")
+
+        plt.show()
         write_matrix(Input, input_file, self.paths["standalone"])
 
         # Transposed Weight Wqk is H x P x E
@@ -526,10 +538,7 @@ class Transformer:
         self.Qp = np.clip(self.Qp, -2**(self.WO - 1), 2**(self.WO - 1) - 1)
         self.Qp_requant = requantize(self.Qp, self.requant_eps_mult[0], self.requant_right_shift[0],
                                      self.requant_add[0])
-        print(self.Qp[0][0][16:32])
-        sns.set_theme()
-        sns.heatmap(self.Qp[0], annot=False, linewidths=0, linecolor='white', cmap='crest', xticklabels=False, yticklabels=False)
-        plt.show()
+        
         # Set padded values to zero
         if (self.S_ITA - self.S) > 0:
             self.Qp_requant[:, -(self.S_ITA - self.S):, :] = 0
@@ -654,7 +663,7 @@ class Transformer:
         self.FFp_requant = requantize(self.FFp, self.requant_eps_mult_ffn[0], self.requant_right_shift_ffn[0],
                                       self.requant_add_ffn[0])
         self.FFp_requant = self.apply_activation(self.FFp_requant, self.activation)
-
+    
         self.tiler_QK(self.FF, self.Wff, self.Bff, self.FFp_requant, "FF", "Wff", "Bff", "FFp")
 
         self.FF2p = np.matmul(self.FFp_requant, self.Wff2, dtype = np.int32) + self.Bff2_broadcast

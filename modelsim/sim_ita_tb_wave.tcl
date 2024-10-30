@@ -21,10 +21,9 @@ add wave -noupdate -radix unsigned /ita_tb/dut/i_controller/bias_tile_x_d
 add wave -noupdate -radix unsigned /ita_tb/dut/i_controller/bias_tile_x_q
 add wave -noupdate -radix unsigned /ita_tb/dut/i_controller/bias_tile_y_d
 add wave -noupdate -radix unsigned /ita_tb/dut/i_controller/bias_tile_y_q
-add wave -noupdate /ita_tb/dut/calc_en
-add wave -noupdate /ita_tb/dut/calc_en_q1
-add wave -noupdate /ita_tb/dut/calc_en_q2
-add wave -noupdate /ita_tb/dut/calc_en_q3
+add wave -noupdate -expand -group Requant /ita_tb/dut/i_controller/requant_add_i
+add wave -noupdate -expand -group Requant /ita_tb/dut/i_controller/requant_add_o
+add wave -noupdate -expand -group Requant /ita_tb/dut/i_controller/step_q
 add wave -noupdate -expand -group Bias /ita_tb/dut/inp_bias
 add wave -noupdate -expand -group Bias /ita_tb/dut/inp_bias_padded
 add wave -noupdate -expand -group Bias /ita_tb/dut/inp_bias_q1
