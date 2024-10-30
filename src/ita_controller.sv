@@ -53,6 +53,8 @@ module ita_controller
 
   tile_t inner_tile_dim;
   logic [WO-WI*2-2:0] first_outer_dim, second_outer_dim;
+  logic [WO-WI*2-2:0] first_outer_dim_d, first_outer_dim_q;
+  logic [WO-WI*2-2:0] second_outer_dim_d, second_outer_dim_q;  
 
   logic softmax_fifo, softmax_div, softmax_div_done_d, softmax_div_done_q, busy_d, busy_q;
   requant_oup_t requant_add_d, requant_add_q;
@@ -302,13 +304,13 @@ module ita_controller
         if (inner_tile_d == ctrl_i.tile_e) begin // end of inner tile
           inner_tile_d = '0;
           tile_d = tile_q + 1;
-          if (tile_x_q == (ctrl_i.tile_f-1)) begin // end of step Q
+          if (tile_x_q == (ctrl_i.tile_f-1)) begin 
             tile_x_d = '0;
             tile_y_d = tile_y_q + 1;
           end else begin
             tile_x_d = tile_x_q + 1;
           end
-          if (tile_d == ctrl_i.tile_s*ctrl_i.tile_f) begin // end of step Q
+          if (tile_d == ctrl_i.tile_s*ctrl_i.tile_f) begin 
             tile_d = '0;
             tile_x_d = '0;
             tile_y_d = '0;
@@ -323,13 +325,13 @@ module ita_controller
         if (inner_tile_d == ctrl_i.tile_f) begin // end of inner tile
           inner_tile_d = '0;
           tile_d = tile_q + 1;
-          if (tile_x_q == (ctrl_i.tile_f-1)) begin // end of step Q
+          if (tile_x_q == (ctrl_i.tile_e-1)) begin
             tile_x_d = '0;
             tile_y_d = tile_y_q + 1;
           end else begin
             tile_x_d = tile_x_q + 1;
           end
-          if (tile_d == ctrl_i.tile_s*ctrl_i.tile_e) begin // end of step Q
+          if (tile_d == ctrl_i.tile_s*ctrl_i.tile_e) begin
             tile_d = '0;
             tile_x_d = '0;
             tile_y_d = '0;
@@ -367,26 +369,29 @@ module ita_controller
     // bias_count = (count_q == 0 && (tile_x_q > 0 || tile_y_q > 0)) ? 255 : count_q - 1;
     bias_tile_x_d        = (count_q == 0) ? bias_tile_x_q : tile_x_q;
     bias_tile_y_d        = (count_q == 0) ? bias_tile_y_q : tile_y_q;
+    first_outer_dim_d    = (count_q == 0) ? first_outer_dim_q : first_outer_dim;
+    second_outer_dim_d   = (count_q == 0) ? second_outer_dim_q : second_outer_dim;
 
     if ((step_q != Idle && step_q != MatMul) || (step_q == Idle && bias_count == 255)) begin
       if (inner_tile_q == inner_tile_dim) begin
         last_inner_tile_o = 1'b1;
-        if ((((((bias_count) & (M-1)) + bias_tile_y_d * M)) > ((first_outer_dim - 1)))) begin
-          requant_add_d = {N {1'b0}};
-          inp_bias = {N {1'b0}};
-        end else begin
-          if ( ((bias_count) + bias_tile_x_d * M*M/N) >= (second_outer_dim / N) * M ) begin
-            if ( (((bias_count) / M) * N + bias_tile_x_d * M ) < second_outer_dim) begin
-              for (int i = (second_outer_dim & (N-1)); i < N; i++) begin
-                requant_add_d[i] = 1'b0;
-                inp_bias[i] = 1'b0;
-              end
-            end else begin
-              requant_add_d = {N {1'b0}};
-              inp_bias = {N {1'b0}};
+      end
+      if ((((((bias_count) & (M-1)) + bias_tile_y_d * M)) > ((first_outer_dim_d - 1)))) begin
+        requant_add_d = {N {1'b0}};
+        inp_bias = {N {1'b0}};
+      end else begin
+        if ( ((bias_count) + bias_tile_x_d * M*M/N) >= (second_outer_dim_d / N) * M ) begin
+          if ( (((bias_count) / M) * N + bias_tile_x_d * M ) < second_outer_dim_d) begin
+            for (int i = (second_outer_dim_d & (N-1)); i < N; i++) begin
+              requant_add_d[i] = 1'b0;
+              inp_bias[i] = 1'b0;
             end
+          end else begin
+            requant_add_d = {N {1'b0}};
+            inp_bias = {N {1'b0}};
           end
         end
+      end
 
       //   if ((((((count_q2) & (M-1)) + tile_y_q * M)) > ((first_outer_dim - 1)))) begin
       //     inp_bias = {N {1'b0}};
@@ -401,7 +406,6 @@ module ita_controller
       //       end
       //     end
       //   end
-      end
     end
 
     inp_bias_padded = inp_bias;
@@ -438,6 +442,8 @@ module ita_controller
       busy_q <= 1'b0;
       bias_tile_x_q <= '0;
       bias_tile_y_q <= '0;
+      first_outer_dim_q <= '0;
+      second_outer_dim_q <= '0;
     end else begin
       step_q    <= step_d;
       count_q   <= count_d;
@@ -453,6 +459,8 @@ module ita_controller
       busy_q <= busy_d;
       bias_tile_x_q <= bias_tile_x_d;
       bias_tile_y_q <= bias_tile_y_d;
+      first_outer_dim_q <= first_outer_dim_d;
+      second_outer_dim_q <= second_outer_dim_d;
     end
   end
 endmodule
