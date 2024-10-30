@@ -194,14 +194,14 @@ module ita
   );
 
   ita_input_sampler i_input_sampler (
-    .clk_i       (clk_i           ),
-    .rst_ni      (rst_ni          ),
-    .valid_i     (inp_valid_i     ),
-    .ready_i     (inp_ready_o     ),
-    .inp_i       (inp_i           ),
-    .inp_bias_i  ((step == QK || step == AV) ? '0 : ((step == V) ? {N {inp_bias_i[0]}} : inp_bias_i) ), // TODO: temporary fix
-    .inp_o       (inp             ),
-    .inp_bias_o  (inp_bias        )
+    .clk_i       (clk_i       ),
+    .rst_ni      (rst_ni      ),
+    .valid_i     (inp_valid_i ),
+    .ready_i     (inp_ready_o ),
+    .inp_i       (inp_i       ),
+    .inp_bias_i  (inp_bias_i  ),
+    .inp_o       (inp         ),
+    .inp_bias_o  (inp_bias    )
   );
 
   ita_inp1_mux i_inp1_mux (

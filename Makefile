@@ -20,6 +20,7 @@ BENDER_TARGETS = -t rtl -t test
 target ?= sim_ita_tb
 
 no_stalls ?= 0
+single_attention ?= 0
 s ?= 64
 e ?= 128
 p ?= 192
@@ -33,7 +34,7 @@ else ifeq ($(activation), relu)
 else
 	activation_int = 0
 endif
-vlog_defs += -DNO_STALLS=$(no_stalls) -DSEQ_LENGTH=$(s) -DEMBED_SIZE=$(e) -DPROJ_SPACE=$(p) -DFF_SIZE=$(f) -DBIAS=$(bias) -DACTIVATION=$(activation_int)
+vlog_defs += -DNO_STALLS=$(no_stalls) -DSINGLE_ATTENTION=$(single_attention) -DSEQ_LENGTH=$(s) -DEMBED_SIZE=$(e) -DPROJ_SPACE=$(p) -DFF_SIZE=$(f) -DBIAS=$(bias) -DACTIVATION=$(activation_int)
 
 ifeq ($(target), sim_ita_hwpe_tb)
 	BENDER_TARGETS += -t ita_hwpe -t ita_hwpe_test
@@ -60,7 +61,7 @@ sim-script: clean-sim
 
 sim: sim-script
 	cd modelsim && \
-	$(MAKE) $(target)
+	$(MAKE) $(target) buildpath=$(ROOT_DIR)/$(SIM_PATH)
 
 synopsys-script:
 	rm ../ita-gf22/$(SYNTH_PATH)/scripts/analyze.tcl

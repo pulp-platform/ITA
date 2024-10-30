@@ -27,6 +27,7 @@ module ita_hwpe_tb;
   parameter integer EMBEDDING_SIZE = `ifdef EMBED_SIZE `EMBED_SIZE `else M_TILE_LEN `endif;
   parameter integer FEEDFORWARD_SIZE = `ifdef FF_SIZE `FF_SIZE `else M_TILE_LEN `endif;
   parameter activation_e ACTIVATION = `ifdef ACTIVATION `ACTIVATION `else Identity `endif;
+  parameter integer SINGLE_ATTENTION = `ifdef SINGLE_ATTENTION `SINGLE_ATTENTION `else 0 `endif;
 
   integer N_TILES_SEQUENCE_DIM, N_TILES_EMBEDDING_DIM, N_TILES_PROJECTION_DIM, N_TILES_FEEDFORWARD_DIM;
   integer N_ELEMENTS_PER_TILE;
@@ -118,6 +119,8 @@ module ita_hwpe_tb;
   `HCI_INTF_ARRAY(tcdm_mem, clk_i, MP-1:0);
 
   initial begin
+    $timeformat(-9, 1, " ns", 11);
+
     simdir = {
       "../../simvectors/data_S",
       $sformatf("%0d", SEQUENCE_LEN),
@@ -356,11 +359,27 @@ endfunction
     ita_compute_step(Q, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
 
     // 2: Step K
+    if (SINGLE_ATTENTION == 1) begin
+      // move corresponding ita_reg_rqs_val because linear layers use array[0]
+      ita_reg_rqs_val[0] = ita_reg_rqs_val[0] >> 8;
+      ita_reg_rqs_val[2] = ita_reg_rqs_val[2] >> 8;
+      ita_reg_rqs_val[4] = ita_reg_rqs_val[4] >> 8;
+    end
     ita_compute_step(K, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
 
     // 3: Step V
+    if (SINGLE_ATTENTION == 1) begin
+      // move corresponding ita_reg_rqs_val because linear layers use array[0]
+      ita_reg_rqs_val[0] = ita_reg_rqs_val[0] >> 8;
+      ita_reg_rqs_val[2] = ita_reg_rqs_val[2] >> 8;
+      ita_reg_rqs_val[4] = ita_reg_rqs_val[4] >> 8;
+    end
     ita_compute_step(V, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
 
+    if (SINGLE_ATTENTION == 1) begin
+      // Reset the RQS values
+      ita_reg_eps_mult_val_compute(ita_reg_rqs_val);
+    end
 
     for (int group = 0; group < N_TILES_SEQUENCE_DIM; group++) begin
       BASE_PTR_INPUT[QK]  = BASE_PTR[15] + group * N_TILES_INNER_DIM[QK] * N_ELEMENTS_PER_TILE;
@@ -382,12 +401,36 @@ endfunction
     end
 
     // 6: Step OW
+    if (SINGLE_ATTENTION == 1) begin
+      // Change order of P and E
+      ita_reg_tiles_val_compute(N_TILES_SEQUENCE_DIM, N_TILES_PROJECTION_DIM, N_TILES_EMBEDDING_DIM, N_TILES_FEEDFORWARD_DIM, ita_reg_tiles_val);
+      // move corresponding ita_reg_rqs_val because linear layers use array[0]
+      ita_reg_rqs_val[0] = ita_reg_rqs_val[1] >> 8;
+      ita_reg_rqs_val[2] = ita_reg_rqs_val[3] >> 8;
+      ita_reg_rqs_val[4] = ita_reg_rqs_val[5] >> 8;
+    end
     ita_compute_step(OW, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
 
     // 7: Step FF1
+    if (SINGLE_ATTENTION == 1) begin
+      // Change order of P and F
+      ita_reg_tiles_val_compute(N_TILES_SEQUENCE_DIM, N_TILES_EMBEDDING_DIM, N_TILES_FEEDFORWARD_DIM, N_TILES_PROJECTION_DIM, ita_reg_tiles_val);
+      // move corresponding ita_reg_rqs_val because linear layers use array[0]
+      ita_reg_rqs_val[0] = ita_reg_rqs_val[1] >> 16;
+      ita_reg_rqs_val[2] = ita_reg_rqs_val[3] >> 16;
+      ita_reg_rqs_val[4] = ita_reg_rqs_val[5] >> 16;
+    end
     ita_compute_step(F1, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
 
-    // 8: Step FF1
+    // 8: Step FF2
+    if (SINGLE_ATTENTION == 1) begin
+      // Change order of E and F
+      ita_reg_tiles_val_compute(N_TILES_SEQUENCE_DIM, N_TILES_FEEDFORWARD_DIM, N_TILES_EMBEDDING_DIM, N_TILES_PROJECTION_DIM, ita_reg_tiles_val);
+      // move corresponding ita_reg_rqs_val because linear layers use array[0]
+      ita_reg_rqs_val[0] = ita_reg_rqs_val[1] >> 24;
+      ita_reg_rqs_val[2] = ita_reg_rqs_val[3] >> 24;
+      ita_reg_rqs_val[4] = ita_reg_rqs_val[5] >> 24;
+    end
     ita_compute_step(F2, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
 
     // Wait for the last step to finish
@@ -452,8 +495,14 @@ endfunction
           // Calculate input_ptr, weight_ptr0, weight_ptr1, bias_ptr, and output_ptr
           ita_ptrs_compute(input_base_ptr, weight_base_ptr0, weight_base_ptr1, bias_base_ptr, output_base_ptr, step, tile, tile_x, tile_y, tile_inner, input_ptr, weight_ptr0, weight_ptr1, bias_ptr, output_ptr);
 
-          // Calculate ita_reg_en
-          ita_reg_en_compute(step, tile, ita_reg_en);
+          if (SINGLE_ATTENTION == 1) begin
+            // Enable ita_reg_en
+            ita_reg_en = 1'b1;
+          end else begin
+            // Calculate ita_reg_en
+            ita_reg_en_compute(step, tile, ita_reg_en);
+          end
+
           // Calculate ctrl_stream_val, weight_ptr_en, and bias_ptr_en
           ctrl_val_compute(step, tile, ctrl_engine_val, ctrl_stream_val, weight_ptr_en, bias_ptr_en);
 
@@ -564,7 +613,13 @@ endfunction
     ctrl_stream_val = 32'h0;
     reg_weight_en = 1'b0;
     reg_bias_en = 1'b0;
-    layer_type = Attention;
+
+    if (SINGLE_ATTENTION == 1) begin
+      layer_type = Linear;
+    end else begin
+      layer_type = Attention;
+    end
+
     activation_function = Identity;
 
     ctrl_engine_val = layer_type | activation_function << 2;
@@ -598,11 +653,17 @@ endfunction
         reg_bias_en = 1'b1;
       end
       QK : begin
+        if (SINGLE_ATTENTION == 1) begin
+          ctrl_engine_val = SingleAttention | Identity << 2;
+        end
         ctrl_stream_val = {28'b0, 4'b0110}; // weight nextload and disable bias
         reg_weight_en = 1'b1;
         reg_bias_en = 1'b0;
       end
       AV : begin
+        if (SINGLE_ATTENTION == 1) begin
+          ctrl_engine_val = SingleAttention | Identity << 2;
+        end
         ctrl_stream_val = {28'b0, 4'b0110}; // weight nextload and disable bias
         reg_weight_en = 1'b1;
         reg_bias_en = 1'b0;
@@ -618,7 +679,11 @@ endfunction
         reg_bias_en = 1'b1;
       end
       F1 : begin
-        ctrl_engine_val = Feedforward | ACTIVATION << 2;
+        if (SINGLE_ATTENTION == 1) begin
+          ctrl_engine_val = Linear | ACTIVATION << 2;
+        end else begin
+          ctrl_engine_val = Feedforward | ACTIVATION << 2;
+        end
         if (tile == 0) begin
           ctrl_stream_val = {28'b0, 4'b0011}; // weight preload and weight nextload
         end else begin
@@ -628,7 +693,11 @@ endfunction
         reg_bias_en = 1'b1;   
       end
       F2 : begin
-        ctrl_engine_val = Feedforward | Identity << 2;
+        if (SINGLE_ATTENTION == 1) begin
+          ctrl_engine_val = Linear | Identity << 2;
+        end else begin
+          ctrl_engine_val = Feedforward | Identity << 2;
+        end
         if (tile == (N_TILES_OUTER_X[F2]*N_TILES_OUTER_Y[F2]*N_TILES_INNER_DIM[F2])-1) begin
           ctrl_stream_val = {28'b0, 4'b0000};
           reg_weight_en = 1'b0;
