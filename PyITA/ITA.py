@@ -133,35 +133,35 @@ class Transformer:
 
         self.exp_sum = np.zeros(self.S, dtype = np.int32)
 
-        self.Q_in = random_shuffled_tensor((self.S, self.E), self.WI - 1) if Q is None else Q
+        self.Q_in = random_shuffled_tensor((self.S, self.E), self.WI) if Q is None else Q
         self.Q = np.pad(self.Q_in, ((0, self.S_ITA - self.S), (0, self.E_ITA - self.E)))
 
-        self.V_in = random_shuffled_tensor((self.S, self.E), self.WI - 1) if V is None else V
+        self.V_in = random_shuffled_tensor((self.S, self.E), self.WI) if V is None else V
         self.V = np.pad(self.V_in, ((0, self.S_ITA - self.S), (0, self.E_ITA - self.E)))
 
         # WIESEP: K is the same as V because we do cross-attention
         self.K_in = self.V_in
         self.K = self.V
 
-        self.FF_in = random_shuffled_tensor((self.S, self.E), self.WI - 1) if FF_in is None else FF_in
+        self.FF_in = random_shuffled_tensor((self.S, self.E), self.WI) if FF_in is None else FF_in
         self.FF = np.pad(self.FF_in, ((0, self.S_ITA - self.S), (0, self.E_ITA - self.E)))
 
         #### Weight matrices ####
-        self.Wq_in = random_shuffled_tensor((self.H, self.E, self.P), self.WI - 1) if Wq is None else Wq
+        self.Wq_in = random_shuffled_tensor((self.H, self.E, self.P), self.WI) if Wq is None else Wq
         self.Wq = np.pad(self.Wq_in, ((0, 0), (0, self.E_ITA - self.E), (0, self.P_ITA - self.P)))
 
-        self.Wk_in = random_shuffled_tensor((self.H, self.E, self.P), self.WI - 1) if Wk is None else Wk
+        self.Wk_in = random_shuffled_tensor((self.H, self.E, self.P), self.WI) if Wk is None else Wk
         self.Wk = np.pad(self.Wk_in, ((0, 0), (0, self.E_ITA - self.E), (0, self.P_ITA - self.P)))
 
-        self.Wv_in = random_shuffled_tensor((self.H, self.E, self.P), self.WI - 1) if Wv is None else Wv
+        self.Wv_in = random_shuffled_tensor((self.H, self.E, self.P), self.WI) if Wv is None else Wv
         self.Wv = np.pad(self.Wv_in, ((0, 0), (0, self.E_ITA - self.E), (0, self.P_ITA - self.P)))
 
-        self.Wo_in = random_shuffled_tensor((self.H, self.P, self.E), self.WI - 1) if Wo is None else Wo
+        self.Wo_in = random_shuffled_tensor((self.H, self.P, self.E), self.WI) if Wo is None else Wo
         self.Wo = np.pad(self.Wo_in, ((0, 0), (0, self.P_ITA - self.P), (0, self.E_ITA - self.E)))
 
-        self.Wff_in = random_shuffled_tensor((1, self.E, self.F), self.WI - 1) if Wff is None else Wff
+        self.Wff_in = random_shuffled_tensor((1, self.E, self.F), self.WI) if Wff is None else Wff
         self.Wff = np.pad(self.Wff_in, ((0, 0), (0, self.E_ITA - self.E), (0, self.F_ITA - self.F)))
-        self.Wff2_in = random_shuffled_tensor((1, self.F, self.E), self.WI - 1) if Wff2 is None else Wff2
+        self.Wff2_in = random_shuffled_tensor((1, self.F, self.E), self.WI) if Wff2 is None else Wff2
         self.Wff2 = np.pad(self.Wff2_in, ((0, 0), (0, self.F_ITA - self.F), (0, self.E_ITA - self.E)))
 
         #### Bias matrices ####
