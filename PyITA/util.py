@@ -517,3 +517,21 @@ def almost_symmetric_dequantize(quantized_activations: np.ndarray, clip_lo: f32,
     S, _ = get_almost_symmetric_scaling_factor(clip_lo, n_bits)
     activations = quantized_activations * S
     return activations
+
+
+def error_MAEP(a: np.ndarray, b: np.ndarray):
+    """
+    Compute the mean absolute error percentage (MAEP) between two tensors.
+    A value of 0 indicates that the two tensors are equal.
+    A value of 100 indicates that the second tensor is on average twice as large as the first tensor.
+
+    Parameters:
+        a (np.ndarray): The first tensor.
+        b (np.ndarray): The second tensor.
+
+    Returns:
+        np.ndarray: The mean absolute error percentage between the two tensors.
+    """
+    return 100 * np.mean(np.abs(a - b)) / max(
+        np.abs(np.max(a)) + np.abs(np.min(a)),
+        np.abs(np.max(b)) + np.abs(np.min(b)))

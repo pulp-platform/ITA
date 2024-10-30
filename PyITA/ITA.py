@@ -26,7 +26,8 @@ from .softmax import fastSoftmax, realSoftmax, streamingPartialSoftmax
 from .gelu import gelu_requantize, i_gelu_requantized, get_i_gelu_constants, get_i_gelu_requantized_constants
 from .util import (generate_matrix_mem, pack_8b_to_word, pack_array_8b_to_word, pack_hex_24b, pack_multihead_8b_to_word,
                    pack_multihead_24b_to_word, random_shuffled_tensor, requantize, split_matrix, to_hex, write_matrix,
-                   write_matrix_mem, write_matrix_mem_hex, write_vector_mem_hex, get_almost_symmetric_scaling_factor)
+                   write_matrix_mem, write_matrix_mem_hex, write_vector_mem_hex, get_almost_symmetric_scaling_factor,
+                   error_MAEP)
 
 
 class Transformer:
@@ -996,16 +997,52 @@ def generateTestVectors(path, **kwargs):
     acc1.export_hwpe()
     acc1.export_numpy()
 
-    def print_tensor_stats(tensor):
-        print(f"    Min: {np.min(tensor)}")
-        print(f"    Max: {np.max(tensor)}")
-
-        # Calculate the simmilarty of elements witin one row and over all comumns
+    def calculate_tensor_stats(tensor, name, tol = 1e-1):
+        # Calculate the similarly of elements within one row and over all columns
         similarity_row = np.mean(np.abs(np.diff(tensor, axis = -2)))
         similarity_column = np.mean(np.abs(np.diff(tensor, axis = -1)))
 
+        if (similarity_row < tol) or (similarity_column < tol):
+            if name is not None:
+                print(f"WARNING: {name} is constant!")
+                print(f"{name} Mean-Squared Difference (row)   : {similarity_row:5.1f}")
+                print(f"{name} Mean-Squared Difference (column): {similarity_column:5.1f}")
+                raise ValueError(f"Tensor {name} is constant! This is a bad test vector!")
+            else:
+                print("    WARNING: Tensor is constant!")
+                print(f"    Mean-Squared Difference (row)   : {similarity_row:5.1f}")
+                print(f"    Mean-Squared Difference (column): {similarity_column:5.1f}")
+
+        return similarity_row, similarity_column
+
+    def print_tensor_stats(tensor, name = None):
+        print(f"    Min: {np.min(tensor)}")
+        print(f"    Max: {np.max(tensor)}")
+
+        similarity_row, similarity_column = calculate_tensor_stats(tensor, name)
+
         print(f"    Mean-Squared Difference (row)   : {similarity_row:5.1f}")
         print(f"    Mean-Squared Difference (column): {similarity_column:5.1f}")
+
+    # Calculate all tensor statistics
+    tensors = {
+        "Qp": acc1.Qp_requant,
+        "Kp": acc1.Kp_requant,
+        "Vp": acc1.Vp_requant,
+        "A": acc1.A_requant,
+        "A_soft": acc1.A_partial_softmax,
+        "O_soft": acc1.O_soft_requant,
+        "Out_soft": acc1.Out_soft_requant,
+        "Out_soft_sum": acc1.Out_soft_sum_requant
+    }
+
+    for name, tensor in tensors.items():
+        calculate_tensor_stats(tensor, name)
+
+    # Check if softmax is sufficiently precise
+    maep_softmax = error_MAEP(acc1.A_partial_softmax, acc1.A_real_softmax)
+    if maep_softmax > 5:
+        print(f"WARNING: Softmax is not precise enough! MAEP Error to Integer Softmax: {maep_softmax:.2f}%")
 
     if kwargs['verbose'] > 1:
         print("=> Qp")
@@ -1038,6 +1075,7 @@ def generateTestVectors(path, **kwargs):
 
         print("=> A (partial softmax)")
         print_tensor_stats(acc1.A_partial_softmax)
+        print(f"    MAEP Error to Integer Softmax: {maep_softmax:.2f}%")
         if kwargs['verbose'] > 3:
             print(acc1.A_partial_softmax)
 
