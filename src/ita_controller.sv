@@ -355,18 +355,7 @@ module ita_controller
       end
     endcase
 
-    // if (step_q == Idle && count_q2 == 8'd255) begin
-    //   last_time = 1'b1;
-    //   count_d2 = 1'b0;
-    // end
-
-    // if (count_q == 0 && (tile_x_q > 0 || tile_y_q > 0)) begin
-    //   bias_count = 255;
-    // end
-
-
     bias_count = (count_q == 0) ? 255 : count_q - 1;
-    // bias_count = (count_q == 0 && (tile_x_q > 0 || tile_y_q > 0)) ? 255 : count_q - 1;
     bias_tile_x_d        = (count_q == 0) ? bias_tile_x_q : tile_x_q;
     bias_tile_y_d        = (count_q == 0) ? bias_tile_y_q : tile_y_q;
     first_outer_dim_d    = (count_q == 0) ? first_outer_dim_q : first_outer_dim;
