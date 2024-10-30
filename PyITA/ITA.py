@@ -259,7 +259,7 @@ class Transformer:
             elif i == 3:  # QK
                 max_bit_width = np.log2(self.requant_eps_mult[i, :].astype(np.uint32) * self.P * 2**8).astype(np.uint32)
             elif i == 4:  # AV
-                max_bit_width = np.log2(self.requant_eps_mult[i, :].astype(np.uint32) * self.S * 2**8).astype(np.uint32)
+                max_bit_width = np.log2(self.requant_eps_mult[i, :].astype(np.uint32) * self.S * 2**5).astype(np.uint32)
             elif i == 5:  # OW
                 max_bit_width = np.log2(self.requant_eps_mult[i, :].astype(np.uint32) * self.E * 2**9).astype(np.uint32)
             elif i == 6:  # Sum OW
