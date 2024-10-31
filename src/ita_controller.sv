@@ -112,9 +112,6 @@ module ita_controller
       if (softmax_div_done_q != 1'b1 && step_q == AV && inner_tile_q == 0 && tile_q == 0 && count_q < M && count_q >= soft_addr_div_i) begin
         softmax_div = 1'b1;
       end
-      // if (count_q == M*M/N) begin //Problem is that the counter does not go to 256
-      //   count_d = '0;
-      // end
       if (ongoing_q>=FifoDepth || (softmax_fifo && ongoing_soft_q>=SoftFifoDepth) || softmax_div) begin
         inp_ready_o    = 1'b0;
         weight_ready_o = 1'b0;
@@ -124,11 +121,6 @@ module ita_controller
         weight_ready_o = inp_valid_i;
         bias_ready_o   = weight_valid_i;
         if (inp_valid_i && weight_valid_i && bias_valid_i) begin
-          // if (count_q == M*M/N) begin
-          //   count_d = 1;
-          // end else begin
-          //   count_d   = count_q + 1;
-          // end  
           calc_en_o = 1;
           count_d   = count_q + 1;
           busy_d    = 1'b1;
@@ -191,7 +183,7 @@ module ita_controller
         if (inner_tile_d == ctrl_i.tile_e) begin // end of inner tile
           inner_tile_d = '0;
           tile_d = tile_q + 1;
-          if (tile_x_q == (ctrl_i.tile_p-1)) begin // end of step Q
+          if (tile_x_q == (ctrl_i.tile_p-1)) begin 
             tile_x_d = '0;
             tile_y_d = tile_y_q + 1;
           end else begin
@@ -212,7 +204,7 @@ module ita_controller
         if (inner_tile_d == ctrl_i.tile_e) begin // end of inner tile
           inner_tile_d = '0;
           tile_d = tile_q + 1;
-          if (tile_x_q == (ctrl_i.tile_s-1)) begin // end of step Q
+          if (tile_x_q == (ctrl_i.tile_s-1)) begin
             tile_x_d = '0;
             tile_y_d = tile_y_q + 1;
           end else begin
@@ -233,7 +225,7 @@ module ita_controller
         if (inner_tile_d == ctrl_i.tile_p) begin // end of inner tile
           inner_tile_d = '0;
           tile_d = tile_q + 1;
-          if (tile_x_q == (ctrl_i.tile_s-1)) begin // end of step Q
+          if (tile_x_q == (ctrl_i.tile_s-1)) begin
             tile_x_d = '0;
           end else begin
             tile_x_d = tile_x_q + 1;
@@ -251,7 +243,7 @@ module ita_controller
         if (inner_tile_d == ctrl_i.tile_s) begin // end of inner tile
           inner_tile_d = '0;
           tile_d = tile_q + 1;
-          if (tile_x_q == (ctrl_i.tile_p-1)) begin // end of step Q
+          if (tile_x_q == (ctrl_i.tile_p-1)) begin
             tile_x_d = '0;
           end else begin
             tile_x_d = tile_x_q + 1;
@@ -282,7 +274,7 @@ module ita_controller
         if (inner_tile_d == ctrl_i.tile_p) begin // end of inner tile
           inner_tile_d = '0;
           tile_d = tile_q + 1;
-          if (tile_x_q == (ctrl_i.tile_e-1)) begin // end of step Q
+          if (tile_x_q == (ctrl_i.tile_e-1)) begin
             tile_x_d = '0;
             tile_y_d = tile_y_q + 1;
           end else begin
@@ -381,20 +373,6 @@ module ita_controller
           end
         end
       end
-
-      //   if ((((((count_q2) & (M-1)) + tile_y_q * M)) > ((first_outer_dim - 1)))) begin
-      //     inp_bias = {N {1'b0}};
-      //   end else begin
-      //     if ( ((count_q2) + tile_x_q * M*M/N) >= (second_outer_dim / N) * M ) begin
-      //       if ( (((count_q2) / M) * N + tile_x_q * M ) < second_outer_dim) begin
-      //         for (int i = (second_outer_dim & (N-1)); i < N; i++) begin
-      //           inp_bias[i] = 1'b0;
-      //         end
-      //       end else begin
-      //         inp_bias = {N {1'b0}};
-      //       end
-      //     end
-      //   end
     end
 
     inp_bias_padded = inp_bias;
