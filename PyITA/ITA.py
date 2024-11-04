@@ -26,7 +26,8 @@ from .softmax import fastSoftmax, realSoftmax, streamingPartialSoftmax
 from .gelu import gelu_requantize, i_gelu_requantized, get_i_gelu_constants, get_i_gelu_requantized_constants
 from .util import (generate_matrix_mem, pack_8b_to_word, pack_array_8b_to_word, pack_hex_24b, pack_multihead_8b_to_word,
                    pack_multihead_24b_to_word, random_shuffled_tensor, requantize, split_matrix, to_hex, write_matrix,
-                   write_matrix_mem, write_matrix_mem_hex, write_vector_mem_hex, get_almost_symmetric_scaling_factor)
+                   write_matrix_mem, write_matrix_mem_hex, write_vector_mem_hex, get_almost_symmetric_scaling_factor,
+                   error_MAEP)
 
 
 class Transformer:
@@ -133,35 +134,35 @@ class Transformer:
 
         self.exp_sum = np.zeros(self.S, dtype = np.int32)
 
-        self.Q_in = random_shuffled_tensor((self.S, self.E), self.WI - 1) if Q is None else Q
+        self.Q_in = random_shuffled_tensor((self.S, self.E), self.WI) if Q is None else Q
         self.Q = np.pad(self.Q_in, ((0, self.S_ITA - self.S), (0, self.E_ITA - self.E)))
 
-        self.V_in = random_shuffled_tensor((self.S, self.E), self.WI - 1) if V is None else V
+        self.V_in = random_shuffled_tensor((self.S, self.E), self.WI) if V is None else V
         self.V = np.pad(self.V_in, ((0, self.S_ITA - self.S), (0, self.E_ITA - self.E)))
 
         # WIESEP: K is the same as V because we do cross-attention
         self.K_in = self.V_in
         self.K = self.V
 
-        self.FF_in = random_shuffled_tensor((self.S, self.E), self.WI - 1) if FF_in is None else FF_in
+        self.FF_in = random_shuffled_tensor((self.S, self.E), self.WI) if FF_in is None else FF_in
         self.FF = np.pad(self.FF_in, ((0, self.S_ITA - self.S), (0, self.E_ITA - self.E)))
 
         #### Weight matrices ####
-        self.Wq_in = random_shuffled_tensor((self.H, self.E, self.P), self.WI - 1) if Wq is None else Wq
+        self.Wq_in = random_shuffled_tensor((self.H, self.E, self.P), self.WI) if Wq is None else Wq
         self.Wq = np.pad(self.Wq_in, ((0, 0), (0, self.E_ITA - self.E), (0, self.P_ITA - self.P)))
 
-        self.Wk_in = random_shuffled_tensor((self.H, self.E, self.P), self.WI - 1) if Wk is None else Wk
+        self.Wk_in = random_shuffled_tensor((self.H, self.E, self.P), self.WI) if Wk is None else Wk
         self.Wk = np.pad(self.Wk_in, ((0, 0), (0, self.E_ITA - self.E), (0, self.P_ITA - self.P)))
 
-        self.Wv_in = random_shuffled_tensor((self.H, self.E, self.P), self.WI - 1) if Wv is None else Wv
+        self.Wv_in = random_shuffled_tensor((self.H, self.E, self.P), self.WI) if Wv is None else Wv
         self.Wv = np.pad(self.Wv_in, ((0, 0), (0, self.E_ITA - self.E), (0, self.P_ITA - self.P)))
 
-        self.Wo_in = random_shuffled_tensor((self.H, self.P, self.E), self.WI - 1) if Wo is None else Wo
+        self.Wo_in = random_shuffled_tensor((self.H, self.P, self.E), self.WI) if Wo is None else Wo
         self.Wo = np.pad(self.Wo_in, ((0, 0), (0, self.P_ITA - self.P), (0, self.E_ITA - self.E)))
 
-        self.Wff_in = random_shuffled_tensor((1, self.E, self.F), self.WI - 1) if Wff is None else Wff
+        self.Wff_in = random_shuffled_tensor((1, self.E, self.F), self.WI) if Wff is None else Wff
         self.Wff = np.pad(self.Wff_in, ((0, 0), (0, self.E_ITA - self.E), (0, self.F_ITA - self.F)))
-        self.Wff2_in = random_shuffled_tensor((1, self.F, self.E), self.WI - 1) if Wff2 is None else Wff2
+        self.Wff2_in = random_shuffled_tensor((1, self.F, self.E), self.WI) if Wff2 is None else Wff2
         self.Wff2 = np.pad(self.Wff2_in, ((0, 0), (0, self.F_ITA - self.F), (0, self.E_ITA - self.E)))
 
         #### Bias matrices ####
@@ -258,7 +259,7 @@ class Transformer:
             elif i == 3:  # QK
                 max_bit_width = np.log2(self.requant_eps_mult[i, :].astype(np.uint32) * self.P * 2**8).astype(np.uint32)
             elif i == 4:  # AV
-                max_bit_width = np.log2(self.requant_eps_mult[i, :].astype(np.uint32) * self.S * 2**8).astype(np.uint32)
+                max_bit_width = np.log2(self.requant_eps_mult[i, :].astype(np.uint32) * self.S * 2**5).astype(np.uint32)
             elif i == 5:  # OW
                 max_bit_width = np.log2(self.requant_eps_mult[i, :].astype(np.uint32) * self.E * 2**9).astype(np.uint32)
             elif i == 6:  # Sum OW
@@ -996,16 +997,52 @@ def generateTestVectors(path, **kwargs):
     acc1.export_hwpe()
     acc1.export_numpy()
 
-    def print_tensor_stats(tensor):
-        print(f"    Min: {np.min(tensor)}")
-        print(f"    Max: {np.max(tensor)}")
-
-        # Calculate the simmilarty of elements witin one row and over all comumns
+    def calculate_tensor_stats(tensor, name, tol = 1e-1):
+        # Calculate the similarly of elements within one row and over all columns
         similarity_row = np.mean(np.abs(np.diff(tensor, axis = -2)))
         similarity_column = np.mean(np.abs(np.diff(tensor, axis = -1)))
 
+        if (similarity_row < tol) or (similarity_column < tol):
+            if name is not None:
+                print(f"WARNING: {name} is constant!")
+                print(f"{name} Mean-Squared Difference (row)   : {similarity_row:5.1f}")
+                print(f"{name} Mean-Squared Difference (column): {similarity_column:5.1f}")
+                raise ValueError(f"Tensor {name} is constant! This is a bad test vector!")
+            else:
+                print("    WARNING: Tensor is constant!")
+                print(f"    Mean-Squared Difference (row)   : {similarity_row:5.1f}")
+                print(f"    Mean-Squared Difference (column): {similarity_column:5.1f}")
+
+        return similarity_row, similarity_column
+
+    def print_tensor_stats(tensor, name = None):
+        print(f"    Min: {np.min(tensor)}")
+        print(f"    Max: {np.max(tensor)}")
+
+        similarity_row, similarity_column = calculate_tensor_stats(tensor, name)
+
         print(f"    Mean-Squared Difference (row)   : {similarity_row:5.1f}")
         print(f"    Mean-Squared Difference (column): {similarity_column:5.1f}")
+
+    # Calculate all tensor statistics
+    tensors = {
+        "Qp": acc1.Qp_requant,
+        "Kp": acc1.Kp_requant,
+        "Vp": acc1.Vp_requant,
+        "A": acc1.A_requant,
+        "A_soft": acc1.A_partial_softmax,
+        "O_soft": acc1.O_soft_requant,
+        "Out_soft": acc1.Out_soft_requant,
+        "Out_soft_sum": acc1.Out_soft_sum_requant
+    }
+
+    for name, tensor in tensors.items():
+        calculate_tensor_stats(tensor, name)
+
+    # Check if softmax is sufficiently precise
+    maep_softmax = error_MAEP(acc1.A_partial_softmax, acc1.A_real_softmax)
+    if maep_softmax > 5:
+        print(f"WARNING: Softmax is not precise enough! MAEP Error to Integer Softmax: {maep_softmax:.2f}%")
 
     if kwargs['verbose'] > 1:
         print("=> Qp")
@@ -1038,6 +1075,7 @@ def generateTestVectors(path, **kwargs):
 
         print("=> A (partial softmax)")
         print_tensor_stats(acc1.A_partial_softmax)
+        print(f"    MAEP Error to Integer Softmax: {maep_softmax:.2f}%")
         if kwargs['verbose'] > 3:
             print(acc1.A_partial_softmax)
 
