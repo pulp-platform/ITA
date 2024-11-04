@@ -106,6 +106,9 @@ class TestParser(argparse.ArgumentParser):
                                  action = 'store_true',
                                  help = 'Disable partial softmax calculation')
         self.group1.add_argument('--no-bias', default = False, action = 'store_true', help = 'Disable bias')
+        self.group1.add_argument('--skip-vector-validation',
+                                 action = 'store_true',
+                                 help = 'Skip validation of test vectors')
         self.group1.add_argument('--export-snitch-cluster', action = 'store_true', help = 'Export for snitch cluster')
         self.group1.add_argument('--export-mempool', action = 'store_true', help = 'Export for mempool')
         self.group1.add_argument('--export-rom', action = 'store_true', help = 'Export ROM configuration')

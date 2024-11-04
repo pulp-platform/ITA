@@ -1007,7 +1007,10 @@ def generateTestVectors(path, **kwargs):
                 print(f"WARNING: {name} is constant!")
                 print(f"{name} Mean-Squared Difference (row)   : {similarity_row:5.1f}")
                 print(f"{name} Mean-Squared Difference (column): {similarity_column:5.1f}")
-                raise ValueError(f"Tensor {name} is constant! This is a bad test vector!")
+                if kwargs['skip_vector_validation'] is False:
+                    raise ValueError(f"Tensor {name} is constant! This is a bad test vector!")
+                else:
+                    print(f"    WARNING: Tensor {name} is constant! This is a bad test vector!")
             else:
                 print("    WARNING: Tensor is constant!")
                 print(f"    Mean-Squared Difference (row)   : {similarity_row:5.1f}")
