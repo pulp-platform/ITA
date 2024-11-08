@@ -34,7 +34,6 @@ generate_testvectors:
     - python testGenerator.py -H 1 -S 63 -E 62 -P 61 -F 61 --activation relu --no-bias --skip-vector-validation
     - python testGenerator.py -H 1 -S 65 -E 130 -P 195 -F 195 --activation relu --no-bias --skip-vector-validation
     - python testGenerator.py -H 1 -S 127 -E 190 -P 253 -F 253 --activation relu --no-bias --skip-vector-validation
-    
     - python testGenerator.py -H 1 -S 511 -E 511 -P 127 -F 63 --activation relu --skip-vector-validation
     - python testGenerator.py -H 1 -S 63 -E 63 -P 50 -F 129 --activation gelu --skip-vector-validation
     - python testGenerator.py -H 1 -S 255 -E 63 -P 511 -F 511 --activation identity --skip-vector-validation
@@ -136,7 +135,7 @@ run_sim_padding:
     #   no_stalls: 0
     #   single_attention: 0
     # - S: 127
-    #   E: 190gelu
+    #   E: 190
     #   P: 253
     #   F: 253
     #   activation: relu
