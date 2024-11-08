@@ -119,36 +119,50 @@ run_sim_padding:
       P: 3
       F: 3
       activation: relu
+      no_stalls: 0
+      single_attention: 0
     - S: 63
       E: 62
       P: 61
       F: 61
       activation: relu
+      no_stalls: 0
+      single_attention: 0
     # - S: 65
     #   E: 130
     #   P: 195
     #   F: 195
     #   activation: relu
+    #   no_stalls: 0
+    #   single_attention: 0
     # - S: 127
     #   E: 190gelu
     #   P: 253
     #   F: 253
     #   activation: relu
+    #   no_stalls: 0
+    #   single_attention: 0
     - S: 511
       E: 511
       P: 127
       F: 63
       activation: relu
+      no_stalls: 0
+      single_attention: 0
     - S: 63
       E: 63
       P: 50
       F: 129
-      activation: relu
+      activation: gelu
+      no_stalls: 0
+      single_attention: 0
     - S: 255
       E: 63
       P: 511
       F: 511
-      activation: relu
+      activation: identity
+      no_stalls: 0
+      single_attention: 0
   script:
     - make bender
     - make sim VSIM_FLAGS=-c s=$S e=$E p=$P f=$F bias=1 activation=$activation no_stalls=$no_stalls single_attention=$single_attention
