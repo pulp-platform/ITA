@@ -40,6 +40,10 @@ package ita_package;
   typedef logic signed [GELU_CONSTANTS_WIDTH-1:0] gelu_const_t;
   typedef logic signed [GELU_OUT_WIDTH-1:0] gelu_out_t;
 
+  // Masking
+  typedef enum {None=0, UpperTriangular=1, LowerTriangular=2} mask_e;
+  typedef logic [WO-WI*2-2:0] mask_index_t;
+
   // IO
   typedef logic            [EMS-1:0] requant_const_t;
   typedef logic       [N_REQUANT_CONSTS-1:0][EMS-1:0] requant_const_array_t;
@@ -56,6 +60,8 @@ package ita_package;
     proj_space_t                  proj_space  ;
     embed_size_t                  embed_size  ;
     ff_size_t                     ff_size     ;
+    mask_e                        mask_type   ;
+    mask_index_t                  mask_start_index;
     layer_e                       layer       ;
     activation_e                  activation  ;
     requant_const_array_t         eps_mult    ;

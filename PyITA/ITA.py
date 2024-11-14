@@ -574,17 +574,46 @@ class Transformer:
         # Compute Vp in transposed form
         self.tiler_V(self.V, self.Wv, self.Bv, self.Vp_requant, "V", "Wv", "Bv", "Vp")
 
-    def step4_QK(self, no_partial_softmax):
+    def step4_QK(self, no_partial_softmax, mask, index):
         self.A = np.array(
             [np.matmul(self.Qp_requant[i], np.transpose(self.Kp_requant[i]), dtype = np.int32) for i in range(self.H)])
-        self.A = np.clip(self.A, -2**(self.WO - 1), 2**(self.WO - 1) - 1)
-        self.A_requant = requantize(self.A, self.requant_eps_mult[3], self.requant_right_shift[3], self.requant_add[3])
 
         if (self.S_ITA - self.S) > 0:
             self.A_requant[:, -(self.S_ITA - self.S):, :] = 0
             self.A_requant[:, :, -(self.S_ITA - self.S):] = 0
 
+        #Adjustments for Masked Attention
+        if (mask == 'UpperTriangular'):
+            print(self.A.shape)
+            # Iterate through all rows starting at the provided starting index
+            col_count = 0
+            for h in np.arange(0, self.A.shape[0]):
+                for i in np.arange(index - 1, self.A.shape[2]):
+                    col_count += 1
+                    for j in np.arange(0, col_count):
+                        self.A[h][j][i] = np.iinfo(np.int32).min
+        elif(mask == 'LowerTriangular'):
+            pass
+        elif(mask == 'none'):
+            pass        
+        else:
+            raise ValueError("Mask not supported")
+        
+        matrix = np.squeeze(self.A)
+        plt.imshow(matrix, cmap='viridis')
+        plt.colorbar()
+        plt.title("Matrix A")
+        plt.show()
+
+        self.A = np.clip(self.A, -2**(self.WO - 1), 2**(self.WO - 1) - 1)
+        self.A_requant = requantize(self.A, self.requant_eps_mult[3], self.requant_right_shift[3], self.requant_add[3])
         self.soft(no_partial_softmax)
+
+        matrix = np.squeeze(self.A_partial_softmax)
+        plt.imshow(matrix, cmap='viridis')
+        plt.colorbar()
+        plt.title("Matrix A")
+        plt.show()
 
         self.tiler_AV(self.Qp_requant, self.Kp_requant, self.A_requant, "Qp_in", "Kp_in", "A")
 
@@ -1035,6 +1064,8 @@ def generateTestVectors(path, **kwargs):
     f = kwargs['F']
     h = kwargs['H']
     activation = kwargs['activation']
+    mask = kwargs['mask']
+    index = kwargs['i']
     bias = int(not kwargs['no_bias'])
     export_snitch_cluster = kwargs['export_snitch_cluster']
     export_mempool = kwargs['export_mempool']
@@ -1047,7 +1078,7 @@ def generateTestVectors(path, **kwargs):
     acc1.step1_Qp()
     acc1.step2_Kp()
     acc1.step3_Vp()
-    acc1.step4_QK(kwargs['no_partial_softmax'])
+    acc1.step4_QK(kwargs['no_partial_softmax'], mask, index)
     acc1.step5_AV()
     acc1.step6_O()
     acc1.step7_Osum()

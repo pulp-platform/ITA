@@ -46,6 +46,8 @@ module ita_tb;
   integer N_TILES_INNER_DIM_LINEAR_PROJECTION[N_PHASES];
   integer N_ATTENTION_TILE_ROWS, N_GROUPS;
   activation_e ACTIVATION;
+  mask_e MASK;
+  integer MASK_START_INDEX;
 
   // Signals
   logic         clk, rst_n;
@@ -76,6 +78,8 @@ module ita_tb;
     EMBEDDING_SIZE = `ifdef EMBED_SIZE `EMBED_SIZE `else M_TILE_LEN `endif;
     FEEDFORWARD_SIZE = `ifdef FF_SIZE `FF_SIZE `else M_TILE_LEN `endif;
     ACTIVATION = activation_e'(`ifdef ACTIVATION `ACTIVATION `else Identity `endif);
+    MASK = mask_e'(`ifdef MASK `MASK `else None `endif);
+    MASK_START_INDEX = `ifdef MASK_START_INDEX `MASK_START_INDEX `else 0 `endif;
 
     simdir = {
       "../../simvectors/data_S",
@@ -89,7 +93,11 @@ module ita_tb;
       "_H1_B",
       $sformatf("%0d", `ifdef BIAS `BIAS `else 0 `endif),
       "_",
-      $sformatf( "%s", ACTIVATION)
+      $sformatf("%s", ACTIVATION),
+      "_",
+      $sformatf("%s", MASK),
+      "_I",
+      $sformatf("%0d", MASK_START_INDEX)
     };
     // Round up
     N_TILES_SEQUENCE_DIM = (SEQUENCE_LEN + M_TILE_LEN -1 ) / M_TILE_LEN;
@@ -494,6 +502,8 @@ task automatic apply_ITA_weights(input integer phase);
     ita_ctrl.proj_space = PROJECTION_SPACE;
     ita_ctrl.embed_size = EMBEDDING_SIZE;
     ita_ctrl.ff_size    = FEEDFORWARD_SIZE;
+    ita_ctrl.mask_type  = MASK;
+    ita_ctrl.mask_index = MASK_START_INDEX;
 
     read_activation_constants(ita_ctrl.gelu_b, ita_ctrl.gelu_c, ita_ctrl.activation_requant_mult, ita_ctrl.activation_requant_shift, ita_ctrl.activation_requant_add);
 

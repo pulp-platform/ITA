@@ -40,6 +40,7 @@ module ita_controller
 
   step_e    step_d, step_q;
   counter_t count_d, count_q, bias_count;
+  counter_t mask_count_d, mask_count_q;
   counter_t tile_d, tile_q;
   counter_t inner_tile_d, inner_tile_q;
   counter_t tile_x_d, tile_x_q, bias_tile_x_d, bias_tile_x_q;
@@ -86,6 +87,7 @@ module ita_controller
     softmax_div_done_d = softmax_div_done_q;
     last_time          = 1'b0;
     requant_add        = {N {requant_add_i}};
+    mask_count_d       = (step_q == AV) ? mask_count_q : ctrl_i.mask_start_index;
 
     busy_d       = busy_q;
     softmax_fifo = 1'b0;
@@ -380,8 +382,29 @@ module ita_controller
         end
       end
     end
-
     inp_bias_padded = inp_bias;
+
+    case (ctrl_i.mask_type)
+      None:
+      UpperTriangular: begin
+        if (step_q == AV) begin
+          if ((bias_count + (bias_tile_x_d * M*M/N)) >= (mask_count_q / N) * M) begin
+
+          end else begin
+            mask_count_d = ((mask_count_q & N) == N) ? mask_count_q + M : mask_count_q;
+          end
+            if (((bias_count / M) * N + bias_tile_x_d * M) < mask_count_q) begin
+              for (int i = (second_outer_dim_d & (N-1)); i < N; i++) begin
+                
+              end
+            end else begin
+              
+            end
+          end
+        end
+      end
+      LowerTriangular:
+    endcase
 
     if (inp_valid_i && inp_ready_o && oup_valid_i && oup_ready_i && last_inner_tile_o) begin
       ongoing_d = ongoing_q;
@@ -417,6 +440,7 @@ module ita_controller
       bias_tile_y_q <= '0;
       first_outer_dim_q <= '0;
       second_outer_dim_q <= '0;
+      mask_count_q <= '0;
     end else begin
       step_q    <= step_d;
       count_q   <= count_d;
@@ -434,6 +458,7 @@ module ita_controller
       bias_tile_y_q <= bias_tile_y_d;
       first_outer_dim_q <= first_outer_dim_d;
       second_outer_dim_q <= second_outer_dim_d;
+      mask_count_q <= mask_count_d;
     end
   end
 endmodule
