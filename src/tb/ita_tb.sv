@@ -79,7 +79,7 @@ module ita_tb;
     FEEDFORWARD_SIZE = `ifdef FF_SIZE `FF_SIZE `else M_TILE_LEN `endif;
     ACTIVATION = activation_e'(`ifdef ACTIVATION `ACTIVATION `else Identity `endif);
     MASK = mask_e'(`ifdef MASK `MASK `else None `endif);
-    MASK_START_INDEX = `ifdef MASK_START_INDEX `MASK_START_INDEX `else 0 `endif;
+    MASK_START_INDEX = `ifdef MASK_INDEX `MASK_INDEX `else 1 `endif;
 
     simdir = {
       "../../simvectors/data_S",
@@ -503,7 +503,7 @@ task automatic apply_ITA_weights(input integer phase);
     ita_ctrl.embed_size = EMBEDDING_SIZE;
     ita_ctrl.ff_size    = FEEDFORWARD_SIZE;
     ita_ctrl.mask_type  = MASK;
-    ita_ctrl.mask_index = MASK_START_INDEX;
+    ita_ctrl.mask_start_index = MASK_START_INDEX;
 
     read_activation_constants(ita_ctrl.gelu_b, ita_ctrl.gelu_c, ita_ctrl.activation_requant_mult, ita_ctrl.activation_requant_shift, ita_ctrl.activation_requant_add);
 

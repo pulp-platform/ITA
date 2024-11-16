@@ -35,7 +35,19 @@ else ifeq ($(activation), relu)
 else
 	activation_int = 0
 endif
-vlog_defs += -DNO_STALLS=$(no_stalls) -DSINGLE_ATTENTION=$(single_attention) -DSEQ_LENGTH=$(s) -DEMBED_SIZE=$(e) -DPROJ_SPACE=$(p) -DFF_SIZE=$(f) -DBIAS=$(bias) -DACTIVATION=$(activation_int)
+
+mask ?= none
+ifeq ($(mask), Upper_Triangular)
+	mask_int = 1
+else ifeq ($(mask), Lower_Triangular)
+	mask_int = 2
+else
+	mask_int = 0
+endif
+
+i ?= 1
+
+vlog_defs += -DNO_STALLS=$(no_stalls) -DSINGLE_ATTENTION=$(single_attention) -DSEQ_LENGTH=$(s) -DEMBED_SIZE=$(e) -DPROJ_SPACE=$(p) -DFF_SIZE=$(f) -DBIAS=$(bias) -DACTIVATION=$(activation_int) -DMASK=$(mask_int) -DMASK_INDEX=$(i)
 
 ifeq ($(target), sim_ita_hwpe_tb)
 	BENDER_TARGETS += -t ita_hwpe -t ita_hwpe_test

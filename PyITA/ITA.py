@@ -578,12 +578,9 @@ class Transformer:
         self.A = np.array(
             [np.matmul(self.Qp_requant[i], np.transpose(self.Kp_requant[i]), dtype = np.int32) for i in range(self.H)])
 
-        if (self.S_ITA - self.S) > 0:
-            self.A_requant[:, -(self.S_ITA - self.S):, :] = 0
-            self.A_requant[:, :, -(self.S_ITA - self.S):] = 0
 
         #Adjustments for Masked Attention
-        if (mask == 'UpperTriangular'):
+        if (mask == 'Upper_Triangular'):
             print(self.A.shape)
             # Iterate through all rows starting at the provided starting index
             col_count = 0
@@ -592,7 +589,7 @@ class Transformer:
                     col_count += 1
                     for j in np.arange(0, col_count):
                         self.A[h][j][i] = np.iinfo(np.int32).min
-        elif(mask == 'LowerTriangular'):
+        elif(mask == 'Lower_Triangular'):
             pass
         elif(mask == 'none'):
             pass        
@@ -607,6 +604,11 @@ class Transformer:
 
         self.A = np.clip(self.A, -2**(self.WO - 1), 2**(self.WO - 1) - 1)
         self.A_requant = requantize(self.A, self.requant_eps_mult[3], self.requant_right_shift[3], self.requant_add[3])
+        
+        if (self.S_ITA - self.S) > 0:
+            self.A_requant[:, -(self.S_ITA - self.S):, :] = 0
+            self.A_requant[:, :, -(self.S_ITA - self.S):] = 0
+        
         self.soft(no_partial_softmax)
 
         matrix = np.squeeze(self.A_partial_softmax)
@@ -1065,7 +1067,7 @@ def generateTestVectors(path, **kwargs):
     h = kwargs['H']
     activation = kwargs['activation']
     mask = kwargs['mask']
-    index = kwargs['i']
+    index = kwargs['I']
     bias = int(not kwargs['no_bias'])
     export_snitch_cluster = kwargs['export_snitch_cluster']
     export_mempool = kwargs['export_mempool']

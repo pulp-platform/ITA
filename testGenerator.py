@@ -48,9 +48,9 @@ def generateMHA(**args):
     NO_BIAS = args['no_bias']
     NO_PARTIAL_SOFTMAX = args['no_partial_softmax']
     ACTIVATION = args['activation'].capitalize()
-    MASK = args['mask'].capitalize()
-    INDEX = args['i'].capitalize()
-    base_path = f'{current_dir}/simvectors/data_S{S}_E{E}_P{P}_F{F}_H{H}_B{int(not NO_BIAS)}_{ACTIVATION}_{MASK}_i{INDEX}'
+    MASK = args['mask'][:args['mask'].find("_")].capitalize() + args['mask'][args['mask'].find("_")+1:].capitalize()
+    INDEX = args['I']
+    base_path = f'{current_dir}/simvectors/data_S{S}_E{E}_P{P}_F{F}_H{H}_B{int(not NO_BIAS)}_{ACTIVATION}_{MASK}_I{INDEX}'
 
     if NO_PARTIAL_SOFTMAX:
         path = f'{base_path}_noPartialSoftmax/'
@@ -108,8 +108,8 @@ class TestParser(argparse.ArgumentParser):
                                  default = 'none',
                                  type = str,
                                  help = 'Attention-Mask',
-                                 choices = ['none', 'UpperTriangular', 'LowerTriangular'])
-        self.group1.add_argument('--i', default = 1, type = int, help = 'Masking starting index')
+                                 choices = ['none', 'Upper_Triangular', 'Lower_Triangular'])
+        self.group1.add_argument('-I', default = 1, type = int, help = 'Masking starting index')
         self.group1.add_argument('--no-partial-softmax',
                                  action = 'store_true',
                                  help = 'Disable partial softmax calculation')

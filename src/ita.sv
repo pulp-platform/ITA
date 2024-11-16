@@ -41,7 +41,7 @@ module ita
   inp_t         inp, inp_stream_soft;
   weight_t      inp1, inp1_q, inp2, inp2_q;
   bias_t        inp_bias, inp_bias_padded, inp_bias_q1, inp_bias_q2;
-  oup_t         oup, oup_q, accumulator_oup;
+  oup_t         oup, oup_q, accumulator_oup, masked_acc_oup;
   requant_const_t    requant_mult, requant_shift, activation_requant_mult, activation_requant_shift;
   requant_oup_t requant_oup;
   requant_t         requant_add, activation_requant_add;
@@ -203,6 +203,8 @@ module ita
     .requant_add_o        (requant_add_o      ),
     .inp_bias_i           (inp_bias           ),
     .inp_bias_pad_o       (inp_bias_padded    ),
+    .accumulator_oup_i    (accumulator_oup    ),
+    .accumulator_oup_o    (masked_acc_oup     ),
     .busy_o               (busy_o             )
   );
 
@@ -298,7 +300,7 @@ module ita
 
     .calc_en_i    ( calc_en_q4 && last_inner_tile_q4       ),
     .calc_en_q_i  ( calc_en_q5 && last_inner_tile_q5       ),
-    .result_i     ( accumulator_oup   ),
+    .result_i     ( masked_acc_oup    ),
     .add_i        ( requant_add_o     ),
     .requant_oup_o( requant_oup       )
   );

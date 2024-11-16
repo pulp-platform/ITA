@@ -35,12 +35,15 @@ module ita_controller
   output requant_oup_t requant_add_o        ,
   input  bias_t        inp_bias_i           ,
   output bias_t        inp_bias_pad_o       ,
+  input  oup_t         accumulator_oup_i    ,
+  output oup_t         accumulator_oup_o    ,
   output logic         busy_o
 );
 
   step_e    step_d, step_q;
   counter_t count_d, count_q, bias_count;
-  counter_t mask_count_d, mask_count_q;
+  counter_t mask_pos_d, mask_pos_q;
+  counter_t mask_count_d, mask_count_q1, mask_count_q2, mask_count_q3;
   counter_t tile_d, tile_q;
   counter_t inner_tile_d, inner_tile_q;
   counter_t tile_x_d, tile_x_q, bias_tile_x_d, bias_tile_x_q;
@@ -50,6 +53,7 @@ module ita_controller
   ongoing_soft_t ongoing_soft_d, ongoing_soft_q;
 
   bias_t inp_bias, inp_bias_padded;
+  oup_t acc_oup, masked_acc_oup;
   logic last_time;
 
   tile_t inner_tile_dim;
@@ -60,13 +64,14 @@ module ita_controller
   logic softmax_fifo, softmax_div, softmax_div_done_d, softmax_div_done_q, busy_d, busy_q;
   requant_oup_t requant_add, requant_add_d, requant_add_q;
 
-  assign step_o         = step_q;
-  assign busy_o         = busy_q;
-  assign tile_x_o       = tile_x_q;
-  assign tile_y_o       = tile_y_q;
-  assign inner_tile_o   = inner_tile_q;
-  assign requant_add_o  = requant_add_q;
-  assign inp_bias_pad_o = inp_bias_padded;
+  assign step_o            = step_q;
+  assign busy_o            = busy_q;
+  assign tile_x_o          = tile_x_q;
+  assign tile_y_o          = tile_y_q;
+  assign inner_tile_o      = inner_tile_q;
+  assign requant_add_o     = requant_add_q;
+  assign inp_bias_pad_o    = inp_bias_padded;
+  assign accumulator_oup_o = masked_acc_oup;
 
   always_comb begin
     count_d            = count_q;
@@ -87,7 +92,8 @@ module ita_controller
     softmax_div_done_d = softmax_div_done_q;
     last_time          = 1'b0;
     requant_add        = {N {requant_add_i}};
-    mask_count_d       = (step_q == AV) ? mask_count_q : ctrl_i.mask_start_index;
+    acc_oup            = accumulator_oup_i;
+    mask_pos_d         = (step_q == QK) ? mask_pos_q : (ctrl_i.mask_start_index-1);
 
     busy_d       = busy_q;
     softmax_fifo = 1'b0;
@@ -355,6 +361,7 @@ module ita_controller
     bias_tile_y_d        = (count_q == 0) ? bias_tile_y_q : tile_y_q;
     first_outer_dim_d    = (count_q == 0) ? first_outer_dim_q : first_outer_dim;
     second_outer_dim_d   = (count_q == 0) ? second_outer_dim_q : second_outer_dim;
+    mask_count_d         = bias_count;
 
     if ((step_q != Idle && step_q != MatMul) || (step_q == Idle && bias_count == 255)) begin
       if (inner_tile_q == inner_tile_dim) begin
@@ -385,26 +392,32 @@ module ita_controller
     inp_bias_padded = inp_bias;
 
     case (ctrl_i.mask_type)
-      None:
+      None: begin
+        
+      end
       UpperTriangular: begin
-        if (step_q == AV) begin
-          if ((bias_count + (bias_tile_x_d * M*M/N)) >= (mask_count_q / N) * M) begin
-
-          end else begin
-            mask_count_d = ((mask_count_q & N) == N) ? mask_count_q + M : mask_count_q;
-          end
-            if (((bias_count / M) * N + bias_tile_x_d * M) < mask_count_q) begin
-              for (int i = (second_outer_dim_d & (N-1)); i < N; i++) begin
-                
-              end
-            end else begin
-              
+        // With calc_en_q4
+        if (step_q == QK) begin
+          if (((mask_count_q3 + (bias_tile_y_d * M)) >= mask_pos_q) && (mask_count_q3 + (bias_tile_y_d * M) < (mask_pos_q + N))) begin
+            if ((mask_count_q3 & (N-1)) == (N-1)) begin
+              mask_pos_d = mask_pos_q + N + M;
+            end
+            for (int i = (mask_count_q3 & (N-1)); i < N; i++) begin
+              // requant_out[i] = 1'b0;
+              acc_oup[i] = 26'h2000000;
+            end
+          end else if (((mask_count_q3 + (bias_tile_y_d * M)) & (M-1)) < (mask_pos_q & (M-1))) begin
+            for (int i = 0; i < N; i++) begin
+              acc_oup[i] = 26'h2000000;
             end
           end
         end
       end
-      LowerTriangular:
+      LowerTriangular: begin
+        
+      end
     endcase
+    masked_acc_oup = acc_oup;
 
     if (inp_valid_i && inp_ready_o && oup_valid_i && oup_ready_i && last_inner_tile_o) begin
       ongoing_d = ongoing_q;
@@ -440,7 +453,10 @@ module ita_controller
       bias_tile_y_q <= '0;
       first_outer_dim_q <= '0;
       second_outer_dim_q <= '0;
-      mask_count_q <= '0;
+      mask_pos_q <= '0;
+      mask_count_q1 <= '0;
+      mask_count_q2 <= '0;
+      mask_count_q3 <= '0;
     end else begin
       step_q    <= step_d;
       count_q   <= count_d;
@@ -458,7 +474,10 @@ module ita_controller
       bias_tile_y_q <= bias_tile_y_d;
       first_outer_dim_q <= first_outer_dim_d;
       second_outer_dim_q <= second_outer_dim_d;
-      mask_count_q <= mask_count_d;
+      mask_pos_q <= mask_pos_d;
+      mask_count_q1 <= mask_count_d;
+      mask_count_q2 <= mask_count_q1;
+      mask_count_q3 <= mask_count_q2;
     end
   end
 endmodule
