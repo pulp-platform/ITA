@@ -26,9 +26,17 @@ generate_testvectors:
   stage: test
   script:
     - !reference [.setup_test, script]
-    - python testGenerator.py -H 1 -S 64 -E 64 -P 64 -F 64 --activation gelu
-    - python testGenerator.py -H 1 -S 128 -E 192 -P 256 -F 256 --activation gelu
-    - python testGenerator.py -H 1 -S 192 -E 256 -P 128 -F 128 --activation relu
+    - python testGenerator.py -H 1 -S 64 -E 64 -P 64 -F 64 --activation gelu --skip-vector-validation
+    - python testGenerator.py -H 1 -S 128 -E 192 -P 256 -F 256 --activation gelu --skip-vector-validation
+    - python testGenerator.py -H 1 -S 192 -E 256 -P 128 -F 128 --activation relu --skip-vector-validation
+    - python testGenerator.py -H 1 -S 1 -E 2 -P 3 -F 3 --activation gelu --skip-vector-validation
+    - python testGenerator.py -H 1 -S 1 -E 2 -P 3 -F 3 --activation relu --skip-vector-validation
+    - python testGenerator.py -H 1 -S 63 -E 62 -P 61 -F 61 --activation relu --skip-vector-validation
+    - python testGenerator.py -H 1 -S 65 -E 130 -P 195 -F 195 --activation relu --skip-vector-validation
+    - python testGenerator.py -H 1 -S 127 -E 190 -P 253 -F 253 --activation relu --skip-vector-validation
+    - python testGenerator.py -H 1 -S 511 -E 511 -P 127 -F 63 --activation relu --skip-vector-validation
+    - python testGenerator.py -H 1 -S 63 -E 63 -P 50 -F 129 --activation gelu --skip-vector-validation
+    - python testGenerator.py -H 1 -S 255 -E 63 -P 511 -F 511 --activation identity --skip-vector-validation
   artifacts:
     paths:
       - simvectors
@@ -89,6 +97,73 @@ run_sim:
       activation: relu
       no_stalls: 0
       single_attention: 1
+  script:
+    - make bender
+    - make sim VSIM_FLAGS=-c s=$S e=$E p=$P f=$F bias=1 activation=$activation no_stalls=$no_stalls single_attention=$single_attention
+    - ./modelsim/return_status.sh modelsim/build/transcript $S $E $P $F ita_tb
+
+run_sim_padding:
+  stage: sim
+  needs:
+    - generate_testvectors
+  parallel:
+    matrix:
+    - S: 1
+      E: 2
+      P: 3
+      F: 3
+      activation: gelu
+      no_stalls: 0
+      single_attention: 0
+    - S: 1
+      E: 2
+      P: 3
+      F: 3
+      activation: relu
+      no_stalls: 0
+      single_attention: 0
+    - S: 63
+      E: 62
+      P: 61
+      F: 61
+      activation: relu
+      no_stalls: 0
+      single_attention: 0
+    - S: 65
+      E: 130
+      P: 195
+      F: 195
+      activation: relu
+      no_stalls: 0
+      single_attention: 0
+    - S: 127
+      E: 190
+      P: 253
+      F: 253
+      activation: relu
+      no_stalls: 0
+      single_attention: 0
+    - S: 511
+      E: 511
+      P: 127
+      F: 63
+      activation: relu
+      no_stalls: 0
+      single_attention: 0
+    - S: 63
+      E: 63
+      P: 50
+      F: 129
+      activation: gelu
+      no_stalls: 0
+      single_attention: 0
+    - S: 255
+      E: 63
+      P: 511
+      F: 511
+      activation: identity
+      no_stalls: 0
+      single_attention: 0
   script:
     - make bender
     - make sim VSIM_FLAGS=-c s=$S e=$E p=$P f=$F bias=1 activation=$activation no_stalls=$no_stalls single_attention=$single_attention

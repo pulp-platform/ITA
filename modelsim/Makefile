@@ -6,7 +6,7 @@
 all: lib build
 
 QUESTA_SEPP ?= questa-2023.4
-buildpath   ?= build
+buildpath   ?= $(SIM_FOLDER)
 VOPT        ?= $(QUESTA_SEPP) vopt
 VSIM        ?= $(QUESTA_SEPP) vsim
 VLIB        ?= $(QUESTA_SEPP) vlib

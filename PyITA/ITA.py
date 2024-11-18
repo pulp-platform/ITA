@@ -22,6 +22,9 @@ from typing import Union
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike
 
+import seaborn as sns
+import matplotlib.pyplot as plt
+
 from .softmax import fastSoftmax, realSoftmax, streamingPartialSoftmax
 from .gelu import gelu_requantize, i_gelu_requantized, get_i_gelu_constants, get_i_gelu_requantized_constants
 from .util import (generate_matrix_mem, pack_8b_to_word, pack_array_8b_to_word, pack_hex_24b, pack_multihead_8b_to_word,
@@ -69,10 +72,10 @@ class Transformer:
 
         self._init_paths(path)
 
-        self.S_ITA = max(64, S)
-        self.P_ITA = max(64, P)
-        self.E_ITA = max(64, E)
-        self.F_ITA = max(64, F)
+        self.S_ITA = ((S - 1) // self.ITA_M + 1) * self.ITA_M
+        self.P_ITA = ((P - 1) // self.ITA_M + 1) * self.ITA_M
+        self.E_ITA = ((E - 1) // self.ITA_M + 1) * self.ITA_M
+        self.F_ITA = ((F - 1) // self.ITA_M + 1) * self.ITA_M
         self.H_ITA = 4
         self.split = self.ITA_M // self.ITA_N
 
@@ -110,10 +113,10 @@ class Transformer:
         assert (np.all(K == V))
 
         # WIESEP: Current restrictions for ITA
-        assert (self.S % self.ITA_M == 0), "Sequence length must be divisible by ITA_M"
-        assert (self.P % self.ITA_M == 0), "Projection space must be divisible by ITA_M"
-        assert (self.E % self.ITA_M == 0), "Embedding size must be divisible by ITA_M"
-        assert (self.F % self.ITA_M == 0), "Feedforward size must be divisible by ITA_M"
+        # assert (self.S % self.ITA_M == 0), "Sequence length must be divisible by ITA_M"
+        # assert (self.P % self.ITA_M == 0), "Projection space must be divisible by ITA_M"
+        # assert (self.E % self.ITA_M == 0), "Embedding size must be divisible by ITA_M"
+        # assert (self.F % self.ITA_M == 0), "Feedforward size must be divisible by ITA_M"
 
         assert (
             self.E <= 512
@@ -172,7 +175,9 @@ class Transformer:
         else:
             self.Bq_in = np.zeros((self.H, self.P), dtype = np.int8)
         self.Bq = np.pad(self.Bq_in, ((0, 0), (0, self.P_ITA - self.P)))
-        self.Bq_broadcast = np.reshape(np.repeat(self.Bq, self.S, axis = 0), (self.H, self.S, self.P))
+        self.Bq_broadcast = np.reshape(np.repeat(self.Bq, self.S, axis = 0), (self.H, self.S, self.P_ITA))
+        self.Bq_broadcast = np.pad(self.Bq_broadcast, ((0, 0), (0, self.S_ITA - self.S), (0, 0)))
+
 
         if self.bias:
             self.Bk_in = random_shuffled_tensor(
@@ -180,7 +185,8 @@ class Transformer:
         else:
             self.Bk_in = np.zeros((self.H, self.P), dtype = np.int8)
         self.Bk = np.pad(self.Bk_in, ((0, 0), (0, self.P_ITA - self.P)))
-        self.Bk_broadcast = np.reshape(np.repeat(self.Bk, self.S, axis = 0), (self.H, self.S, self.P))
+        self.Bk_broadcast = np.reshape(np.repeat(self.Bk, self.S, axis = 0), (self.H, self.S, self.P_ITA))
+        self.Bk_broadcast = np.pad(self.Bk_broadcast, ((0, 0), (0, self.S_ITA - self.S), (0, 0)))
 
         if self.bias:
             self.Bv_in = random_shuffled_tensor(
@@ -188,7 +194,8 @@ class Transformer:
         else:
             self.Bv_in = np.zeros((self.H, self.P), dtype = np.int8)
         self.Bv = np.pad(self.Bv_in, ((0, 0), (0, self.P_ITA - self.P)))
-        self.Bv_broadcast = np.reshape(np.repeat(self.Bv, self.S, axis = 0), (self.H, self.S, self.P))
+        self.Bv_broadcast = np.reshape(np.repeat(self.Bv, self.S, axis = 0), (self.H, self.S, self.P_ITA))
+        self.Bv_broadcast = np.pad(self.Bv_broadcast, ((0, 0), (0, self.S_ITA - self.S), (0, 0)))
 
         if self.bias:
             self.Bo_in = random_shuffled_tensor(
@@ -196,7 +203,8 @@ class Transformer:
         else:
             self.Bo_in = np.zeros((self.H, self.E), dtype = np.int8)
         self.Bo = np.pad(self.Bo_in, ((0, 0), (0, self.E_ITA - self.E)))
-        self.Bo_broadcast = np.reshape(np.repeat(self.Bo, self.S, axis = 0), (self.H, self.S, self.E))
+        self.Bo_broadcast = np.reshape(np.repeat(self.Bo, self.S, axis = 0), (self.H, self.S, self.E_ITA))
+        self.Bo_broadcast = np.pad(self.Bo_broadcast, ((0, 0), (0, self.S_ITA - self.S), (0, 0)))
 
         if self.bias:
             self.Bff_in = random_shuffled_tensor(
@@ -204,14 +212,16 @@ class Transformer:
         else:
             self.Bff_in = np.zeros((1, self.F), dtype = np.int8)
         self.Bff = np.pad(self.Bff_in, ((0, 0), (0, self.F_ITA - self.F)))
-        self.Bff_broadcast = np.reshape(np.repeat(self.Bff, self.S, axis = 0), (1, self.S, self.F))
+        self.Bff_broadcast = np.reshape(np.repeat(self.Bff, self.S, axis = 0), (1, self.S, self.F_ITA))
+        self.Bff_broadcast = np.pad(self.Bff_broadcast, ((0, 0), (0, self.S_ITA - self.S), (0, 0)))
         if self.bias:
             self.Bff2_in = random_shuffled_tensor(
                 (1, self.E), int(np.log2(self.E)) + 8, type = np.int32) if Bff2 is None else Bff2
         else:
             self.Bff2_in = np.zeros((1, self.E), dtype = np.int8)
         self.Bff2 = np.pad(self.Bff2_in, ((0, 0), (0, self.E_ITA - self.E)))
-        self.Bff2_broadcast = np.reshape(np.repeat(self.Bff2, self.S, axis = 0), (1, self.S, self.E))
+        self.Bff2_broadcast = np.reshape(np.repeat(self.Bff2, self.S, axis = 0), (1, self.S, self.E_ITA))
+        self.Bff2_broadcast = np.pad(self.Bff2_broadcast, ((0, 0), (0, self.S_ITA - self.S), (0, 0)))
 
         #### Intermediate tensors ####
 
@@ -348,6 +358,9 @@ class Transformer:
 
         # Weight Wqk is H x E x P
         # Transpose Wqk to H x P x E
+        # print(f"qk: {qk.shape}")
+        # print(f"qk: {weight.shape}")
+
         weight = np.transpose(weight, (0, 2, 1))
 
         tile_x = qk.shape[0] // self.ITA_M  # S // ITA_M
@@ -362,6 +375,19 @@ class Transformer:
         Input = np.tile(Input, [1, 1, self.split, 1])
         # Repeat each tile number of output row tiles times
         Input = np.tile(Input, [1, tile_y, 1, 1]).reshape((-1, self.ITA_M))
+        # fig, ax = plt.subplots(1, 2)  # Create a figure with two subplots
+        # im0 = ax[0].imshow(Input, cmap='viridis')
+        # im1 = ax[1].imshow(np.squeeze(weight, axis=0))
+
+        # # Add colorbars for each image if needed
+        # fig.colorbar(im0, ax=ax[0])
+        # fig.colorbar(im1, ax=ax[1])
+
+        # # Set titles for each subplot
+        # ax[0].set_title("Inputs")
+        # ax[1].set_title("Weights")
+
+        plt.show()
         write_matrix(Input, input_file, self.paths["standalone"])
 
         # Transposed Weight Wqk is H x P x E
@@ -373,7 +399,7 @@ class Transformer:
 
         # Bias Bqk is H x P
         # Broadcast Bias Bqk to H x S x P
-        bias = np.tile(bias, [1, self.S, 1])
+        bias = np.tile(bias, [1, self.S_ITA, 1])
         for h in range(self.H):
             Bias = split_matrix(bias[h], (self.ITA_M, self.ITA_N))
             write_matrix(Bias, f"{bias_file}_{h}", self.paths["standalone"])
@@ -416,7 +442,7 @@ class Transformer:
 
         # Bias Bv is H x P
         # Broadcast Bias Bv to H x S x P
-        bias = np.tile(bias, [1, self.S, 1])
+        bias = np.tile(bias, [1, self.S_ITA, 1])
         # Transpose Bias Bv to H x P x S
         bias = np.transpose(bias, (0, 2, 1))
         for h in range(self.H):
@@ -497,7 +523,7 @@ class Transformer:
 
         # Bias Bo is H x E
         # Broadcast Bias Bo to H x S x E
-        bias = np.tile(bias, [1, self.S, 1])
+        bias = np.tile(bias, [1, self.S_ITA, 1])
         for h in range(self.H):
             Bias = split_matrix(bias[h], (self.ITA_M, self.ITA_N))
             write_matrix(Bias, f"{bias_file}_{h}", self.paths["standalone"])
@@ -512,6 +538,12 @@ class Transformer:
         self.Qp = np.clip(self.Qp, -2**(self.WO - 1), 2**(self.WO - 1) - 1)
         self.Qp_requant = requantize(self.Qp, self.requant_eps_mult[0], self.requant_right_shift[0],
                                      self.requant_add[0])
+        
+        # Set padded values to zero
+        if (self.S_ITA - self.S) > 0:
+            self.Qp_requant[:, -(self.S_ITA - self.S):, :] = 0
+        if (self.P_ITA - self.P) > 0:
+            self.Qp_requant[:, :, -(self.P_ITA - self.P):] = 0
 
         self.tiler_QK(self.Q, self.Wq, self.Bq, self.Qp_requant, "Q", "Wq", "Bq", "Qp")
 
@@ -521,6 +553,11 @@ class Transformer:
         self.Kp_requant = requantize(self.Kp, self.requant_eps_mult[1], self.requant_right_shift[1],
                                      self.requant_add[1])
 
+        if (self.S_ITA - self.S) > 0:
+            self.Kp_requant[:, -(self.S_ITA - self.S):, :] = 0
+        if (self.P_ITA - self.P) > 0:
+            self.Kp_requant[:, :, -(self.P_ITA - self.P):] = 0
+
         self.tiler_QK(self.K, self.Wk, self.Bk, self.Kp_requant, "K", "Wk", "Bk", "Kp")
 
     def step3_Vp(self):
@@ -528,6 +565,11 @@ class Transformer:
         self.Vp = np.clip(self.Vp, -2**(self.WO - 1), 2**(self.WO - 1) - 1)
         self.Vp_requant = requantize(self.Vp, self.requant_eps_mult[2], self.requant_right_shift[2],
                                      self.requant_add[2])
+
+        if (self.S_ITA - self.S) > 0:
+            self.Vp_requant[:, -(self.S_ITA - self.S):, :] = 0
+        if (self.P_ITA - self.P) > 0:
+            self.Vp_requant[:, :, -(self.P_ITA - self.P):] = 0
 
         # Compute Vp in transposed form
         self.tiler_V(self.V, self.Wv, self.Bv, self.Vp_requant, "V", "Wv", "Bv", "Vp")
@@ -537,16 +579,27 @@ class Transformer:
             [np.matmul(self.Qp_requant[i], np.transpose(self.Kp_requant[i]), dtype = np.int32) for i in range(self.H)])
         self.A = np.clip(self.A, -2**(self.WO - 1), 2**(self.WO - 1) - 1)
         self.A_requant = requantize(self.A, self.requant_eps_mult[3], self.requant_right_shift[3], self.requant_add[3])
+
+        if (self.S_ITA - self.S) > 0:
+            self.A_requant[:, -(self.S_ITA - self.S):, :] = 0
+            self.A_requant[:, :, -(self.S_ITA - self.S):] = 0
+
         self.soft(no_partial_softmax)
 
         self.tiler_AV(self.Qp_requant, self.Kp_requant, self.A_requant, "Qp_in", "Kp_in", "A")
 
     def soft(self, no_partial_softmax = False):
-        self.A_real_softmax = realSoftmax(self.A_requant)
+        self.A_real_softmax = realSoftmax(self.A_requant[:, :self.S, :self.S])
+        self.A_real_softmax = np.pad(self.A_real_softmax, ((0, 0), (0, self.S_ITA - self.S), (0, self.S_ITA - self.S)))
+
         if no_partial_softmax:
-            self.A_partial_softmax = fastSoftmax(self.A_requant)
+            self.A_partial_softmax = fastSoftmax(self.A_requant[:, :self.S, :self.S])
+            self.A_partial_softmax = np.pad(self.A_partial_softmax,
+                                            ((0, 0), (0, self.S_ITA - self.S), (0, self.S_ITA - self.S)))
         else:
-            self.A_partial_softmax = streamingPartialSoftmax(self.A_requant)
+            self.A_partial_softmax = streamingPartialSoftmax(self.A_requant[:, :self.S, :self.S])
+            self.A_partial_softmax = np.pad(self.A_partial_softmax,
+                                            ((0, 0), (0, self.S_ITA - self.S), (0, self.S_ITA - self.S)))
 
         if self.H == 1:
             A_save = [np.tile(self.A_partial_softmax[i], [self.split, 1]) for i in range(self.H)]
@@ -563,6 +616,11 @@ class Transformer:
         self.O_soft = np.clip(self.O_soft, -2**(self.WO - 1), 2**(self.WO - 1) - 1)
         self.O_soft_requant = requantize(self.O_soft, self.requant_eps_mult[4], self.requant_right_shift[4],
                                          self.requant_add[4])
+
+        if (self.S_ITA - self.S) > 0:
+            self.O_soft_requant[:, -(self.S_ITA - self.S):, :] = 0
+        if (self.P_ITA - self.P) > 0:
+            self.O_soft_requant[:, :, -(self.P_ITA - self.P):] = 0
 
         self.tiler_AV(self.A_requant, np.transpose(self.Vp_requant, (0, 2, 1)), self.O_soft_requant, "A_stream_soft_in",
                       "Vp_in", "O_soft")
@@ -590,6 +648,12 @@ class Transformer:
         self.Out_soft = np.clip(self.Out_soft, -2**(self.WO - 1), 2**(self.WO - 1) - 1)
         self.Out_soft_requant = requantize(self.Out_soft, self.requant_eps_mult[5], self.requant_right_shift[5],
                                            self.requant_add[5])
+
+        if (self.S_ITA - self.S) > 0:
+            self.Out_soft_requant[:, -(self.S_ITA - self.S):, :] = 0
+        if (self.E_ITA - self.E) > 0:
+            self.Out_soft_requant[:, :, -(self.E_ITA - self.E):] = 0
+
         self.tiler_Out(self.O_soft_requant, self.Wo, self.Bo, self.Out_soft_requant, "O_soft_in", "Wo", "Bo",
                        "Out_soft")
 
@@ -599,7 +663,7 @@ class Transformer:
         self.FFp_requant = requantize(self.FFp, self.requant_eps_mult_ffn[0], self.requant_right_shift_ffn[0],
                                       self.requant_add_ffn[0])
         self.FFp_requant = self.apply_activation(self.FFp_requant, self.activation)
-
+    
         self.tiler_QK(self.FF, self.Wff, self.Bff, self.FFp_requant, "FF", "Wff", "Bff", "FFp")
 
         self.FF2p = np.matmul(self.FFp_requant, self.Wff2, dtype = np.int32) + self.Bff2_broadcast
@@ -934,8 +998,8 @@ class Transformer:
 
     def export_numpy(self):
         assert np.all(np.equal(self.K, self.V)), "For ITA, keys and values have to be equal"
-        q = self.Q
-        k = self.K
+        q = self.Q_in
+        k = self.K_in
         w1 = self.Wq_in
         b1 = self.Bq_in
         w2 = self.Wk_in
