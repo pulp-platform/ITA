@@ -42,7 +42,8 @@ module ita_controller
 
   step_e    step_d, step_q;
   counter_t count_d, count_q, bias_count;
-  counter_t mask_pos_d, mask_pos_q;
+  logic [14:0] mask_pos_d, mask_pos_q; // 512 * 512 / 16 = 16384 
+  logic [3:0] mask_col_offset_d, mask_col_offset_q;
   counter_t mask_count_d, mask_count_q1, mask_count_q2, mask_count_q3;
   counter_t tile_d, tile_q;
   counter_t inner_tile_d, inner_tile_q;
@@ -93,7 +94,8 @@ module ita_controller
     last_time          = 1'b0;
     requant_add        = {N {requant_add_i}};
     acc_oup            = accumulator_oup_i;
-    mask_pos_d         = (step_q == QK) ? mask_pos_q : (ctrl_i.mask_start_index-1);
+    mask_col_offset_d  = (step_q == QK) ? mask_col_offset_q : ((ctrl_i.mask_start_index-1) & (N-1));
+    mask_pos_d         = (step_q == QK) ? mask_pos_q : (((ctrl_i.mask_start_index-1)/N)*M);
 
     busy_d       = busy_q;
     softmax_fifo = 1'b0;
@@ -398,15 +400,23 @@ module ita_controller
       UpperTriangular: begin
         // With calc_en_q4
         if (step_q == QK) begin
-          if (((mask_count_q3 + (bias_tile_y_d * M)) >= mask_pos_q) && (mask_count_q3 + (bias_tile_y_d * M) < (mask_pos_q + N))) begin
-            if ((mask_count_q3 & (N-1)) == (N-1)) begin
-              mask_pos_d = mask_pos_q + N + M;
+          if (((mask_count_q3) >= (mask_pos_q & ((M*M/N)-1))) &&
+                (mask_count_q3 < ((mask_pos_q & ((M*M/N)-1)) + N)) &&
+                  ((mask_pos_q & ((bias_tile_y_d * (M*M/N)) + (bias_tile_x_d * (M*M/N)))) >= '0)) begin
+            if ((mask_count_q3 & (M-1)) == '1) begin
+              // When the pattern changes the y_tile dim
+              mask_pos_d = mask_count_q3 + (2*(M*M/N) - (M+1));
             end
-            for (int i = (mask_count_q3 & (N-1)); i < N; i++) begin
+            if (((mask_count_q3 + mask_col_offset_q) & (N-1)) == (N-1)) begin
+              mask_pos_d = (mask_pos_q + (N - ((mask_pos_q + mask_col_offset_q) & (N-1))) + M);
+              // // The offset needs to be added just one time
+              // mask_col_offset_d = '0;
+            end
+            for (int i = ((mask_count_q3 + mask_col_offset_q) & (N-1)); i < N; i++) begin
               // requant_out[i] = 1'b0;
               acc_oup[i] = 26'h2000000;
             end
-          end else if (((mask_count_q3 + (bias_tile_y_d * M)) & (M-1)) < (mask_pos_q & (M-1))) begin
+          end else if ((mask_count_q3 + ((bias_tile_y_d * (M*M/N)) + (bias_tile_x_d * (M*M/N)))) < mask_pos_q) begin
             for (int i = 0; i < N; i++) begin
               acc_oup[i] = 26'h2000000;
             end
@@ -454,6 +464,7 @@ module ita_controller
       first_outer_dim_q <= '0;
       second_outer_dim_q <= '0;
       mask_pos_q <= '0;
+      mask_col_offset_q <= '0;
       mask_count_q1 <= '0;
       mask_count_q2 <= '0;
       mask_count_q3 <= '0;
@@ -475,6 +486,7 @@ module ita_controller
       first_outer_dim_q <= first_outer_dim_d;
       second_outer_dim_q <= second_outer_dim_d;
       mask_pos_q <= mask_pos_d;
+      mask_col_offset_q <= mask_col_offset_d;
       mask_count_q1 <= mask_count_d;
       mask_count_q2 <= mask_count_q1;
       mask_count_q3 <= mask_count_q2;

@@ -21,6 +21,11 @@ add wave -noupdate -radix unsigned /ita_tb/dut/i_controller/mask_pos_q
 add wave -noupdate -radix unsigned /ita_tb/dut/i_controller/mask_count_q1
 add wave -noupdate -radix unsigned /ita_tb/dut/i_controller/mask_count_q2
 add wave -noupdate -radix unsigned /ita_tb/dut/i_controller/mask_count_q3
+add wave -noupdate -radix unsigned /ita_tb/dut/i_controller/mask_col_offset_q
+add wave -noupdate -radix unsigned /ita_tb/dut/i_controller/bias_tile_x_d
+add wave -noupdate -radix unsigned /ita_tb/dut/i_controller/bias_tile_x_q
+add wave -noupdate -radix unsigned /ita_tb/dut/i_controller/bias_tile_y_d
+add wave -noupdate -radix unsigned /ita_tb/dut/i_controller/bias_tile_y_q
 add wave -noupdate -group Requant /ita_tb/dut/i_controller/requant_add_i
 add wave -noupdate -group Requant /ita_tb/dut/i_controller/requant_add_o
 add wave -noupdate -group Requant /ita_tb/dut/i_controller/step_q

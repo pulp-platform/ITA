@@ -19,6 +19,11 @@ add wave -noupdate -radix unsigned /ita_tb/dut/i_controller/mask_pos_q
 add wave -noupdate -radix unsigned /ita_tb/dut/i_controller/mask_count_q1
 add wave -noupdate -radix unsigned /ita_tb/dut/i_controller/mask_count_q2
 add wave -noupdate -radix unsigned /ita_tb/dut/i_controller/mask_count_q3
+add wave -noupdate -radix unsigned /ita_tb/dut/i_controller/mask_col_offset_q
+add wave -noupdate -radix unsigned /ita_tb/dut/i_controller/bias_tile_x_d
+add wave -noupdate -radix unsigned /ita_tb/dut/i_controller/bias_tile_x_q
+add wave -noupdate -radix unsigned /ita_tb/dut/i_controller/bias_tile_y_d
+add wave -noupdate -radix unsigned /ita_tb/dut/i_controller/bias_tile_y_q
 add wave -noupdate -group Requant /ita_tb/dut/i_controller/requant_add_i
 add wave -noupdate -group Requant /ita_tb/dut/i_controller/requant_add_o
 add wave -noupdate -group Requant /ita_tb/dut/i_controller/step_q
@@ -93,18 +98,21 @@ add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/step_q
 add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/count_d
 add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/count_q
 add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/bias_count
+add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/mask_pos_d
+add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/mask_pos_q
+add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/mask_col_offset_d
+add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/mask_count_d
+add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/mask_count_q1
+add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/mask_count_q2
+add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/mask_count_q3
 add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/tile_d
 add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/tile_q
 add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/inner_tile_d
 add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/inner_tile_q
 add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/tile_x_d
 add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/tile_x_q
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/bias_tile_x_d
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/bias_tile_x_q
 add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/tile_y_d
 add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/tile_y_q
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/bias_tile_y_d
-add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/bias_tile_y_q
 add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/softmax_tile_d
 add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/softmax_tile_q
 add wave -noupdate -expand -group Controller /ita_tb/dut/i_controller/ongoing_d
@@ -243,9 +251,9 @@ add wave -noupdate -group Accumulator /ita_tb/dut/i_accumulator/write_addr_q
 add wave -noupdate -group Accumulator /ita_tb/dut/i_accumulator/result_d
 add wave -noupdate -group Accumulator /ita_tb/dut/i_accumulator/result_q
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {3910600 ps} 1} {{Cursor 2} {3866984 ps} 1} {{Cursor 3} {3862963 ps} 0}
-quietly wave cursor active 3
-configure wave -namecolwidth 150
+WaveRestoreCursors {{Cursor 1} {8544600 ps} 0}
+quietly wave cursor active 1
+configure wave -namecolwidth 190
 configure wave -valuecolwidth 100
 configure wave -justifyvalue left
 configure wave -signalnamewidth 1
@@ -259,4 +267,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {3842774 ps} {3887382 ps}
+WaveRestoreZoom {8544100 ps} {8545063 ps}
