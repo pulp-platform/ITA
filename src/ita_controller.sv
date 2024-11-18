@@ -84,9 +84,7 @@ module ita_controller
     step_d             = step_q;
     softmax_tile_d     = softmax_tile_q;
     softmax_div_done_d = softmax_div_done_q;
-    requant_add_d      = {N {requant_add_i}};
     last_time          = 1'b0;
-    inp_bias           = inp_bias_i;
 
     busy_d       = busy_q;
     softmax_fifo = 1'b0;
@@ -347,6 +345,8 @@ module ita_controller
       end
     endcase
 
+    inp_bias             = inp_bias_i;
+    requant_add_d        = {N {requant_add_i}};
     bias_count = (count_q == 0) ? 255 : count_q - 1;
     bias_tile_x_d        = (count_q == 0) ? bias_tile_x_q : tile_x_q;
     bias_tile_y_d        = (count_q == 0) ? bias_tile_y_q : tile_y_q;
@@ -363,9 +363,11 @@ module ita_controller
       end else begin
         if ( ((bias_count) + bias_tile_x_d * M*M/N) >= (second_outer_dim_d / N) * M ) begin
           if ( (((bias_count) / M) * N + bias_tile_x_d * M ) < second_outer_dim_d) begin
-            for (int i = (second_outer_dim_d & (N-1)); i < N; i++) begin
-              requant_add_d[i] = 1'b0;
-              inp_bias[i] = 1'b0;
+            for (int i = 0; i < N; i++) begin
+              if (i >= (second_outer_dim_d & (N-1))) begin
+                requant_add_d[i] = 1'b0;
+                inp_bias[i] = 1'b0;
+              end
             end
           end else begin
             requant_add_d = {N {1'b0}};
