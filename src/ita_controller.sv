@@ -57,7 +57,7 @@ module ita_controller
   logic [WO-WI*2-2:0] second_outer_dim_d, second_outer_dim_q;  
 
   logic softmax_fifo, softmax_div, softmax_div_done_d, softmax_div_done_q, busy_d, busy_q;
-  requant_oup_t requant_add_d, requant_add_q;
+  requant_oup_t requant_add, requant_add_d, requant_add_q;
 
   assign step_o         = step_q;
   assign busy_o         = busy_q;
@@ -85,6 +85,7 @@ module ita_controller
     softmax_tile_d     = softmax_tile_q;
     softmax_div_done_d = softmax_div_done_q;
     last_time          = 1'b0;
+    requant_add        = {N {requant_add_i}};
 
     busy_d       = busy_q;
     softmax_fifo = 1'b0;
@@ -346,7 +347,7 @@ module ita_controller
     endcase
 
     inp_bias             = inp_bias_i;
-    requant_add_d        = {N {requant_add_i}};
+    requant_add_d        = requant_add;
     bias_count = (count_q == 0) ? 255 : count_q - 1;
     bias_tile_x_d        = (count_q == 0) ? bias_tile_x_q : tile_x_q;
     bias_tile_y_d        = (count_q == 0) ? bias_tile_y_q : tile_y_q;
@@ -367,6 +368,9 @@ module ita_controller
               if (i >= (second_outer_dim_d & (N-1))) begin
                 requant_add_d[i] = 1'b0;
                 inp_bias[i] = 1'b0;
+              end else begin
+                requant_add_d[i] = requant_add[i];
+                inp_bias[i] = inp_bias_i[i];
               end
             end
           end else begin
