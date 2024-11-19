@@ -42,7 +42,7 @@ module ita_controller
 
   step_e    step_d, step_q;
   counter_t count_d, count_q, bias_count;
-  logic [14:0] mask_pos_d, mask_pos_q;
+  counter_t mask_pos_d, mask_pos_q;
   logic [3:0] mask_col_offset_d, mask_col_offset_q;
   counter_t mask_count_d, mask_count_q1, mask_count_q2, mask_count_q3;
   counter_t tile_d, tile_q;
@@ -406,9 +406,9 @@ module ita_controller
       UpperTriangular: begin
         // With calc_en_q4
         if (step_q == QK) begin
-          if ((mask_tile_x_pos_q == inner_tile_dim) && (mask_count_q3 == ((M*M/N)-1))) begin
+          if ((mask_tile_x_pos_q == ctrl_i.tile_s-1) && (mask_count_q3 == ((M*M/N)-1))) begin
             mask_tile_x_pos_d = 1'b0;
-          end else if (mask_count_q3 == ((M*M/N)-1)) begin
+          end else if (mask_count_q3 == ((M*M/N)-1) && calc_en_q4) begin
             mask_tile_x_pos_d = mask_tile_x_pos_q + 1'b1;
           end else begin
             mask_tile_x_pos_d = mask_tile_x_pos_q;
