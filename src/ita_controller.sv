@@ -37,10 +37,11 @@ module ita_controller
   output bias_t        inp_bias_pad_o       ,
   input  oup_t         accumulator_oup_i    ,
   output oup_t         accumulator_oup_o    ,
-  output logic         busy_o
+  output logic         busy_o               ,
+  input  logic         calc_en_q4_i          
 );
 
-  step_e    step_d, step_q;
+  step_e    step_d, step_q, step_q2, step_q3;
   counter_t count_d, count_q, bias_count;
   counter_t mask_pos_d, mask_pos_q;
   logic [3:0] mask_col_offset_d, mask_col_offset_q;
@@ -408,7 +409,7 @@ module ita_controller
         if (step_q == QK) begin
           if ((mask_tile_x_pos_q == ctrl_i.tile_s-1) && (mask_count_q3 == ((M*M/N)-1))) begin
             mask_tile_x_pos_d = 1'b0;
-          end else if (mask_count_q3 == ((M*M/N)-1) && calc_en_q4) begin
+          end else if (mask_count_q3 == ((M*M/N)-1) && calc_en_q4_i) begin
             mask_tile_x_pos_d = mask_tile_x_pos_q + 1'b1;
           end else begin
             mask_tile_x_pos_d = mask_tile_x_pos_q;
@@ -463,6 +464,8 @@ module ita_controller
   always_ff @(posedge clk_i or negedge rst_ni) begin
     if(~rst_ni) begin
       step_q    <= Idle;
+      step_q2 <= '0;
+      step_q3 <= '0;
       count_q   <= '0;
       tile_q    <= '0;
       tile_x_q  <= '0;
@@ -491,6 +494,8 @@ module ita_controller
       mask_tile_y_pos_q <= '0;
     end else begin
       step_q    <= step_d;
+      step_q2   <= step_q;
+      step_q3   <= step_q2;
       count_q   <= count_d;
       tile_q    <= tile_d;
       tile_x_q  <= tile_x_d;

@@ -583,12 +583,16 @@ class Transformer:
         if (mask == 'Upper_Triangular'):
             print(self.A.shape)
             # Iterate through all rows starting at the provided starting index
-            col_count = 0
-            for h in np.arange(0, self.A.shape[0]):
-                for i in np.arange(index - 1, self.A.shape[2]):
-                    col_count += 1
-                    for j in np.arange(0, col_count):
-                        self.A[h][j][i] = np.iinfo(np.int32).min
+            # col_count = 0
+            # for h in np.arange(0, self.A.shape[0]):
+            #     for i in np.arange(index - 1, self.A.shape[2]):
+            #         col_count += 1
+            #         for j in np.arange(0, col_count):
+            #             self.A[h][j][i] = np.iinfo(np.int32).min
+            for h in range(self.A.shape[0]):
+                for i in range(self.A.shape[1]):
+                    for j in range((i + (index-1)), self.A.shape[2]):
+                        self.A[h][i][j] = np.iinfo(np.int32).min
         elif(mask == 'Lower_Triangular'):
             pass
         elif(mask == 'none'):

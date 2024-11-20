@@ -205,7 +205,8 @@ module ita
     .inp_bias_pad_o       (inp_bias_padded    ),
     .accumulator_oup_i    (accumulator_oup    ),
     .accumulator_oup_o    (masked_acc_oup     ),
-    .busy_o               (busy_o             )
+    .busy_o               (busy_o             ),
+    .calc_en_q4_i         (calc_en_q4         )
   );
 
   ita_input_sampler i_input_sampler (
