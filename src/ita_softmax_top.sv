@@ -38,7 +38,7 @@ module ita_softmax_top
   logic unsigned [             NumDiv-1:0][DividerWidth-1:0] div_oup      ;
   logic unsigned [       DividerWidth-1:0]                   val          ;
 
-  requant_oup_t max_in  ;
+  requant_oup_t max_in;
   requant_t     prev_max, max_out;
 
   ita_max_finder i_max_finder (
