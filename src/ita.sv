@@ -41,12 +41,15 @@ module ita
   inp_t         inp, inp_stream_soft;
   weight_t      inp1, inp1_q, inp2, inp2_q;
   bias_t        inp_bias, inp_bias_padded, inp_bias_q1, inp_bias_q2;
-  oup_t         oup, oup_q, accumulator_oup, masked_acc_oup;
+  oup_t         oup, oup_q, accumulator_oup;
   requant_const_t    requant_mult, requant_shift, activation_requant_mult, activation_requant_shift;
   requant_oup_t requant_oup;
   requant_t         requant_add, activation_requant_add;
   requant_mode_e    requant_mode, activation_requant_mode;
   requant_oup_t post_activation;
+
+  //Masking
+  logic [N-1:0] mask, mask_q1, mask_q2, mask_q3, mask_q4, mask_q5, mask_q6;
 
   // FIFO signals
   logic        fifo_full, fifo_empty, push_to_fifo, pop_from_fifo;
@@ -106,6 +109,12 @@ module ita
       activation_q3         <= Identity;
       activation_q2         <= Identity;
       activation_q1         <= Identity;
+      mask_q6               <= '0;
+      mask_q5               <= '0;
+      mask_q4               <= '0;
+      mask_q3               <= '0;
+      mask_q2               <= '0;
+      mask_q1               <= '0;
     end else begin
       calc_en_q10           <= calc_en_q9;
       calc_en_q9            <= calc_en_q8;
@@ -146,6 +155,12 @@ module ita
       activation_q3         <= activation_q2;
       activation_q2         <= activation_q1;
       activation_q1         <= ctrl_i.activation;
+      mask_q6               <= mask_q5;
+      mask_q5               <= mask_q4;
+      mask_q4               <= mask_q3;
+      mask_q3               <= mask_q2;
+      mask_q2               <= mask_q1;
+      mask_q1               <= mask;
     end
   end
 
@@ -203,10 +218,9 @@ module ita
     .requant_add_o        (requant_add_o      ),
     .inp_bias_i           (inp_bias           ),
     .inp_bias_pad_o       (inp_bias_padded    ),
-    .accumulator_oup_i    (accumulator_oup    ),
-    .accumulator_oup_o    (masked_acc_oup     ),
+    .mask_o               (mask               ),
     .busy_o               (busy_o             ),
-    .calc_en_q4_i         (calc_en_q4         )
+    .calc_en_q1_i         (calc_en_q1         )
   );
 
   ita_input_sampler i_input_sampler (
@@ -274,7 +288,8 @@ module ita
     .inp_stream_soft_o    (inp_stream_soft                 ),
     .tile_x_i             (tile_x                          ),
     .tile_y_i             (tile_y                          ),
-    .inner_tile_i         (inner_tile                      )
+    .inner_tile_i         (inner_tile                      ),
+    .mask_i               (mask_q6                         )
   );
 
 
@@ -301,7 +316,7 @@ module ita
 
     .calc_en_i    ( calc_en_q4 && last_inner_tile_q4       ),
     .calc_en_q_i  ( calc_en_q5 && last_inner_tile_q5       ),
-    .result_i     ( masked_acc_oup    ),
+    .result_i     ( accumulator_oup    ),
     .add_i        ( requant_add_o     ),
     .requant_oup_o( requant_oup       )
   );

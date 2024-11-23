@@ -241,6 +241,8 @@ class Transformer:
         self.A_real_softmax = np.zeros([self.H, self.S, self.S], dtype = np.int8)
         self.A_partial_softmax = np.zeros([self.H, self.S, self.S], dtype = np.int8)
 
+        self.Mask = None
+
         self.O_soft = None
         self.O_soft_requant = None
 
@@ -577,22 +579,18 @@ class Transformer:
     def step4_QK(self, no_partial_softmax, mask, index):
         self.A = np.array(
             [np.matmul(self.Qp_requant[i], np.transpose(self.Kp_requant[i]), dtype = np.int32) for i in range(self.H)])
+        self.A = np.clip(self.A, -2**(self.WO - 1), 2**(self.WO - 1) - 1)
+        self.A_requant = requantize(self.A, self.requant_eps_mult[3], self.requant_right_shift[3], self.requant_add[3])
 
+        self.Mask = np.full((self.H, self.S, self.S), fill_value=False, dtype='bool')
 
         #Adjustments for Masked Attention
         if (mask == 'Upper_Triangular'):
-            print(self.A.shape)
-            # Iterate through all rows starting at the provided starting index
-            # col_count = 0
-            # for h in np.arange(0, self.A.shape[0]):
-            #     for i in np.arange(index - 1, self.A.shape[2]):
-            #         col_count += 1
-            #         for j in np.arange(0, col_count):
-            #             self.A[h][j][i] = np.iinfo(np.int32).min
-            for h in range(self.A.shape[0]):
-                for i in range(self.A.shape[1]):
-                    for j in range((i + (index-1)), self.A.shape[2]):
-                        self.A[h][i][j] = np.iinfo(np.int32).min
+            print(self.Mask.shape)
+            for h in range(self.Mask.shape[0]):
+                for i in range(self.Mask.shape[1]):
+                    for j in range((i + (index-1)), self.Mask.shape[2]):
+                        self.Mask[h][i][j] = True
         elif(mask == 'Lower_Triangular'):
             pass
         elif(mask == 'none'):
@@ -606,8 +604,6 @@ class Transformer:
         plt.title("Matrix A")
         plt.show()
 
-        self.A = np.clip(self.A, -2**(self.WO - 1), 2**(self.WO - 1) - 1)
-        self.A_requant = requantize(self.A, self.requant_eps_mult[3], self.requant_right_shift[3], self.requant_add[3])
         
         if (self.S_ITA - self.S) > 0:
             self.A_requant[:, -(self.S_ITA - self.S):, :] = 0
@@ -618,7 +614,7 @@ class Transformer:
         matrix = np.squeeze(self.A_partial_softmax)
         plt.imshow(matrix, cmap='viridis')
         plt.colorbar()
-        plt.title("Matrix A")
+        plt.title("A After Soft")
         plt.show()
 
         self.tiler_AV(self.Qp_requant, self.Kp_requant, self.A_requant, "Qp_in", "Kp_in", "A")
@@ -632,7 +628,8 @@ class Transformer:
             self.A_partial_softmax = np.pad(self.A_partial_softmax,
                                             ((0, 0), (0, self.S_ITA - self.S), (0, self.S_ITA - self.S)))
         else:
-            self.A_partial_softmax = streamingPartialSoftmax(self.A_requant[:, :self.S, :self.S])
+            self.A_partial_softmax = streamingPartialSoftmax(self.A_requant[:, :self.S, :self.S], self.Mask)
+            self.A_partial_softmax[self.Mask] = 0
             self.A_partial_softmax = np.pad(self.A_partial_softmax,
                                             ((0, 0), (0, self.S_ITA - self.S), (0, self.S_ITA - self.S)))
 

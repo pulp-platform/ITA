@@ -35,10 +35,9 @@ module ita_controller
   output requant_oup_t requant_add_o        ,
   input  bias_t        inp_bias_i           ,
   output bias_t        inp_bias_pad_o       ,
-  input  oup_t         accumulator_oup_i    ,
-  output oup_t         accumulator_oup_o    ,
+  output logic [N-1:0] mask_o               ,
   output logic         busy_o               ,
-  input  logic         calc_en_q4_i          
+  input  logic         calc_en_q1_i          
 );
 
   step_e    step_d, step_q;
@@ -57,8 +56,8 @@ module ita_controller
   ongoing_soft_t ongoing_soft_d, ongoing_soft_q;
 
   bias_t inp_bias, inp_bias_padded;
-  oup_t acc_oup, masked_acc_oup;
   logic last_time;
+  logic [N-1:0] mask_d, mask_q;
 
   tile_t inner_tile_dim;
   logic [WO-WI*2-2:0] first_outer_dim, second_outer_dim;
@@ -76,7 +75,7 @@ module ita_controller
   assign inner_tile_o      = inner_tile_q;
   assign requant_add_o     = requant_add_q;
   assign inp_bias_pad_o    = inp_bias_padded;
-  assign accumulator_oup_o = masked_acc_oup;
+  assign mask_o            = mask_q;
 
   always_comb begin
     count_d            = count_q;
@@ -97,11 +96,11 @@ module ita_controller
     softmax_div_done_d = softmax_div_done_q;
     last_time          = 1'b0;
     requant_add        = {N {requant_add_i}};
-    acc_oup            = accumulator_oup_i;
     mask_col_offset_d  = (step_q == QK) ? mask_col_offset_q : ((ctrl_i.mask_start_index-1) & (N-1));
     mask_pos_d         = (step_q == QK) ? mask_pos_q : (((ctrl_i.mask_start_index-1)/N)*M);
     mask_tile_x_pos_d  = mask_tile_x_pos_q;
     mask_tile_y_pos_d  = mask_tile_y_pos_q;
+    mask_d             = mask_q;
 
     busy_d       = busy_q;
     softmax_fifo = 1'b0;
@@ -399,7 +398,10 @@ module ita_controller
     end
     inp_bias_padded = inp_bias;
 
-
+    
+    for (int i = 0; i < N; i++) begin
+      mask_d[i] = 1'b0;
+    end
     case (ctrl_i.mask_type)
       None: begin
         
@@ -407,43 +409,54 @@ module ita_controller
       UpperTriangular: begin
         // With calc_en_q4
         if (step_q == QK) begin
-          if ((mask_tile_x_pos_q == ctrl_i.tile_s-1) && (mask_count_q3 == ((M*M/N)-1))) begin
-            mask_tile_x_pos_d = 1'b0;
-          end else if (mask_count_q3 == ((M*M/N)-1) && calc_en_q4_i) begin
-            mask_tile_x_pos_d = mask_tile_x_pos_q + 1'b1;
-          end else begin
-            mask_tile_x_pos_d = mask_tile_x_pos_q;
-          end
+          // if ((mask_tile_x_pos_q == ctrl_i.tile_s-1) && (mask_count_q3 == ((M*M/N)-1))) begin
+          //   mask_tile_x_pos_d = 1'b0;
+          // end else if (mask_count_q3 == ((M*M/N)-1) && calc_en_q4_i) begin
+          //   mask_tile_x_pos_d = mask_tile_x_pos_q + 1'b1;
+          // end else begin
+          //   mask_tile_x_pos_d = mask_tile_x_pos_q;
+          // end
 
-          if (mask_tile_x_q3 == mask_tile_x_pos_q && mask_tile_y_q3 == mask_tile_y_pos_q) begin
-            if ((mask_count_q3 >= mask_pos_q) && (mask_count_q3 < (mask_pos_q + N))) begin
-              if ((mask_count_q3 & (M-1)) == 6'd63) begin
-                mask_tile_y_pos_d = mask_tile_y_pos_q + 1'b1;
-                mask_pos_d = (mask_count_q3 + ((7*M) + 1)) & ((M*M/N)-1);
-              end else if (((mask_count_q3 + mask_col_offset_q) & (N-1)) == (N-1)) begin
+          // if (mask_tile_x_q3 == mask_tile_x_pos_q && mask_tile_y_q3 == mask_tile_y_pos_q) begin
+            if ((count_q >= mask_pos_q) && (count_q < (mask_pos_q + N))) begin
+              // if ((count_q & (M-1)) == 6'd63) begin
+              //   mask_tile_y_pos_d = mask_tile_y_pos_q + 1'b1;
+              //   mask_pos_d = (count_q + ((7*M) + 1)) & ((M*M/N)-1);
+              // end else 
+              if (((count_q + mask_col_offset_q) & (N-1)) == (N-1)) begin
                 mask_pos_d = (mask_pos_q + (N - ((mask_pos_q + mask_col_offset_q) & (N-1))) + M) & ((M*M/N)-1);
               end
-              for (int i = ((mask_count_q3 + mask_col_offset_q) & (N-1)); i < N; i++) begin
-                // requant_out[i] = 1'b0;
-                acc_oup[i] = 26'h2000000;
-              end
-            end else if ((mask_count_q3 & (M-1)) < (mask_pos_q & (M-1))) begin
               for (int i = 0; i < N; i++) begin
-                acc_oup[i] = 26'h2000000;
+                if (((count_q + mask_col_offset_q) & (N-1)) >= i) begin
+                  mask_d[i] = 1'b1;
+                end else begin
+                  mask_d[i] = 1'b0;
+                end
+              end
+            end else if ((count_q & (M-1)) < (mask_pos_q & (M-1))) begin
+              for (int i = 0; i < N; i++) begin
+                mask_d[i] = 1'b1;
+              end
+            end else begin
+              for (int i = 0; i < N; i++) begin
+                 mask_d[i] = 1'b0;
               end
             end
-          end else if (mask_tile_x_q3 == mask_tile_x_pos_q && mask_tile_y_q3 != mask_tile_y_pos_q) begin
-            for (int i = 0; i < N; i++) begin
-              acc_oup[i] = 26'h2000000;
-            end
-          end
+          // end else if (mask_tile_x_q3 == mask_tile_x_pos_q && mask_tile_y_q3 != mask_tile_y_pos_q) begin
+          //   for (int i = 0; i < N; i++) begin
+          //     mask_d[i] = 1'b1;
+          //   end
+          // end else begin
+          //   for (int i = 0; i < N; i++) begin
+          //     mask_d[i] = 1'b0;
+          //   end
+          // end   
         end
       end
       LowerTriangular: begin
         
       end
     endcase
-    masked_acc_oup = acc_oup;
 
     if (inp_valid_i && inp_ready_o && oup_valid_i && oup_ready_i && last_inner_tile_o) begin
       ongoing_d = ongoing_q;
@@ -490,6 +503,7 @@ module ita_controller
       mask_count_q3 <= '0;
       mask_tile_x_pos_q <= '0;
       mask_tile_y_pos_q <= '0;
+      mask_q <= '0;
     end else begin
       step_q    <= step_d;
       count_q   <= count_d;
@@ -511,7 +525,10 @@ module ita_controller
       mask_tile_y_q3 <= bias_tile_y_q2;
       first_outer_dim_q <= first_outer_dim_d;
       second_outer_dim_q <= second_outer_dim_d;
-      mask_pos_q <= mask_pos_d;
+      if (calc_en_o) begin
+        mask_pos_q <= mask_pos_d;
+        mask_q <= mask_d;
+      end
       mask_col_offset_q <= mask_col_offset_d;
       mask_count_q1 <= mask_count_d;
       mask_count_q2 <= mask_count_q1;

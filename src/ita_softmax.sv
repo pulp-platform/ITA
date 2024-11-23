@@ -42,7 +42,8 @@ module ita_softmax
   output requant_t                            write_max_data_o,
   input  counter_t                            tile_x_i,
   input  counter_t                            tile_y_i,
-  input  counter_t                            inner_tile_i
+  input  counter_t                            inner_tile_i,
+  input  logic [N-1:0]                        mask_i
 );
 
   counter_t tile_d, tile_q1, tile_q2, tile_q3, tile_q4;
@@ -151,7 +152,7 @@ module ita_softmax
         shift_diff[i] = max_i - requant_oup_q[i];
         disable_shift[i] = ( (tile_q2*M+N*(count_q2 >> $clog2(M))+i ) >= ctrl_i.seq_length);
 
-        if (disable_shift[i]) begin
+        if (disable_shift[i] || mask_i[i]) begin
           max_o[i] = 8'h80;
           shift_d[i] = 4'hF;
         end else begin

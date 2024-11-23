@@ -22,7 +22,8 @@ module ita_softmax_top
   output inp_t         inp_stream_soft_o    ,
   input  counter_t     tile_x_i             ,
   input  counter_t     tile_y_i             ,
-  input  counter_t     inner_tile_i
+  input  counter_t     inner_tile_i         ,
+  input  logic [N-1:0] mask_i
 
 );
 
@@ -121,7 +122,8 @@ module ita_softmax_top
 
     .tile_x_i             (tile_x_i             ),
     .tile_y_i             (tile_y_i             ),
-    .inner_tile_i         (inner_tile_i          )
+    .inner_tile_i         (inner_tile_i         ),
+    .mask_i               (mask_i               )
   );
 
   ita_register_file_1w_multi_port_read #(
