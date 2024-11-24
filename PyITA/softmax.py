@@ -144,15 +144,14 @@ def streamingPartialSoftmax(x, mask, integerize = True):
             shift = diff * eps_max
 
         print(shift.shape)
-        print()
         # Set shift value so high that 2**8 >> shift gets zero for all masked values
         shift[mask[:,:,i*PE:(i*PE)+width]] = 16
-        matrix = np.squeeze(shift)
-        import matplotlib.pyplot as plt
-        plt.imshow(matrix, cmap='viridis')
-        plt.colorbar()
-        plt.title("Shift Matrix")
-        plt.show()
+        # # matrix = np.squeeze(shift)
+        # # import matplotlib.pyplot as plt
+        # # plt.imshow(matrix, cmap='viridis')
+        # # plt.colorbar()
+        # # plt.title("Shift Matrix")
+        # # plt.show()
 
         # Calculate exponential sum over the current part of the row and scale it by 2**10 to prevent underflow
         if integerize:
@@ -167,14 +166,23 @@ def streamingPartialSoftmax(x, mask, integerize = True):
         else:
             exp_partial_sum = (exp_partial_sum / 2**(shift_sum.astype(np.float32))) + exp_sum
 
+    print(f"Max Shape: {global_max.shape}, Max Value: {global_max}")
     print(exp_partial_sum.shape)
     print(exp_partial_sum[0])
+    zero_pos = exp_partial_sum == 0
+    print(zero_pos)
+    exp_partial_sum[zero_pos] = (2**8 - 1) * 2**8
+    exp_partial_sum[0]
+
     ## STAGE 2: Calculate the softmax activation
     # Invert the partial sum
     if integerize:
         exp_partial_sum_inverse = np.floor((2**8 - 1) * 2**8 / exp_partial_sum).astype(np.int32)
     else:
         exp_partial_sum_inverse = 1 / exp_partial_sum
+
+    # print(exp_partial_sum_inverse.shape)
+    # print(exp_partial_sum_inverse[0])
 
     # Find the difference between the maximum and x
     diff = np.repeat(global_max, seq_length).reshape(n_heads, seq_length, seq_length) - x.astype(np.int32)

@@ -656,6 +656,8 @@ class Transformer:
 
         self.tiler_AV(self.A_requant, np.transpose(self.Vp_requant, (0, 2, 1)), self.O_soft_requant, "A_stream_soft_in",
                       "Vp_in", "O_soft")
+        
+        
 
     def apply_activation(self, preactivation, activation):
         if activation not in ["gelu", "relu", "identity"]:

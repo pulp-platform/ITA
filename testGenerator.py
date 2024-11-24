@@ -48,7 +48,7 @@ def generateMHA(**args):
     NO_BIAS = args['no_bias']
     NO_PARTIAL_SOFTMAX = args['no_partial_softmax']
     ACTIVATION = args['activation'].capitalize()
-    MASK = args['mask'][:args['mask'].find("_")].capitalize() + args['mask'][args['mask'].find("_")+1:].capitalize()
+    MASK = args['mask'].capitalize() if (args['mask'].find("_") == -1) else args['mask'][:args['mask'].find("_")].capitalize() + args['mask'][args['mask'].find("_")+1:].capitalize()
     INDEX = args['I']
     base_path = f'{current_dir}/simvectors/data_S{S}_E{E}_P{P}_F{F}_H{H}_B{int(not NO_BIAS)}_{ACTIVATION}_{MASK}_I{INDEX}'
 

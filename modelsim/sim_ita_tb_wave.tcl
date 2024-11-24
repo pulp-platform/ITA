@@ -24,7 +24,7 @@ add wave -noupdate -expand -group {Masking Signals} /ita_tb/dut/i_softmax_top/i_
 add wave -noupdate -expand -group {Masking Signals} /ita_tb/dut/i_softmax_top/i_softmax/exp_sum_d
 add wave -noupdate -expand -group {Masking Signals} /ita_tb/dut/i_softmax_top/i_softmax/exp_sum_q
 add wave -noupdate -expand -group {Masking Signals} /ita_tb/dut/i_softmax_top/i_softmax/disable_row
-add wave -noupdate -expand -group {Masking Signals} /ita_tb/dut/i_softmax_top/i_softmax/disable_col
+add wave -noupdate -expand -group {Masking Signals} -radix binary /ita_tb/dut/i_softmax_top/i_softmax/disable_col
 add wave -noupdate -expand -group {Masking Signals} /ita_tb/dut/i_controller/step_q
 add wave -noupdate -expand -group {Masking Signals} -group {Mask Tile Pos} -radix unsigned /ita_tb/dut/i_controller/mask_tile_x_pos_d
 add wave -noupdate -expand -group {Masking Signals} -group {Mask Tile Pos} -radix unsigned /ita_tb/dut/i_controller/mask_tile_x_pos_q
@@ -36,8 +36,11 @@ add wave -noupdate -expand -group {Masking Signals} -group {Mask Tile Pos} -radi
 add wave -noupdate -expand -group {Masking Signals} -radix unsigned /ita_tb/dut/i_controller/count_q
 add wave -noupdate -expand -group {Masking Signals} /ita_tb/dut/i_controller/mask_d
 add wave -noupdate -expand -group {Masking Signals} -radix unsigned /ita_tb/dut/i_controller/mask_pos_q
-add wave -noupdate -expand -group {Masking Signals} /ita_tb/dut/i_softmax_top/i_softmax/inp_stream_soft_o
 add wave -noupdate -expand -group {Masking Signals} /ita_tb/dut/i_inp2_mux/clk_i
+add wave -noupdate -expand -group {Masking Signals} -radix unsigned /ita_tb/dut/i_softmax_top/i_softmax/inp_stream_soft_o
+add wave -noupdate -expand -group {Masking Signals} -radix unsigned /ita_tb/dut/i_softmax_top/i_softmax/count_soft_q1
+add wave -noupdate -expand -group {Masking Signals} -radix unsigned /ita_tb/dut/i_softmax_top/i_softmax/count_soft_q2
+add wave -noupdate -expand -group {Masking Signals} -radix hexadecimal /ita_tb/dut/i_softmax_top/i_softmax/calc_stream_soft_en_q
 add wave -noupdate -expand -group {Masking Signals} /ita_tb/dut/calc_en
 add wave -noupdate -expand -group {Masking Signals} /ita_tb/dut/calc_en_q1
 add wave -noupdate -expand -group {Masking Signals} /ita_tb/dut/calc_en_q2
