@@ -471,6 +471,9 @@ task automatic apply_ITA_weights(input integer phase);
       oup_valid_q = oup_valid;
       oup_ready_q = oup_ready;
       if (successful_handshake(oup_valid, oup_ready)) begin
+        // if (dut.i_softmax_top.i_softmax.calc_stream_soft_en_q && phase == 3 && dut.step == AV) begin
+        //   $display("Softmax Input: %h", dut.i_softmax_top.i_softmax.inp_i);
+        // end
         tile_entry += 1;
         if (requant_oup !== exp_res) begin
           $display("[TB] ITA: Wrong value received %x, instead of %x at %t. (phase:  %0d)", requant_oup, exp_res, $time, phase);

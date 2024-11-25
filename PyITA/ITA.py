@@ -589,7 +589,7 @@ class Transformer:
             print(self.Mask.shape)
             for h in range(self.Mask.shape[0]):
                 for i in range(self.Mask.shape[1]):
-                    for j in range((i + (index-1)), self.Mask.shape[2]):
+                    for j in range((i + index), self.Mask.shape[2]):
                         self.Mask[h][i][j] = True
         elif(mask == 'Lower_Triangular'):
             pass
@@ -598,10 +598,10 @@ class Transformer:
         else:
             raise ValueError("Mask not supported")
         
-        matrix = np.squeeze(self.A)
+        matrix = np.squeeze(self.A_requant)
         plt.imshow(matrix, cmap='viridis')
         plt.colorbar()
-        plt.title("Matrix A")
+        plt.title("A_requant/A_stream_soft_in")
         plt.show()
 
         
@@ -614,7 +614,7 @@ class Transformer:
         matrix = np.squeeze(self.A_partial_softmax)
         plt.imshow(matrix, cmap='viridis')
         plt.colorbar()
-        plt.title("A After Soft")
+        plt.title("A_partial_softmax")
         plt.show()
 
         self.tiler_AV(self.Qp_requant, self.Kp_requant, self.A_requant, "Qp_in", "Kp_in", "A")
@@ -654,6 +654,12 @@ class Transformer:
         if (self.P_ITA - self.P) > 0:
             self.O_soft_requant[:, :, -(self.P_ITA - self.P):] = 0
 
+        matrix = np.squeeze(self.O_soft_requant)
+        plt.imshow(matrix, cmap='viridis')
+        plt.colorbar()
+        plt.title("O_soft_requant/O_soft")
+        plt.show()
+
         self.tiler_AV(self.A_requant, np.transpose(self.Vp_requant, (0, 2, 1)), self.O_soft_requant, "A_stream_soft_in",
                       "Vp_in", "O_soft")
         
@@ -682,6 +688,12 @@ class Transformer:
         self.Out_soft = np.clip(self.Out_soft, -2**(self.WO - 1), 2**(self.WO - 1) - 1)
         self.Out_soft_requant = requantize(self.Out_soft, self.requant_eps_mult[5], self.requant_right_shift[5],
                                            self.requant_add[5])
+
+        matrix = np.squeeze(self.Out_soft)
+        plt.imshow(matrix, cmap='viridis')
+        plt.colorbar()
+        plt.title("Out_soft")
+        plt.show()
 
         if (self.S_ITA - self.S) > 0:
             self.Out_soft_requant[:, -(self.S_ITA - self.S):, :] = 0

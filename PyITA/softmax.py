@@ -103,11 +103,16 @@ def streamingPartialSoftmax(x, mask, integerize = True):
     for i in range((seq_length + PE - 1) // PE):
         width = seq_length % PE if i * PE + PE > seq_length else PE
 
+        mask_slice = mask[... ,i*PE:(i*PE)+width]
+        x_slice = x[..., 0 + i * PE:width + i * PE]
+        print(f"Mask Slice: {mask_slice.shape}")
+        print(f"X Slice: {x_slice.shape}")
+
         # Find the maximum for each row in the current column block (consisting of 16 columns)
         if integerize:
-            current_max = np.max(x[..., 0 + i * PE:width + i * PE].astype(np.int32), axis = -1)
+            current_max = np.max(np.where(mask_slice, -128, x_slice.astype(np.int32)), axis = -1)
         else:
-            current_max = np.max(x[..., 0 + i * PE:width + i * PE].astype(np.float32), axis = -1)
+            current_max = np.max(np.where(mask_slice, -np.inf, x_slice.astype(np.float32)), axis = -1)
 
         # Initialize all shift values for each row to zero
         if integerize:
@@ -121,6 +126,11 @@ def streamingPartialSoftmax(x, mask, integerize = True):
             max_shift = np.floor((current_max - global_max) * eps_max + 0.5 + np.finfo(np.float32).eps)
         else:
             max_shift = (current_max - global_max) * eps_max
+
+        print(f"Global Max: {global_max.shape}")
+        print(global_max)
+        print(f"Global Max: {current_max.shape}")
+        print(current_max)
 
         # Update all shift values where new maximum is larger
         shift_sum[current_max > global_max] = max_shift[current_max > global_max]
@@ -145,7 +155,7 @@ def streamingPartialSoftmax(x, mask, integerize = True):
 
         print(shift.shape)
         # Set shift value so high that 2**8 >> shift gets zero for all masked values
-        shift[mask[:,:,i*PE:(i*PE)+width]] = 16
+        shift[mask_slice] = 16
         # # matrix = np.squeeze(shift)
         # # import matplotlib.pyplot as plt
         # # plt.imshow(matrix, cmap='viridis')
@@ -165,14 +175,6 @@ def streamingPartialSoftmax(x, mask, integerize = True):
             exp_partial_sum = np.floor((exp_partial_sum / 2**shift_sum)) + exp_sum
         else:
             exp_partial_sum = (exp_partial_sum / 2**(shift_sum.astype(np.float32))) + exp_sum
-
-    print(f"Max Shape: {global_max.shape}, Max Value: {global_max}")
-    print(exp_partial_sum.shape)
-    print(exp_partial_sum[0])
-    zero_pos = exp_partial_sum == 0
-    print(zero_pos)
-    exp_partial_sum[zero_pos] = (2**8 - 1) * 2**8
-    exp_partial_sum[0]
 
     ## STAGE 2: Calculate the softmax activation
     # Invert the partial sum
