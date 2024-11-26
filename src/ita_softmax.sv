@@ -52,7 +52,7 @@ module ita_softmax
   counter_t tile_y_q;
 
   logic unsigned [SoftmaxAccDataWidth-1:0] exp_sum_d, exp_sum_q;
-  counter_t count_soft_d, count_soft_q1, count_soft_q2;
+  counter_t count_soft_d, count_soft_q1, count_soft_q2, count_soft_mask_q;
 
   counter_t count_div_d, count_div_q, addr_div_d, addr_div_q;
   logic [NumDiv-1:0] div_read_d, div_read_q, div_write_d, div_write_q;
@@ -248,7 +248,8 @@ module ita_softmax
           disable_col[i] = ((inner_tile_q*M + i) >= ctrl_i.seq_length);
           if ((inner_tile_q*M + i) >= ctrl_i.seq_length) begin
             disable_col[i] = 1'b1;
-          end else if ((i >= (count_soft_q1 & (M-1))) && (ctrl_i.mask_type == UpperTriangular)) begin
+          // This logic needs to be replaced
+          end else if ((i >= ((count_soft_mask_q & (M-1)) + (ctrl_i.mask_start_index & (M-1)))) && (ctrl_i.mask_type == UpperTriangular)) begin
             disable_col[i] = 1'b1;
           end else begin
             disable_col[i] = 1'b0;
@@ -282,6 +283,7 @@ module ita_softmax
       count_q1              <= M*M/N;
       count_soft_q1         <= '0;
       count_soft_q2         <= '0;
+      count_soft_mask_q     <= '0;    
       count_div_q           <= '0;
       div_read_q            <= '0;
       div_write_q           <= '0;
@@ -303,8 +305,10 @@ module ita_softmax
       count_q3              <= count_q2;
       count_q2              <= count_q1;
       count_q1              <= count_d;
-      count_soft_q1          <= count_soft_d;
-      count_soft_q2          <= count_soft_q1;
+      count_soft_q1         <= count_soft_d;
+      count_soft_q2         <= count_soft_q1;
+      if (calc_stream_soft_en_i)
+        count_soft_mask_q   <= count_soft_q1;
       count_div_q           <= count_div_d;
       div_read_q            <= div_read_d;
       div_write_q           <= div_write_d;

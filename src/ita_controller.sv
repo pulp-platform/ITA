@@ -96,8 +96,8 @@ module ita_controller
     softmax_div_done_d = softmax_div_done_q;
     last_time          = 1'b0;
     requant_add        = {N {requant_add_i}};
-    mask_col_offset_d  = (step_q == QK) ? mask_col_offset_q : ((ctrl_i.mask_start_index-1) & (N-1));
-    mask_pos_d         = (step_q == QK) ? mask_pos_q : (((ctrl_i.mask_start_index-1)/N)*M);
+    mask_col_offset_d  = (step_q == QK) ? mask_col_offset_q : ((ctrl_i.mask_start_index) & (N-1));
+    mask_pos_d         = (step_q == QK) ? mask_pos_q : (((ctrl_i.mask_start_index)/N)*M);
     mask_tile_x_pos_d  = mask_tile_x_pos_q;
     mask_tile_y_pos_d  = mask_tile_y_pos_q;
     mask_d             = mask_q;
@@ -427,7 +427,7 @@ module ita_controller
                 mask_pos_d = (mask_pos_q + (N - ((mask_pos_q + mask_col_offset_q) & (N-1))) + M) & ((M*M/N)-1);
               end
               for (int i = 0; i < N; i++) begin
-                if (((count_q + mask_col_offset_q) & (N-1)) >= i) begin
+                if (((count_q + mask_col_offset_q) & (N-1)) <= i) begin
                   mask_d[i] = 1'b1;
                 end else begin
                   mask_d[i] = 1'b0;

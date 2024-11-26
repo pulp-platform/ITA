@@ -598,6 +598,8 @@ class Transformer:
         else:
             raise ValueError("Mask not supported")
         
+        print(self.Mask)
+        
         matrix = np.squeeze(self.A_requant)
         plt.imshow(matrix, cmap='viridis')
         plt.colorbar()
@@ -689,10 +691,10 @@ class Transformer:
         self.Out_soft_requant = requantize(self.Out_soft, self.requant_eps_mult[5], self.requant_right_shift[5],
                                            self.requant_add[5])
 
-        matrix = np.squeeze(self.Out_soft)
+        matrix = np.squeeze(self.Out_soft_requant)
         plt.imshow(matrix, cmap='viridis')
         plt.colorbar()
-        plt.title("Out_soft")
+        plt.title("Out_soft_requant")
         plt.show()
 
         if (self.S_ITA - self.S) > 0:

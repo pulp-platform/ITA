@@ -129,7 +129,7 @@ def streamingPartialSoftmax(x, mask, integerize = True):
 
         print(f"Global Max: {global_max.shape}")
         print(global_max)
-        print(f"Global Max: {current_max.shape}")
+        print(f"Current Max: {current_max.shape}")
         print(current_max)
 
         # Update all shift values where new maximum is larger
@@ -188,6 +188,10 @@ def streamingPartialSoftmax(x, mask, integerize = True):
 
     # Find the difference between the maximum and x
     diff = np.repeat(global_max, seq_length).reshape(n_heads, seq_length, seq_length) - x.astype(np.int32)
+
+    # The global_max can be smaller than a few positions in x because not all values in x were considered for the global_max due to the mask.
+    # So diff should normally not be smaller than 0
+    diff[mask] = 0
 
     # Shift the values by B-log2B -> multiply by B/2**B = log2e*eps_x
     # Make sure to do use round-half-up instead of round-half-to-even

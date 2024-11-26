@@ -17,13 +17,10 @@ add wave -noupdate -expand -group {Masking Signals} -radix unsigned /ita_tb/dut/
 add wave -noupdate -expand -group {Masking Signals} -radix unsigned /ita_tb/dut/i_controller/mask_count_q1
 add wave -noupdate -expand -group {Masking Signals} -radix unsigned /ita_tb/dut/i_controller/mask_count_q2
 add wave -noupdate -expand -group {Masking Signals} -radix unsigned /ita_tb/dut/i_controller/mask_count_q3
-add wave -noupdate -expand -group {Masking Signals} -radix unsigned /ita_tb/dut/i_controller/mask_col_offset_q
 add wave -noupdate -expand -group {Masking Signals} /ita_tb/dut/i_softmax_top/i_softmax/max_o
 add wave -noupdate -expand -group {Masking Signals} /ita_tb/dut/i_softmax_top/i_softmax/exp_sum_d
 add wave -noupdate -expand -group {Masking Signals} /ita_tb/dut/i_softmax_top/i_softmax/exp_sum_q
 add wave -noupdate -expand -group {Masking Signals} /ita_tb/dut/i_softmax_top/i_softmax/disable_row
-add wave -noupdate -expand -group {Masking Signals} -radix binary /ita_tb/dut/i_softmax_top/i_softmax/disable_col
-add wave -noupdate -expand -group {Masking Signals} /ita_tb/dut/i_controller/step_q
 add wave -noupdate -expand -group {Masking Signals} -group {Mask Tile Pos} -radix unsigned /ita_tb/dut/i_controller/mask_tile_x_pos_d
 add wave -noupdate -expand -group {Masking Signals} -group {Mask Tile Pos} -radix unsigned /ita_tb/dut/i_controller/mask_tile_x_pos_q
 add wave -noupdate -expand -group {Masking Signals} -group {Mask Tile Pos} -radix unsigned /ita_tb/dut/i_controller/mask_tile_y_pos_d
@@ -34,16 +31,7 @@ add wave -noupdate -expand -group {Masking Signals} -group {Mask Tile Pos} -radi
 add wave -noupdate -expand -group {Masking Signals} -radix unsigned /ita_tb/dut/i_controller/count_q
 add wave -noupdate -expand -group {Masking Signals} /ita_tb/dut/i_controller/mask_d
 add wave -noupdate -expand -group {Masking Signals} -radix unsigned /ita_tb/dut/i_controller/mask_pos_q
-add wave -noupdate -expand -group {Masking Signals} /ita_tb/dut/i_inp2_mux/clk_i
-add wave -noupdate -expand -group {Masking Signals} -radix unsigned /ita_tb/dut/i_softmax_top/i_softmax/inp_stream_soft_o
-add wave -noupdate -expand -group {Masking Signals} -radix unsigned /ita_tb/dut/i_softmax_top/i_softmax/count_soft_q1
-add wave -noupdate -expand -group {Masking Signals} -radix unsigned /ita_tb/dut/i_softmax_top/i_softmax/count_soft_q2
-add wave -noupdate -expand -group {Masking Signals} -radix hexadecimal /ita_tb/dut/i_softmax_top/i_softmax/calc_stream_soft_en_q
-add wave -noupdate -expand -group {Masking Signals} /ita_tb/dut/calc_en
-add wave -noupdate -expand -group {Masking Signals} /ita_tb/dut/calc_en_q1
-add wave -noupdate -expand -group {Masking Signals} /ita_tb/dut/calc_en_q2
-add wave -noupdate -expand -group {Masking Signals} /ita_tb/dut/calc_en_q3
-add wave -noupdate -expand -group {Masking Signals} /ita_tb/dut/calc_en_q4
+add wave -noupdate -expand -group {Masking Signals} -radix unsigned /ita_tb/dut/i_controller/mask_col_offset_q
 add wave -noupdate -expand -group {Masking Signals} /ita_tb/dut/calc_en_q5
 add wave -noupdate -expand -group {Masking Signals} /ita_tb/dut/calc_en_q6
 add wave -noupdate /ita_tb/dut/calc_en_q7
@@ -56,8 +44,49 @@ add wave -noupdate -group Bias /ita_tb/dut/inp_bias
 add wave -noupdate -group Bias /ita_tb/dut/inp_bias_padded
 add wave -noupdate -group Bias /ita_tb/dut/inp_bias_q1
 add wave -noupdate -group Bias /ita_tb/dut/inp_bias_q2
+add wave -noupdate /ita_tb/dut/calc_en_q4
+add wave -noupdate -radix unsigned /ita_tb/dut/i_softmax_top/i_softmax/count_soft_q1
+add wave -noupdate -radix unsigned /ita_tb/dut/i_softmax_top/i_softmax/count_soft_mask_q
+add wave -noupdate -radix unsigned /ita_tb/dut/i_softmax_top/i_softmax/count_soft_q2
+add wave -noupdate -radix binary /ita_tb/dut/i_softmax_top/i_softmax/disable_col
+add wave -noupdate /ita_tb/dut/i_inp2_mux/clk_i
+add wave -noupdate /ita_tb/dut/i_controller/step_q
+add wave -noupdate -expand -group {In Softmax} /ita_tb/dut/i_softmax_top/i_softmax/step_i
+add wave -noupdate -expand -group {In Softmax} /ita_tb/dut/i_softmax_top/i_softmax/calc_en_i
+add wave -noupdate -expand -group {In Softmax} /ita_tb/dut/i_softmax_top/i_softmax/calc_en_d
+add wave -noupdate -expand -group {In Softmax} /ita_tb/dut/i_softmax_top/i_softmax/calc_en_q1
+add wave -noupdate -expand -group {In Softmax} /ita_tb/dut/i_softmax_top/i_softmax/calc_en_q2
+add wave -noupdate -expand -group {In Softmax} /ita_tb/dut/i_softmax_top/i_softmax/calc_en_q3
+add wave -noupdate -expand -group {In Softmax} /ita_tb/dut/i_softmax_top/i_softmax/mask_i
+add wave -noupdate -expand -group {In Softmax} /ita_tb/dut/i_softmax_top/i_softmax/max_i
+add wave -noupdate -expand -group {In Softmax} /ita_tb/dut/i_softmax_top/i_softmax/max_o
+add wave -noupdate -expand -group {In Softmax} /ita_tb/dut/i_softmax_top/i_softmax/count_d
+add wave -noupdate -expand -group {In Softmax} /ita_tb/dut/i_softmax_top/i_softmax/count_q1
+add wave -noupdate -expand -group {In Softmax} /ita_tb/dut/i_softmax_top/i_softmax/count_q2
+add wave -noupdate -expand -group {In Softmax} /ita_tb/dut/i_softmax_top/i_softmax/count_q3
+add wave -noupdate -expand -group {In Softmax} /ita_tb/dut/i_softmax_top/i_softmax/count_q4
+add wave -noupdate /ita_tb/dut/calc_en
+add wave -noupdate /ita_tb/dut/calc_en_q1
+add wave -noupdate /ita_tb/dut/calc_en_q2
+add wave -noupdate /ita_tb/dut/calc_en_q3
+add wave -noupdate /ita_tb/dut/calc_en_q4
+add wave -noupdate /ita_tb/dut/calc_en_q5
+add wave -noupdate /ita_tb/dut/calc_en_q6
+add wave -noupdate /ita_tb/dut/calc_en_q7
+add wave -noupdate /ita_tb/dut/calc_en_q8
+add wave -noupdate /ita_tb/dut/calc_en_q9
+add wave -noupdate /ita_tb/dut/calc_en_q10
+add wave -noupdate /ita_tb/dut/i_softmax_top/i_softmax/calc_stream_soft_en_i
+add wave -noupdate -radix hexadecimal /ita_tb/dut/i_softmax_top/i_softmax/calc_stream_soft_en_q
+add wave -noupdate -radix binary /ita_tb/dut/i_softmax_top/i_softmax/disable_col
+add wave -noupdate /ita_tb/dut/i_inp1_mux/inp_i
+add wave -noupdate /ita_tb/dut/inp
+add wave -noupdate -radix unsigned /ita_tb/dut/i_softmax_top/i_softmax/inp_stream_soft_o
+add wave -noupdate /ita_tb/dut/inp1
+add wave -noupdate /ita_tb/dut/inp1_q
 add wave -noupdate /ita_tb/dut/i_accumulator/oup_i
 add wave -noupdate /ita_tb/dut/i_accumulator/result_d
+add wave -noupdate /ita_tb/dut/i_accumulator/result_o
 add wave -noupdate /ita_tb/dut/i_activation/data_i
 add wave -noupdate /ita_tb/dut/i_activation/data_q1
 add wave -noupdate /ita_tb/dut/i_activation/data_q2
@@ -227,6 +256,8 @@ add wave -noupdate -expand -group {Softmax Controller} /ita_tb/dut/i_softmax_top
 add wave -noupdate -expand -group {Softmax Controller} /ita_tb/dut/i_softmax_top/i_softmax/exp_sum_d
 add wave -noupdate -expand -group {Softmax Controller} /ita_tb/dut/i_softmax_top/i_softmax/exp_sum_q
 add wave -noupdate -expand -group {Softmax Controller} /ita_tb/dut/i_softmax_top/i_softmax/count_soft_d
+add wave -noupdate -expand -group {Softmax Controller} /ita_tb/dut/i_softmax_top/i_softmax/count_soft_q1
+add wave -noupdate -expand -group {Softmax Controller} /ita_tb/dut/i_softmax_top/i_softmax/count_soft_q2
 add wave -noupdate -expand -group {Softmax Controller} /ita_tb/dut/i_softmax_top/i_softmax/count_div_d
 add wave -noupdate -expand -group {Softmax Controller} /ita_tb/dut/i_softmax_top/i_softmax/count_div_q
 add wave -noupdate -expand -group {Softmax Controller} /ita_tb/dut/i_softmax_top/i_softmax/addr_div_d
@@ -246,6 +277,7 @@ add wave -noupdate -expand -group {Softmax Controller} /ita_tb/dut/i_softmax_top
 add wave -noupdate -expand -group {Softmax Controller} /ita_tb/dut/i_softmax_top/i_softmax/max_diff
 add wave -noupdate -expand -group {Softmax Controller} /ita_tb/dut/i_softmax_top/i_softmax/shift_inp
 add wave -noupdate -expand -group {Softmax Controller} /ita_tb/dut/i_softmax_top/i_softmax/shift_inp_diff
+add wave -noupdate -expand -group {Softmax Controller} /ita_tb/dut/i_softmax_top/i_softmax/calc_stream_soft_en_q
 add wave -noupdate -expand -group {Softmax Controller} /ita_tb/dut/i_softmax_top/i_softmax/calc_en_d
 add wave -noupdate -expand -group {Softmax Controller} /ita_tb/dut/i_softmax_top/i_softmax/calc_en_q1
 add wave -noupdate -expand -group {Softmax Controller} /ita_tb/dut/i_softmax_top/i_softmax/calc_en_q2
@@ -259,7 +291,6 @@ add wave -noupdate -expand -group {Softmax Controller} /ita_tb/dut/i_softmax_top
 add wave -noupdate -expand -group {Softmax Controller} /ita_tb/dut/i_softmax_top/i_softmax/fifo_usage
 add wave -noupdate -expand -group {Softmax Controller} /ita_tb/dut/i_softmax_top/i_softmax/disable_shift
 add wave -noupdate -expand -group {Softmax Controller} /ita_tb/dut/i_softmax_top/i_softmax/disable_row
-add wave -noupdate -expand -group {Softmax Controller} /ita_tb/dut/i_softmax_top/i_softmax/disable_col
 add wave -noupdate -group Accumulator /ita_tb/dut/i_accumulator/clk_i
 add wave -noupdate -group Accumulator /ita_tb/dut/i_accumulator/rst_ni
 add wave -noupdate -group Accumulator /ita_tb/dut/i_accumulator/calc_en_i
@@ -285,10 +316,10 @@ add wave -noupdate -group Accumulator /ita_tb/dut/i_accumulator/write_addr_q
 add wave -noupdate -group Accumulator /ita_tb/dut/i_accumulator/result_d
 add wave -noupdate -group Accumulator /ita_tb/dut/i_accumulator/result_q
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {5371458 ps} 0} {{Cursor 2} {4813035 ps} 1} {{Cursor 3} {4817000 ps} 1} {{Cursor 4} {4829000 ps} 0}
-quietly wave cursor active 4
-configure wave -namecolwidth 195
-configure wave -valuecolwidth 135
+WaveRestoreCursors {{Cursor 1} {4842600 ps} 1} {{Cursor 2} {4823000 ps} 1} {{Cursor 4} {4816946 ps} 1} {{Cursor 12} {3614999 ps} 1} {{Cursor 13} {3617010 ps} 1} {{Cursor 14} {3645847 ps} 1} {{Cursor 15} {3624942 ps} 1} {{Cursor 16} {5124600 ps} 1}
+quietly wave cursor active 8
+configure wave -namecolwidth 167
+configure wave -valuecolwidth 100
 configure wave -justifyvalue left
 configure wave -signalnamewidth 1
 configure wave -snapdistance 10
@@ -301,4 +332,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {4812915 ps} {4830108 ps}
+WaveRestoreZoom {5079893 ps} {5130074 ps}
