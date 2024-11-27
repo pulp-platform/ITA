@@ -245,7 +245,6 @@ module ita_softmax
         inp_stream_soft_o = { M { '0 } };
       end else begin
         for (int i = 0; i < M; i++) begin
-          disable_col[i] = ((inner_tile_q*M + i) >= ctrl_i.seq_length);
           if ((inner_tile_q*M + i) >= ctrl_i.seq_length) begin
             disable_col[i] = 1'b1;
           // This logic needs to be replaced
