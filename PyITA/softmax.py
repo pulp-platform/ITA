@@ -177,7 +177,7 @@ def streamingPartialSoftmax(x, integerize = True):
         # A_partial_softmax[0] = np.repeat(exp_partial_sum_inverse, seq_length).reshape(seq_length, seq_length) >> shift
         return np.floor(
             np.repeat(exp_partial_sum_inverse, seq_length).reshape(n_heads, seq_length, seq_length) / 2**shift).astype(
-                np.int8)
+                np.uint8)
     else:
         return np.repeat(exp_partial_sum_inverse, seq_length).reshape(n_heads, seq_length, seq_length) / 2**shift
 
