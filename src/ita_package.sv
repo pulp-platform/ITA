@@ -30,7 +30,7 @@ package ita_package;
   parameter  int unsigned M3AddrWidth    = idx_width(S)                                                      ;
   parameter  int unsigned NumReadPorts   = N                                                                 ;
   parameter  int unsigned MNumReadPorts  = N                                                                 ;
-  parameter  int unsigned FifoDepth      = `ifdef ITA_OUTPUT_FIFO_DEPTH `ITA_OUTPUT_FIFO_DEPTH `else 14 `endif;
+  parameter  int unsigned FifoDepth      = `ifdef ITA_OUTPUT_FIFO_DEPTH `ITA_OUTPUT_FIFO_DEPTH `else 12 `endif;
   localparam int unsigned SplitFactor    = 4                                                                 ;
   parameter  int unsigned N_WRITE_EN     = `ifdef TARGET_ITA_HWPE 8 `else M `endif;
 
@@ -96,12 +96,13 @@ package ita_package;
 
   // Softmax
   localparam int unsigned SoftmaxScalar = 65280; // (2**8-1) * 2**8
+  localparam int unsigned SoftmaxShift = 0;
   localparam int unsigned SoftmaxAccDataWidth = 19; // Up to S = 2048
-  localparam int unsigned SoftFifoDepth = 4;
+  localparam int unsigned SoftFifoDepth = 12;
   typedef logic [idx_width(SoftFifoDepth)-1:0] soft_fifo_usage_t;
   typedef logic [idx_width(SoftFifoDepth+1)-1:0] ongoing_soft_t;
   localparam int unsigned DividerWidth = SoftmaxAccDataWidth + 1;
-  localparam int unsigned NumDiv = 5;
+  localparam int unsigned NumDiv = 10;
 
   // Requantizer
   typedef enum {Signed=0, Unsigned=1} requant_mode_e;
