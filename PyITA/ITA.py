@@ -606,7 +606,8 @@ class Transformer:
         plt.title("A_requant/A_stream_soft_in")
         plt.show()
 
-        
+        print(f"A_requant row 0: {self.A_requant[0, 0, :]}")
+
         if (self.S_ITA - self.S) > 0:
             self.A_requant[:, -(self.S_ITA - self.S):, :] = 0
             self.A_requant[:, :, -(self.S_ITA - self.S):] = 0
@@ -632,6 +633,8 @@ class Transformer:
         else:
             self.A_partial_softmax = streamingPartialSoftmax(self.A_requant[:, :self.S, :self.S], self.Mask)
             self.A_partial_softmax[self.Mask] = 0
+            print(f"inp_stream_soft_o: {self.A_partial_softmax[0,:,:]}")
+            print(f"Normalization Sum: {np.sum(self.A_partial_softmax[0,:,:], axis=1)}")
             self.A_partial_softmax = np.pad(self.A_partial_softmax,
                                             ((0, 0), (0, self.S_ITA - self.S), (0, self.S_ITA - self.S)))
 
@@ -643,13 +646,26 @@ class Transformer:
             write_matrix(A_save, f"A_soft_{h}", self.paths["standalone"])
 
     def step5_AV(self):
+        print(f"A_partial_softmax: {self.A_partial_softmax.shape}")
+        print(f"Vp_requant: {self.Vp_requant.shape}")
+        
         self.O_soft = np.array([
             np.matmul(self.A_partial_softmax[i].astype(np.uint8), self.Vp_requant[i], dtype = np.int32)
             for i in range(self.H)
         ])
+        print(f"O_soft without requant row 0: {self.O_soft[0, 62, :]}")
+        print(f"O_soft without requant row 0: {self.O_soft[0, 63, :]}")
+        print(f"O_soft without requant row 0: {self.O_soft[0, 0, :]}")
+        print(f"O_soft without requant row 0: {self.O_soft[0, 1, :]}")
+        
         self.O_soft = np.clip(self.O_soft, -2**(self.WO - 1), 2**(self.WO - 1) - 1)
         self.O_soft_requant = requantize(self.O_soft, self.requant_eps_mult[4], self.requant_right_shift[4],
                                          self.requant_add[4])
+        
+        print(f"O_soft_requant: {self.O_soft_requant[0, 62, :]}")
+        print(f"O_soft_requant: {self.O_soft_requant[0, 63, :]}")
+        print(f"O_soft_requant: {self.O_soft_requant[0, 0, :]}")
+        print(f"O_soft_requant: {self.O_soft_requant[0, 1, :]}")
 
         if (self.S_ITA - self.S) > 0:
             self.O_soft_requant[:, -(self.S_ITA - self.S):, :] = 0

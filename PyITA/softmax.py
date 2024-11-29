@@ -105,8 +105,10 @@ def streamingPartialSoftmax(x, mask, integerize = True):
 
         mask_slice = mask[... ,i*PE:(i*PE)+width]
         x_slice = x[..., 0 + i * PE:width + i * PE]
-        print(f"Mask Slice: {mask_slice.shape}")
-        print(f"X Slice: {x_slice.shape}")
+        print(f"Mask Slice Shape: {mask_slice.shape}")
+        print(f"Mask Slice: {mask_slice}")
+        print(f"X Slice Shape: {x_slice.shape}")
+        print(f"X Slice: {x_slice}")
 
         # Find the maximum for each row in the current column block (consisting of 16 columns)
         if integerize:
@@ -135,6 +137,8 @@ def streamingPartialSoftmax(x, mask, integerize = True):
         # Update all shift values where new maximum is larger
         shift_sum[current_max > global_max] = max_shift[current_max > global_max]
 
+        print(f"Shift sum: {shift_sum}")
+
         # Updated all maximums where they changed
         global_max[current_max > global_max] = current_max[current_max > global_max]
 
@@ -153,9 +157,12 @@ def streamingPartialSoftmax(x, mask, integerize = True):
         else:
             shift = diff * eps_max
 
-        print(shift.shape)
+        print(f"Shift Shape: {shift.shape}")
+        print(f"Shift without mask: {shift}")
+
         # Set shift value so high that 2**8 >> shift gets zero for all masked values
         shift[mask_slice] = 16
+        print(f"Shift with mask: {shift}")
         # # matrix = np.squeeze(shift)
         # # import matplotlib.pyplot as plt
         # # plt.imshow(matrix, cmap='viridis')
@@ -170,11 +177,15 @@ def streamingPartialSoftmax(x, mask, integerize = True):
         else:
             exp_sum = np.sum(1 / 2**shift, axis = -1)
 
+        print(f"Exp sum: {exp_sum}")
+        
         # Update the accumulated sum and add the accumulation over the current part of the row
         if integerize:
             exp_partial_sum = np.floor((exp_partial_sum / 2**shift_sum)) + exp_sum
         else:
             exp_partial_sum = (exp_partial_sum / 2**(shift_sum.astype(np.float32))) + exp_sum
+
+        print(f"Exp parital sum: {exp_partial_sum}")
 
     ## STAGE 2: Calculate the softmax activation
     # Invert the partial sum
