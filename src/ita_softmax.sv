@@ -49,7 +49,9 @@ module ita_softmax
   counter_t tile_d, tile_q1, tile_q2, tile_q3, tile_q4;
   counter_t count_d, count_q1, count_q2, count_q3, count_q4;
   counter_t inner_tile_q;
-  counter_t tile_y_q;
+  counter_t tile_x_q, tile_y_q;
+  counter_t mask_tile_x_d, mask_tile_x_q, mask_tile_y_d, mask_tile_y_q;
+  counter_t mask_tile_d, mask_tile_q;
 
   logic unsigned [SoftmaxAccDataWidth-1:0] exp_sum_d, exp_sum_q;
   counter_t count_soft_d, count_soft_q1, count_soft_q2, count_soft_mask_q;
@@ -121,6 +123,10 @@ module ita_softmax
     shift_inp_diff    = '0;
     inp_stream_soft_o = '0;
     softmax_done_o    = 0;
+    mask_tile_x_d     = mask_tile_x_q;
+    mask_tile_y_d     = mask_tile_y_q;
+    mask_tile_d     = mask_tile_q;
+    
 
     //************ Accumulation ************//
     case (step_i)
@@ -241,18 +247,57 @@ module ita_softmax
       end
     end
     if (calc_stream_soft_en_q) begin
+      if (count_soft_mask_q == (((M*M)/N)-1)) begin
+        mask_tile_d = mask_tile_q + 1;
+        if (mask_tile_x_q == (ctrl_i.tile_s-1)) begin
+          mask_tile_x_d = '0;
+          mask_tile_y_d = mask_tile_y_q + 1;
+        end else begin
+          mask_tile_x_d = mask_tile_x_q + 1;
+        end
+        if (mask_tile_d == ctrl_i.tile_s * ctrl_i.tile_s) begin
+          mask_tile_d = '0;
+          mask_tile_x_d = '0;
+          mask_tile_y_d = '0;
+        end
+      end
+
       if (disable_row) begin
         inp_stream_soft_o = { M { '0 } };
       end else begin
         for (int i = 0; i < M; i++) begin
-          if ((inner_tile_q*M + i) >= ctrl_i.seq_length) begin
-            disable_col[i] = 1'b1;
-          // This logic needs to be replaced
-          end else if ((i >= ((count_soft_mask_q & (M-1)) + (ctrl_i.mask_start_index & (M-1)))) && (ctrl_i.mask_type == UpperTriangular)) begin
-            disable_col[i] = 1'b1;
-          end else begin
-            disable_col[i] = 1'b0;
-          end
+          disable_col[i] = ((inner_tile_q*M + i) >= ctrl_i.seq_length);
+
+          case (ctrl_i.mask_type)
+            UpperTriangular: begin
+              // (ctrl_i.mask_start_index / M) -> tile where the masking starts
+              if (mask_tile_x_q == mask_tile_y_q) begin
+                if (i >= counter_t'((count_soft_mask_q & (M-1)) + (ctrl_i.mask_start_index & (M-1)))) begin
+                  disable_col[i] = 1'b1;
+                end else begin
+                  disable_col[i] = 1'b0;
+                end
+              end else if (mask_tile_x_q == ((ctrl_i.mask_start_index / M) + 1'b1 + mask_tile_y_q)) begin
+                if (((count_soft_mask_q & (M-1)) > (ctrl_i.mask_start_index & (M-1))) && (i <= ((count_soft_mask_q & (M-1)) - (ctrl_i.mask_start_index & (M-1))))) begin
+                  disable_col[i] = 1'b1;
+                end else begin
+                  disable_col[i] = 1'b0;
+                end
+              end else if (mask_tile_x_q > ((ctrl_i.mask_start_index / M) + 1'b1 + mask_tile_y_q)) begin
+                disable_col[i] = 1'b1;
+              end else if (mask_tile_x_q <= (ctrl_i.mask_start_index / M)) begin
+                disable_col[i] = 1'b0;
+              end else begin
+                disable_col[i] = 1'b0;
+              end
+            end
+            LowerTriangular: begin
+              
+            end 
+            None: begin
+              
+            end 
+          endcase          
           
           if (disable_col[i]) begin
             inp_stream_soft_o[i] = '0;
@@ -271,7 +316,11 @@ module ita_softmax
   always_ff @(posedge clk_i or negedge rst_ni) begin
     if(~rst_ni) begin
       inner_tile_q          <= '0;
+      tile_x_q              <= '0;
       tile_y_q              <= '0;
+      mask_tile_x_q         <= '0;
+      mask_tile_y_q         <= '0;
+      mask_tile_q           <= '0;
       tile_q4               <= '0;
       tile_q3               <= '0;
       tile_q2               <= '0;
@@ -295,6 +344,7 @@ module ita_softmax
       shift_sum_q           <= '0;
     end else begin
       inner_tile_q          <= inner_tile_i;
+      tile_x_q              <= tile_x_i;
       tile_y_q              <= tile_y_i;
       tile_q4               <= tile_q3;
       tile_q3               <= tile_q2;
@@ -308,6 +358,9 @@ module ita_softmax
       count_soft_q2         <= count_soft_q1;
       if (calc_stream_soft_en_i)
         count_soft_mask_q   <= count_soft_q1;
+        mask_tile_x_q       <= mask_tile_x_d;
+        mask_tile_y_q       <= mask_tile_y_d;
+        mask_tile_q         <= mask_tile_d;
       count_div_q           <= count_div_d;
       div_read_q            <= div_read_d;
       div_write_q           <= div_write_d;

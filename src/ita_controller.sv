@@ -44,13 +44,12 @@ module ita_controller
   counter_t count_d, count_q, bias_count;
   counter_t mask_pos_d, mask_pos_q;
   logic [3:0] mask_col_offset_d, mask_col_offset_q;
-  counter_t mask_count_d, mask_count_q1, mask_count_q2, mask_count_q3;
   counter_t tile_d, tile_q;
   counter_t inner_tile_d, inner_tile_q;
   counter_t mask_tile_x_pos_d, mask_tile_x_pos_q;
   counter_t mask_tile_y_pos_d, mask_tile_y_pos_q;
-  counter_t tile_x_d, tile_x_q, bias_tile_x_d, bias_tile_x_q1, bias_tile_x_q2, mask_tile_x_q3;
-  counter_t tile_y_d, tile_y_q, bias_tile_y_d, bias_tile_y_q1, bias_tile_y_q2, mask_tile_y_q3;
+  counter_t tile_x_d, tile_x_q, bias_tile_x_d, bias_tile_x_q;
+  counter_t tile_y_d, tile_y_q, bias_tile_y_d, bias_tile_y_q;
   counter_t softmax_tile_d, softmax_tile_q;
   ongoing_t ongoing_d, ongoing_q;
   ongoing_soft_t ongoing_soft_d, ongoing_soft_q;
@@ -364,11 +363,10 @@ module ita_controller
     inp_bias             = inp_bias_i;
     requant_add_d        = requant_add;
     bias_count = (count_q == 0) ? 255 : count_q - 1;
-    bias_tile_x_d        = (count_q == 0) ? bias_tile_x_q1 : tile_x_q;
-    bias_tile_y_d        = (count_q == 0) ? bias_tile_y_q1 : tile_y_q;
+    bias_tile_x_d        = (count_q == 0) ? bias_tile_x_q : tile_x_q;
+    bias_tile_y_d        = (count_q == 0) ? bias_tile_y_q : tile_y_q;
     first_outer_dim_d    = (count_q == 0) ? first_outer_dim_q : first_outer_dim;
     second_outer_dim_d   = (count_q == 0) ? second_outer_dim_q : second_outer_dim;
-    mask_count_d         = bias_count;
 
     if ((step_q != Idle && step_q != MatMul) || (step_q == Idle && bias_count == 255)) begin
       if (inner_tile_q == inner_tile_dim) begin
@@ -416,13 +414,18 @@ module ita_controller
           // end else begin
           //   mask_tile_x_pos_d = mask_tile_x_pos_q;
           // end
+          
 
-          // if (mask_tile_x_q3 == mask_tile_x_pos_q && mask_tile_y_q3 == mask_tile_y_pos_q) begin
+          if (mask_tile_x_pos_q == tile_x_q && mask_tile_y_pos_q == tile_y_q) begin
+            if (count_q == ((M*M/N)-1)) begin
+              mask_tile_x_pos_d = mask_tile_x_pos_q + 1'b1;
+            end 
             if ((count_q >= mask_pos_q) && (count_q < (mask_pos_q + N))) begin
-              // if ((count_q & (M-1)) == 6'd63) begin
-              //   mask_tile_y_pos_d = mask_tile_y_pos_q + 1'b1;
-              //   mask_pos_d = (count_q + ((7*M) + 1)) & ((M*M/N)-1);
-              // end else 
+              if ((count_q & (M-1)) == (M-1)) begin
+                mask_tile_y_pos_d = tile_y_q + 1'b1;
+                mask_tile_x_pos_d = tile_x_q;
+                mask_pos_d = (count_q + ((7*M) + 1)) & ((M*M/N)-1);
+              end 
               if (((count_q + mask_col_offset_q) & (N-1)) == (N-1)) begin
                 mask_pos_d = (mask_pos_q + (N - ((mask_pos_q + mask_col_offset_q) & (N-1))) + M) & ((M*M/N)-1);
               end
@@ -442,6 +445,10 @@ module ita_controller
                  mask_d[i] = 1'b0;
               end
             end
+          end else if (mask_tile_x_pos_q == tile_x_q && mask_tile_y_pos_q != tile_y_q) begin
+            for (int i = 0; i < N; i++) begin
+              mask_d[i] = 1'b1;
+            end
           // end else if (mask_tile_x_q3 == mask_tile_x_pos_q && mask_tile_y_q3 != mask_tile_y_pos_q) begin
           //   for (int i = 0; i < N; i++) begin
           //     mask_d[i] = 1'b1;
@@ -450,7 +457,11 @@ module ita_controller
           //   for (int i = 0; i < N; i++) begin
           //     mask_d[i] = 1'b0;
           //   end
-          // end   
+          end else if (mask_tile_x_pos_q != tile_x_q && mask_tile_y_pos_q == tile_y_q) begin
+            for (int i = 0; i < N; i++) begin
+              mask_d[i] = 1'b0;
+            end
+          end   
         end
       end
       LowerTriangular: begin
@@ -488,19 +499,12 @@ module ita_controller
       softmax_div_done_q <= 1'b0;
       requant_add_q <= '0;
       busy_q <= 1'b0;
-      bias_tile_x_q1 <= '0;
-      bias_tile_x_q2 <= '0;
-      mask_tile_x_q3 <= '0;
-      bias_tile_y_q1 <= '0;
-      bias_tile_y_q2 <= '0;
-      mask_tile_y_q3 <= '0;
+      bias_tile_x_q <= '0;
+      bias_tile_y_q <= '0;
       first_outer_dim_q <= '0;
       second_outer_dim_q <= '0;
       mask_pos_q <= '0;
       mask_col_offset_q <= '0;
-      mask_count_q1 <= '0;
-      mask_count_q2 <= '0;
-      mask_count_q3 <= '0;
       mask_tile_x_pos_q <= '0;
       mask_tile_y_pos_q <= '0;
       mask_q <= '0;
@@ -517,24 +521,17 @@ module ita_controller
       softmax_div_done_q <= softmax_div_done_d;
       requant_add_q <= requant_add_d;
       busy_q <= busy_d;
-      bias_tile_x_q1 <= bias_tile_x_d;
-      bias_tile_x_q2 <= bias_tile_x_q1;
-      mask_tile_x_q3 <= bias_tile_x_q2;
-      bias_tile_y_q1 <= bias_tile_y_d;
-      bias_tile_y_q2 <= bias_tile_y_q1;
-      mask_tile_y_q3 <= bias_tile_y_q2;
+      bias_tile_x_q <= bias_tile_x_d;
+      bias_tile_y_q <= bias_tile_y_d;
       first_outer_dim_q <= first_outer_dim_d;
       second_outer_dim_q <= second_outer_dim_d;
       if (calc_en_o) begin
         mask_pos_q <= mask_pos_d;
         mask_q <= mask_d;
+        mask_tile_x_pos_q <= mask_tile_x_pos_d;
+        mask_tile_y_pos_q <= mask_tile_y_pos_d;
       end
       mask_col_offset_q <= mask_col_offset_d;
-      mask_count_q1 <= mask_count_d;
-      mask_count_q2 <= mask_count_q1;
-      mask_count_q3 <= mask_count_q2;
-      mask_tile_x_pos_q <= mask_tile_x_pos_d;
-      mask_tile_y_pos_q <= mask_tile_y_pos_d;
     end
   end
 endmodule
