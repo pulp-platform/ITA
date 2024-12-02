@@ -272,7 +272,7 @@ module ita_softmax
             case (ctrl_i.mask_type)
               UpperTriangular: begin
                 // (ctrl_i.mask_start_index / M) -> tile where the masking starts
-                if (mask_tile_x_q == mask_tile_y_q) begin
+                if ((mask_tile_x_q - (ctrl_i.mask_start_index / M)) == mask_tile_y_q) begin
                   if (i >= ((count_soft_mask_q & (M-1)) + (ctrl_i.mask_start_index & (M-1)))) begin
                     disable_col[i] = 1'b1;
                   end else begin

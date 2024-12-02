@@ -95,9 +95,9 @@ module ita_controller
     softmax_div_done_d = softmax_div_done_q;
     last_time          = 1'b0;
     requant_add        = {N {requant_add_i}};
-    mask_col_offset_d  = (step_q == QK) ? mask_col_offset_q : ((ctrl_i.mask_start_index) & (N-1));
-    mask_pos_d         = (step_q == QK) ? mask_pos_q : (((ctrl_i.mask_start_index)/N)*M);
-    mask_tile_x_pos_d  = mask_tile_x_pos_q;
+    mask_col_offset_d  = (step_q == QK || step_q == AV) ? mask_col_offset_q : ((ctrl_i.mask_start_index) & (N-1));
+    mask_pos_d         = (step_q == QK || step_q == AV) ? mask_pos_q : ((((ctrl_i.mask_start_index)/N)*M) & ((M*M/N)-1));
+    mask_tile_x_pos_d  = (step_q == QK || step_q == AV) ? mask_tile_x_pos_q : ((ctrl_i.mask_start_index) / M);
     mask_tile_y_pos_d  = mask_tile_y_pos_q;
     mask_d             = mask_q;
 
@@ -405,26 +405,16 @@ module ita_controller
         
       end
       UpperTriangular: begin
-        // With calc_en_q4
-        if (step_q == QK) begin
-          // if ((mask_tile_x_pos_q == ctrl_i.tile_s-1) && (mask_count_q3 == ((M*M/N)-1))) begin
-          //   mask_tile_x_pos_d = 1'b0;
-          // end else if (mask_count_q3 == ((M*M/N)-1) && calc_en_q4_i) begin
-          //   mask_tile_x_pos_d = mask_tile_x_pos_q + 1'b1;
-          // end else begin
-          //   mask_tile_x_pos_d = mask_tile_x_pos_q;
-          // end
-          
-
+        if (step_q == QK) begin      
           if (mask_tile_x_pos_q == tile_x_q && mask_tile_y_pos_q == tile_y_q) begin
             if (count_q == ((M*M/N)-1)) begin
               mask_tile_x_pos_d = mask_tile_x_pos_q + 1'b1;
             end 
             if ((count_q >= mask_pos_q) && (count_q < (mask_pos_q + N))) begin
-              if ((count_q & (M-1)) == (M-1)) begin
+              if ((count_q & (M-1)) == (M-1) && !(((count_q + mask_col_offset_q) & (N-1)) == (N-1))) begin
                 mask_tile_y_pos_d = tile_y_q + 1'b1;
                 mask_tile_x_pos_d = tile_x_q;
-                mask_pos_d = (count_q + ((7*M) + 1)) & ((M*M/N)-1);
+                mask_pos_d = ((count_q + (((ctrl_i.tile_s * (M*M/N)) - M) + 1)) & ((M*M/N)-1));
               end 
               if (((count_q + mask_col_offset_q) & (N-1)) == (N-1)) begin
                 mask_pos_d = (mask_pos_q + (N - ((mask_pos_q + mask_col_offset_q) & (N-1))) + M) & ((M*M/N)-1);
@@ -440,23 +430,11 @@ module ita_controller
               for (int i = 0; i < N; i++) begin
                 mask_d[i] = 1'b1;
               end
-            end else begin
-              for (int i = 0; i < N; i++) begin
-                 mask_d[i] = 1'b0;
-              end
-            end
+            end 
           end else if (mask_tile_x_pos_q == tile_x_q && mask_tile_y_pos_q != tile_y_q) begin
             for (int i = 0; i < N; i++) begin
               mask_d[i] = 1'b1;
             end
-          // end else if (mask_tile_x_q3 == mask_tile_x_pos_q && mask_tile_y_q3 != mask_tile_y_pos_q) begin
-          //   for (int i = 0; i < N; i++) begin
-          //     mask_d[i] = 1'b1;
-          //   end
-          // end else begin
-          //   for (int i = 0; i < N; i++) begin
-          //     mask_d[i] = 1'b0;
-          //   end
           end else if (mask_tile_x_pos_q != tile_x_q && mask_tile_y_pos_q == tile_y_q) begin
             for (int i = 0; i < N; i++) begin
               mask_d[i] = 1'b0;
