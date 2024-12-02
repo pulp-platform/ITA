@@ -266,38 +266,45 @@ module ita_softmax
         inp_stream_soft_o = { M { '0 } };
       end else begin
         for (int i = 0; i < M; i++) begin
-          disable_col[i] = ((inner_tile_q*M + i) >= ctrl_i.seq_length);
-
-          case (ctrl_i.mask_type)
-            UpperTriangular: begin
-              // (ctrl_i.mask_start_index / M) -> tile where the masking starts
-              if (mask_tile_x_q == mask_tile_y_q) begin
-                if (i >= counter_t'((count_soft_mask_q & (M-1)) + (ctrl_i.mask_start_index & (M-1)))) begin
+          if ((inner_tile_q*M + i) >= ctrl_i.seq_length) begin
+            disable_col[i] = 1'b1;
+          end else begin
+            case (ctrl_i.mask_type)
+              UpperTriangular: begin
+                // (ctrl_i.mask_start_index / M) -> tile where the masking starts
+                if (mask_tile_x_q == mask_tile_y_q) begin
+                  if (i >= ((count_soft_mask_q & (M-1)) + (ctrl_i.mask_start_index & (M-1)))) begin
+                    disable_col[i] = 1'b1;
+                  end else begin
+                    disable_col[i] = 1'b0;
+                  end
+                end else if (mask_tile_x_q == ((ctrl_i.mask_start_index / M) + 1'b1 + mask_tile_y_q)) begin
+                  if ((count_soft_mask_q & (M-1)) > (M - (ctrl_i.mask_start_index & (M-1)))) begin
+                    if (i < ((count_soft_mask_q & (M-1)) - (M - (ctrl_i.mask_start_index & (M-1))))) begin
+                      disable_col[i] = 1'b0;
+                    end else begin
+                      disable_col[i] = 1'b1;
+                    end
+                  end else begin
+                    disable_col[i] = 1'b1;
+                  end
+                end else if (mask_tile_x_q > ((ctrl_i.mask_start_index / M) + 1'b1 + mask_tile_y_q)) begin
                   disable_col[i] = 1'b1;
+                end else if (mask_tile_x_q <= (ctrl_i.mask_start_index / M)) begin
+                  disable_col[i] = 1'b0;
                 end else begin
                   disable_col[i] = 1'b0;
                 end
-              end else if (mask_tile_x_q == ((ctrl_i.mask_start_index / M) + 1'b1 + mask_tile_y_q)) begin
-                if (((count_soft_mask_q & (M-1)) > (ctrl_i.mask_start_index & (M-1))) && (i <= ((count_soft_mask_q & (M-1)) - (ctrl_i.mask_start_index & (M-1))))) begin
-                  disable_col[i] = 1'b1;
-                end else begin
-                  disable_col[i] = 1'b0;
-                end
-              end else if (mask_tile_x_q > ((ctrl_i.mask_start_index / M) + 1'b1 + mask_tile_y_q)) begin
-                disable_col[i] = 1'b1;
-              end else if (mask_tile_x_q <= (ctrl_i.mask_start_index / M)) begin
-                disable_col[i] = 1'b0;
-              end else begin
-                disable_col[i] = 1'b0;
               end
-            end
-            LowerTriangular: begin
-              
-            end 
-            None: begin
-              
-            end 
-          endcase          
+              LowerTriangular: begin
+                
+              end 
+              None: begin
+                
+              end 
+            endcase          
+          end
+          
           
           if (disable_col[i]) begin
             inp_stream_soft_o[i] = '0;
@@ -356,11 +363,12 @@ module ita_softmax
       count_q1              <= count_d;
       count_soft_q1         <= count_soft_d;
       count_soft_q2         <= count_soft_q1;
-      if (calc_stream_soft_en_i)
+      if (calc_stream_soft_en_i) begin
         count_soft_mask_q   <= count_soft_q1;
-        mask_tile_x_q       <= mask_tile_x_d;
-        mask_tile_y_q       <= mask_tile_y_d;
-        mask_tile_q         <= mask_tile_d;
+      end
+      mask_tile_x_q       <= mask_tile_x_d;
+      mask_tile_y_q       <= mask_tile_y_d;
+      mask_tile_q         <= mask_tile_d;
       count_div_q           <= count_div_d;
       div_read_q            <= div_read_d;
       div_write_q           <= div_write_d;
