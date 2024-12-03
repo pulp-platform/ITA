@@ -99,8 +99,6 @@ add wave -noupdate /ita_tb/dut/i_softmax_top/i_softmax/mask_tile_x_d
 add wave -noupdate /ita_tb/dut/i_softmax_top/i_softmax/mask_tile_x_q
 add wave -noupdate /ita_tb/dut/i_softmax_top/i_softmax/mask_tile_y_d
 add wave -noupdate /ita_tb/dut/i_softmax_top/i_softmax/mask_tile_y_q
-add wave -noupdate /ita_tb/dut/i_softmax_top/i_softmax/mask_tile_d
-add wave -noupdate /ita_tb/dut/i_softmax_top/i_softmax/mask_tile_q
 add wave -noupdate -radix binary /ita_tb/dut/i_softmax_top/i_softmax/disable_col
 add wave -noupdate /ita_tb/dut/i_activation/data_q3
 add wave -noupdate -radix decimal /ita_tb/dut/inp_i
@@ -463,8 +461,6 @@ add wave -noupdate -group {Softmax Controller} /ita_tb/dut/i_softmax_top/i_softm
 add wave -noupdate -group {Softmax Controller} /ita_tb/dut/i_softmax_top/i_softmax/mask_tile_x_q
 add wave -noupdate -group {Softmax Controller} /ita_tb/dut/i_softmax_top/i_softmax/mask_tile_y_d
 add wave -noupdate -group {Softmax Controller} /ita_tb/dut/i_softmax_top/i_softmax/mask_tile_y_q
-add wave -noupdate -group {Softmax Controller} /ita_tb/dut/i_softmax_top/i_softmax/mask_tile_d
-add wave -noupdate -group {Softmax Controller} /ita_tb/dut/i_softmax_top/i_softmax/mask_tile_q
 add wave -noupdate -group {Softmax Controller} /ita_tb/dut/i_softmax_top/i_softmax/exp_sum_d
 add wave -noupdate -group {Softmax Controller} /ita_tb/dut/i_softmax_top/i_softmax/exp_sum_q
 add wave -noupdate -group {Softmax Controller} /ita_tb/dut/i_softmax_top/i_softmax/count_soft_d

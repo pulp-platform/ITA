@@ -406,7 +406,7 @@ module ita_controller
       end
       UpperTriangular: begin
         if (step_q == QK) begin      
-          if (mask_tile_x_pos_q == tile_x_q && mask_tile_y_pos_q == tile_y_q) begin
+          if (mask_tile_x_pos_q == tile_x_q && mask_tile_y_pos_q == tile_y_q && last_inner_tile_o == 1'b1) begin
             if (count_q == ((M*M/N)-1)) begin
               mask_tile_x_pos_d = mask_tile_x_pos_q + 1'b1;
             end 
@@ -431,11 +431,11 @@ module ita_controller
                 mask_d[i] = 1'b1;
               end
             end 
-          end else if (mask_tile_x_pos_q == tile_x_q && mask_tile_y_pos_q != tile_y_q) begin
+          end else if (mask_tile_x_pos_q <= tile_x_q && mask_tile_y_pos_q != tile_y_q && last_inner_tile_o == 1'b1) begin
             for (int i = 0; i < N; i++) begin
               mask_d[i] = 1'b1;
             end
-          end else if (mask_tile_x_pos_q != tile_x_q && mask_tile_y_pos_q == tile_y_q) begin
+          end else if (mask_tile_x_pos_q != tile_x_q && mask_tile_y_pos_q == tile_y_q && last_inner_tile_o == 1'b1) begin
             for (int i = 0; i < N; i++) begin
               mask_d[i] = 1'b0;
             end
@@ -505,10 +505,10 @@ module ita_controller
       second_outer_dim_q <= second_outer_dim_d;
       if (calc_en_o) begin
         mask_pos_q <= mask_pos_d;
-        mask_q <= mask_d;
         mask_tile_x_pos_q <= mask_tile_x_pos_d;
         mask_tile_y_pos_q <= mask_tile_y_pos_d;
       end
+      mask_q <= mask_d;
       mask_col_offset_q <= mask_col_offset_d;
     end
   end

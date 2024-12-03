@@ -51,7 +51,7 @@ module ita_softmax
   counter_t inner_tile_q;
   counter_t tile_x_q, tile_y_q;
   counter_t mask_tile_x_d, mask_tile_x_q, mask_tile_y_d, mask_tile_y_q;
-  counter_t mask_tile_d, mask_tile_q;
+  counter_t mask_tile_outer_dim_d, mask_tile_outer_dim_q;
 
   logic unsigned [SoftmaxAccDataWidth-1:0] exp_sum_d, exp_sum_q;
   counter_t count_soft_d, count_soft_q1, count_soft_q2, count_soft_mask_q;
@@ -125,7 +125,7 @@ module ita_softmax
     softmax_done_o    = 0;
     mask_tile_x_d     = mask_tile_x_q;
     mask_tile_y_d     = mask_tile_y_q;
-    mask_tile_d     = mask_tile_q;
+    mask_tile_outer_dim_d       = mask_tile_outer_dim_q;
     
 
     //************ Accumulation ************//
@@ -187,8 +187,8 @@ module ita_softmax
       write_max_addr_o = count_q3;
       write_max_data_o = max_q;
       for (int i = 0; i < N; i++) begin
-        if (shift_d[i] != 4'hF)
-          exp_sum_d += unsigned'(9'h100)>>shift_q[i];
+        // if (shift_d[i] != 4'hF)
+        exp_sum_d += unsigned'(9'h100)>>shift_q[i];
       end
       if (tile_q3 != '0 || count_q3>=M) begin // If not first part of the first row
         exp_sum_d += ( unsigned'(read_acc_data_i[0]) >> shift_sum_q);
@@ -248,15 +248,18 @@ module ita_softmax
     end
     if (calc_stream_soft_en_q) begin
       if (count_soft_mask_q == (((M*M)/N)-1)) begin
-        mask_tile_d = mask_tile_q + 1;
-        if (mask_tile_x_q == (ctrl_i.tile_s-1)) begin
+        if (mask_tile_x_q == (ctrl_i.tile_s - 1)) begin
           mask_tile_x_d = '0;
-          mask_tile_y_d = mask_tile_y_q + 1;
+          mask_tile_outer_dim_d = mask_tile_outer_dim_q + 1;
+          if (mask_tile_outer_dim_q == (ctrl_i.tile_p - 1)) begin
+            mask_tile_outer_dim_d = '0;
+            mask_tile_y_d = mask_tile_y_q + 1;
+          end
         end else begin
           mask_tile_x_d = mask_tile_x_q + 1;
         end
-        if (mask_tile_d == ctrl_i.tile_s * ctrl_i.tile_s) begin
-          mask_tile_d = '0;
+        if (mask_tile_y_q == ctrl_i.tile_s) begin
+          mask_tile_outer_dim_d = '0;
           mask_tile_x_d = '0;
           mask_tile_y_d = '0;
         end
@@ -269,6 +272,7 @@ module ita_softmax
           if ((inner_tile_q*M + i) >= ctrl_i.seq_length) begin
             disable_col[i] = 1'b1;
           end else begin
+            disable_col[i] = 1'b0;
             case (ctrl_i.mask_type)
               UpperTriangular: begin
                 // (ctrl_i.mask_start_index / M) -> tile where the masking starts
@@ -305,7 +309,6 @@ module ita_softmax
             endcase          
           end
           
-          
           if (disable_col[i]) begin
             inp_stream_soft_o[i] = '0;
           end else begin
@@ -327,7 +330,7 @@ module ita_softmax
       tile_y_q              <= '0;
       mask_tile_x_q         <= '0;
       mask_tile_y_q         <= '0;
-      mask_tile_q           <= '0;
+      mask_tile_outer_dim_q <= '0;
       tile_q4               <= '0;
       tile_q3               <= '0;
       tile_q2               <= '0;
@@ -368,7 +371,7 @@ module ita_softmax
       end
       mask_tile_x_q       <= mask_tile_x_d;
       mask_tile_y_q       <= mask_tile_y_d;
-      mask_tile_q         <= mask_tile_d;
+      mask_tile_outer_dim_q <= mask_tile_outer_dim_d;
       count_div_q           <= count_div_d;
       div_read_q            <= div_read_d;
       div_write_q           <= div_write_d;
