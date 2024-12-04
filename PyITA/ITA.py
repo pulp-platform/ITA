@@ -46,6 +46,7 @@ class Transformer:
                  path: Union[str, os.PathLike],
                  bias: bool = True,
                  activation: str = "identity",
+                 mask: str = "none",
                  Q: ArrayLike = None,
                  K: ArrayLike = None,
                  V: ArrayLike = None,
@@ -86,6 +87,7 @@ class Transformer:
         self.H = H
         self.bias = bias
         self.activation = activation
+        self.mask = mask
 
         # Setup transformation functions
         self.split_m_m = partial(split_matrix, block_shape = (self.ITA_M, self.ITA_M))
@@ -576,27 +578,37 @@ class Transformer:
         # Compute Vp in transposed form
         self.tiler_V(self.V, self.Wv, self.Bv, self.Vp_requant, "V", "Wv", "Bv", "Vp")
 
-    def step4_QK(self, no_partial_softmax, mask, index):
+    def apply_mask(self, index):
+        self.Mask = np.full((self.H, self.S, self.S), fill_value=False, dtype='bool')
+        if (self.mask == 'upper_triangular'):
+            if (0 < index and index < self.S):
+                for h in range(self.Mask.shape[0]):
+                    for i in range(self.Mask.shape[1]):
+                        for j in range((i + index), self.Mask.shape[2]):
+                            self.Mask[h][i][j] = True
+            else:
+                raise ValueError("Index is out of bounds")
+        elif(self.mask == 'lower_triangular'):
+            if (0 < index and index < self.S):
+                for h in range(self.Mask.shape[0]):
+                    for i in range(index, self.Mask.shape[1]):
+                        for j in range((i-(index-1))):
+                            self.Mask[h][i][j] = True
+            else:
+                raise ValueError("Index is out of bounds")
+        elif(self.mask == 'none'):
+            pass        
+        else:
+            raise ValueError("Mask not supported")
+        
+
+    def step4_QK(self, no_partial_softmax, index):
         self.A = np.array(
             [np.matmul(self.Qp_requant[i], np.transpose(self.Kp_requant[i]), dtype = np.int32) for i in range(self.H)])
         self.A = np.clip(self.A, -2**(self.WO - 1), 2**(self.WO - 1) - 1)
         self.A_requant = requantize(self.A, self.requant_eps_mult[3], self.requant_right_shift[3], self.requant_add[3])
 
-        self.Mask = np.full((self.H, self.S, self.S), fill_value=False, dtype='bool')
-
-        #Adjustments for Masked Attention
-        if (mask == 'Upper_Triangular'):
-            print(self.Mask.shape)
-            for h in range(self.Mask.shape[0]):
-                for i in range(self.Mask.shape[1]):
-                    for j in range((i + index), self.Mask.shape[2]):
-                        self.Mask[h][i][j] = True
-        elif(mask == 'Lower_Triangular'):
-            pass
-        elif(mask == 'none'):
-            pass        
-        else:
-            raise ValueError("Mask not supported")
+        self.apply_mask(index)
         
         print(self.Mask)
         
@@ -1105,7 +1117,7 @@ def generateTestVectors(path, **kwargs):
     export_snitch_cluster = kwargs['export_snitch_cluster']
     export_mempool = kwargs['export_mempool']
 
-    acc1 = Transformer(s, p, e, f, h, bias = bias, path = path, activation = activation)
+    acc1 = Transformer(s, p, e, f, h, bias = bias, path = path, activation = activation, mask = mask)
 
     if kwargs['verbose']:
         print("=> Generating test vectors...")
@@ -1113,7 +1125,7 @@ def generateTestVectors(path, **kwargs):
     acc1.step1_Qp()
     acc1.step2_Kp()
     acc1.step3_Vp()
-    acc1.step4_QK(kwargs['no_partial_softmax'], mask, index)
+    acc1.step4_QK(kwargs['no_partial_softmax'], index=index)
     acc1.step5_AV()
     acc1.step6_O()
     acc1.step7_Osum()

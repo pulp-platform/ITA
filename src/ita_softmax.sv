@@ -187,8 +187,8 @@ module ita_softmax
       write_max_addr_o = count_q3;
       write_max_data_o = max_q;
       for (int i = 0; i < N; i++) begin
-        // if (shift_d[i] != 4'hF)
-        exp_sum_d += unsigned'(9'h100)>>shift_q[i];
+        if (shift_q[i] != 4'hF)
+          exp_sum_d += unsigned'(9'h100)>>shift_q[i];
       end
       if (tile_q3 != '0 || count_q3>=M) begin // If not first part of the first row
         exp_sum_d += ( unsigned'(read_acc_data_i[0]) >> shift_sum_q);

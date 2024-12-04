@@ -37,9 +37,9 @@ else
 endif
 
 mask ?= none
-ifeq ($(mask), Upper_Triangular)
+ifeq ($(mask), upper_triangular)
 	mask_int = 1
-else ifeq ($(mask), Lower_Triangular)
+else ifeq ($(mask), lower_triangular)
 	mask_int = 2
 else
 	mask_int = 0
