@@ -272,39 +272,48 @@ module ita_softmax
           if ((inner_tile_q*M + i) >= ctrl_i.seq_length) begin
             disable_col[i] = 1'b1;
           end else begin
-            disable_col[i] = 1'b0;
             case (ctrl_i.mask_type)
               UpperTriangular: begin
                 // (ctrl_i.mask_start_index / M) -> tile where the masking starts
-                if ((mask_tile_x_q - (ctrl_i.mask_start_index / M)) == mask_tile_y_q) begin
+                if (mask_tile_x_q == mask_tile_y_q + (ctrl_i.mask_start_index / M)) begin
                   if (i >= ((count_soft_mask_q & (M-1)) + (ctrl_i.mask_start_index & (M-1)))) begin
                     disable_col[i] = 1'b1;
                   end else begin
                     disable_col[i] = 1'b0;
                   end
                 end else if (mask_tile_x_q == ((ctrl_i.mask_start_index / M) + 1'b1 + mask_tile_y_q)) begin
-                  if ((count_soft_mask_q & (M-1)) > (M - (ctrl_i.mask_start_index & (M-1)))) begin
-                    if (i < ((count_soft_mask_q & (M-1)) - (M - (ctrl_i.mask_start_index & (M-1))))) begin
-                      disable_col[i] = 1'b0;
-                    end else begin
-                      disable_col[i] = 1'b1;
-                    end
+                  if (i < signed'((count_soft_mask_q & (M-1)) - (M - (ctrl_i.mask_start_index & (M-1))))) begin
+                    disable_col[i] = 1'b0;
                   end else begin
                     disable_col[i] = 1'b1;
                   end
                 end else if (mask_tile_x_q > ((ctrl_i.mask_start_index / M) + 1'b1 + mask_tile_y_q)) begin
                   disable_col[i] = 1'b1;
-                end else if (mask_tile_x_q <= (ctrl_i.mask_start_index / M)) begin
-                  disable_col[i] = 1'b0;
                 end else begin
                   disable_col[i] = 1'b0;
                 end
               end
               LowerTriangular: begin
-                
+                if (mask_tile_y_q == mask_tile_x_q + (ctrl_i.mask_start_index / M)) begin
+                  if (i <= signed'((count_soft_mask_q & (M-1)) - (ctrl_i.mask_start_index & (M-1)))) begin
+                    disable_col[i] = 1'b1;
+                  end else begin
+                    disable_col[i] = 1'b0;
+                  end
+                end else if (mask_tile_y_q == ((ctrl_i.mask_start_index / M) + 1'b1 + mask_tile_x_q)) begin
+                  if (i <= ((count_soft_mask_q & (M-1)) + (M - (ctrl_i.mask_start_index & (M-1))))) begin
+                    disable_col[i] = 1'b1;
+                  end else begin
+                    disable_col[i] = 1'b0;
+                  end 
+                end else if (mask_tile_y_q > ((ctrl_i.mask_start_index / M) + 1'b1 + mask_tile_x_q)) begin
+                  disable_col[i] = 1'b1;
+                end else begin
+                  disable_col[i] = 1'b0;
+                end
               end 
               None: begin
-                
+                disable_col[i] = 1'b0;
               end 
             endcase          
           end

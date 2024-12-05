@@ -396,9 +396,7 @@ module ita_controller
     inp_bias_padded = inp_bias;
 
     
-    for (int i = 0; i < N; i++) begin
-      mask_d[i] = 1'b0;
-    end
+    mask_d = '0;
     case (ctrl_i.mask_type)
       None: begin
         mask_col_offset_d = '0;
@@ -459,17 +457,20 @@ module ita_controller
         end
       end
       LowerTriangular: begin
+        mask_pos_d         = (step_q == QK || step_q == AV) ? mask_pos_q : (ctrl_i.mask_start_index & (M-1));
+        mask_tile_y_pos_d  = (step_q == QK || step_q == AV) ? mask_tile_y_pos_q : ((ctrl_i.mask_start_index) / M);
+        
         if (step_q == QK) begin
           if (mask_tile_x_pos_q == tile_x_q && mask_tile_y_pos_q == tile_y_q && last_inner_tile_o == 1'b1) begin
             if (count_q == ((M*M/N)-1)) begin
               mask_tile_x_pos_d = mask_tile_x_pos_q + 1'b1;
             end 
             if ((count_q >= mask_pos_q) && (count_q < (mask_pos_q + N))) begin
-              if ((count_q & (M-1)) == (M-1) && !(((count_q + mask_col_offset_q) & (N-1)) == (N-1))) begin
+              if (((count_q & (M-1)) == (M-1)) && !(((count_q + (N - (ctrl_i.mask_start_index & (N-1)))) & (N-1)) == (N-1))) begin
                 mask_tile_y_pos_d = tile_y_q + 1'b1;
                 mask_tile_x_pos_d = tile_x_q;
                 mask_pos_d = ((count_q + (((ctrl_i.tile_s * (M*M/N)) - M) + 1)) & ((M*M/N)-1));
-              end else if ((count_q & (M-1)) == (M-1) && (((count_q + mask_col_offset_q) & (N-1)) == (N-1))) begin
+              end else if (((count_q & (M-1)) == (M-1)) && (((count_q + (N - (ctrl_i.mask_start_index & (N-1)))) & (N-1)) == (N-1))) begin
                 if ((count_q / M) == ((M/N)-1)) begin
                   mask_tile_y_pos_d = tile_y_q + 1'b1;
                   mask_tile_x_pos_d = tile_x_q + 1'b1;
@@ -479,26 +480,26 @@ module ita_controller
                   mask_tile_x_pos_d = tile_x_q;
                   mask_pos_d = ((count_q + ((ctrl_i.tile_s * (M*M/N)) + 1)) & ((M*M/N)-1));
                 end
-              end else if (((count_q + mask_col_offset_q) & (N-1)) == (N-1)) begin
-                mask_pos_d = (mask_pos_q + (N - ((mask_pos_q + mask_col_offset_q) & (N-1))) + M) & ((M*M/N)-1);
+              end else if (((count_q + (N - (ctrl_i.mask_start_index & (N-1)))) & (N-1)) == (N-1)) begin
+                mask_pos_d = (mask_pos_q + (count_q - mask_pos_q + 1) + M) & ((M*M/N)-1);
               end
               for (int i = 0; i < N; i++) begin
-                if (((count_q + mask_col_offset_q) & (N-1)) <= i) begin
+                if (((count_q + (N - (ctrl_i.mask_start_index & (N-1)))) & (N-1)) >= i) begin
                   mask_d[i] = 1'b1;
                 end else begin
                   mask_d[i] = 1'b0;
                 end
               end
-            end else if ((count_q & (M-1)) < (mask_pos_q & (M-1))) begin
+            end else if ((count_q & (M-1)) >= (mask_pos_q & (M-1))) begin
               for (int i = 0; i < N; i++) begin
                 mask_d[i] = 1'b1;
               end
             end 
-          end else if (mask_tile_x_pos_q <= tile_x_q && mask_tile_y_pos_q != tile_y_q && last_inner_tile_o == 1'b1) begin
+          end else if (mask_tile_x_pos_q > tile_x_q && mask_tile_y_pos_q == tile_y_q && last_inner_tile_o == 1'b1) begin
             for (int i = 0; i < N; i++) begin
               mask_d[i] = 1'b1;
             end
-          end else if (mask_tile_x_pos_q != tile_x_q && mask_tile_y_pos_q == tile_y_q && last_inner_tile_o == 1'b1) begin
+          end else if (mask_tile_x_pos_q >= tile_x_q && mask_tile_y_pos_q != tile_y_q && last_inner_tile_o == 1'b1) begin
             for (int i = 0; i < N; i++) begin
               mask_d[i] = 1'b0;
             end
