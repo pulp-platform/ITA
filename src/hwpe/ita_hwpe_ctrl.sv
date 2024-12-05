@@ -64,10 +64,10 @@ module ita_hwpe_ctrl
   always_comb begin
     ctrl_engine_o = '0;
     ctrl_engine_o.start = slave_flags.start;
-    ctrl_engine_o.tile_s = reg_file.hwpe_params[ITA_REG_TILES][3:0];
-    ctrl_engine_o.tile_e = reg_file.hwpe_params[ITA_REG_TILES][7:4];
-    ctrl_engine_o.tile_p = reg_file.hwpe_params[ITA_REG_TILES][11:8];
-    ctrl_engine_o.tile_f = reg_file.hwpe_params[ITA_REG_TILES][15:12];
+    ctrl_engine_o.tile_s = reg_file.hwpe_params[ITA_REG_TILES][3:0] == 0 ? 1 : reg_file.hwpe_params[ITA_REG_TILES][3:0];
+    ctrl_engine_o.tile_e = reg_file.hwpe_params[ITA_REG_TILES][7:4] == 0 ? 1 : reg_file.hwpe_params[ITA_REG_TILES][7:4];
+    ctrl_engine_o.tile_p = reg_file.hwpe_params[ITA_REG_TILES][11:8] == 0 ? 1 : reg_file.hwpe_params[ITA_REG_TILES][11:8];
+    ctrl_engine_o.tile_f = reg_file.hwpe_params[ITA_REG_TILES][15:12] == 0 ? 1 : reg_file.hwpe_params[ITA_REG_TILES][15:12];
     ctrl_engine_o.eps_mult[0] = reg_file.hwpe_params[ITA_REG_EPS_MULT0][7:0];
     ctrl_engine_o.eps_mult[1] = reg_file.hwpe_params[ITA_REG_EPS_MULT0][15:8];
     ctrl_engine_o.eps_mult[2] = reg_file.hwpe_params[ITA_REG_EPS_MULT0][23:16];

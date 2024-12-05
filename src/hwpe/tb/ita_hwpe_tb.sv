@@ -329,6 +329,7 @@ endfunction
     // Signals
     logic [31:0] status;
     string STIM_DATA;
+    int ita_reg_cnt;
     logic [31:0] ita_reg_tiles_val;
     logic [5:0][31:0] ita_reg_rqs_val;
     logic [31:0] ita_reg_gelu_b_c_val;
@@ -338,6 +339,7 @@ endfunction
 
     // Wait for reset to be released
     wait (rst_n);
+    ita_reg_cnt = 0;
 
     // Load memory
     STIM_DATA = {simdir,"/hwpe/mem.txt"};
@@ -356,7 +358,7 @@ endfunction
       PERIPH_READ( 32'h04, 32'h0, status, clk);
 
     // 1: Step Q
-    ita_compute_step(Q, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
+    ita_compute_step(Q, ita_reg_cnt, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
 
     // 2: Step K
     if (SINGLE_ATTENTION == 1) begin
@@ -365,7 +367,7 @@ endfunction
       ita_reg_rqs_val[2] = ita_reg_rqs_val[2] >> 8;
       ita_reg_rqs_val[4] = ita_reg_rqs_val[4] >> 8;
     end
-    ita_compute_step(K, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
+    ita_compute_step(K, ita_reg_cnt, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
 
     // 3: Step V
     if (SINGLE_ATTENTION == 1) begin
@@ -374,7 +376,7 @@ endfunction
       ita_reg_rqs_val[2] = ita_reg_rqs_val[2] >> 8;
       ita_reg_rqs_val[4] = ita_reg_rqs_val[4] >> 8;
     end
-    ita_compute_step(V, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
+    ita_compute_step(V, ita_reg_cnt, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
 
     if (SINGLE_ATTENTION == 1) begin
       // Reset the RQS values
@@ -389,7 +391,7 @@ endfunction
       BASE_PTR_OUTPUT[AV] = BASE_PTR[19] + group * N_TILES_OUTER_X[AV] * N_ELEMENTS_PER_TILE;
 
       // 4: Step QK
-      ita_compute_step(QK, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
+      ita_compute_step(QK, ita_reg_cnt, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
 
       // WIESEP: Hack to ensure that during the last tile of AV, the weight pointer is set correctly
       if (group == N_TILES_SEQUENCE_DIM-1) begin
@@ -397,7 +399,7 @@ endfunction
       end
 
       // 5: Step AV
-      ita_compute_step(AV, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
+      ita_compute_step(AV, ita_reg_cnt, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
     end
 
     // 6: Step OW
@@ -409,7 +411,9 @@ endfunction
       ita_reg_rqs_val[2] = ita_reg_rqs_val[3] >> 8;
       ita_reg_rqs_val[4] = ita_reg_rqs_val[5] >> 8;
     end
-    ita_compute_step(OW, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
+    ita_compute_step(OW, ita_reg_cnt, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
+
+    ita_reg_cnt = 0;
 
     // 7: Step FF1
     if (SINGLE_ATTENTION == 1) begin
@@ -420,7 +424,7 @@ endfunction
       ita_reg_rqs_val[2] = ita_reg_rqs_val[3] >> 16;
       ita_reg_rqs_val[4] = ita_reg_rqs_val[5] >> 16;
     end
-    ita_compute_step(F1, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
+    ita_compute_step(F1, ita_reg_cnt, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
 
     // 8: Step FF2
     if (SINGLE_ATTENTION == 1) begin
@@ -431,7 +435,7 @@ endfunction
       ita_reg_rqs_val[2] = ita_reg_rqs_val[3] >> 24;
       ita_reg_rqs_val[4] = ita_reg_rqs_val[5] >> 24;
     end
-    ita_compute_step(F2, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
+    ita_compute_step(F2, ita_reg_cnt, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
 
     // Wait for the last step to finish
     wait(evt);
@@ -456,6 +460,7 @@ endfunction
 
   task automatic ita_compute_step(
     input  step_e       step,
+    inout  integer      ita_reg_cnt,
     input  logic [31:0] ita_reg_tiles_val,
     input  logic [5:0][31:0] ita_reg_rqs_val,
     input  logic [31:0] ita_reg_gelu_b_c_val,
@@ -500,7 +505,12 @@ endfunction
             ita_reg_en = 1'b1;
           end else begin
             // Calculate ita_reg_en
-            ita_reg_en_compute(step, tile, ita_reg_en);
+            if (ita_reg_cnt < N_CONTEXT) begin
+              ita_reg_en = 1'b1;
+              ita_reg_cnt++;
+            end else begin
+              ita_reg_en = 1'b0;
+            end
           end
 
           // Calculate ctrl_stream_val, weight_ptr_en, and bias_ptr_en
@@ -573,29 +583,6 @@ endfunction
     $display(" - weight_ptr1 0x%08h (weight_base_ptr1 0x%08h)", weight_ptr1, weight_base_ptr1);
     $display(" - bias_ptr    0x%08h (bias_base_ptr    0x%08h)", bias_ptr, bias_base_ptr);
     $display(" - output_ptr  0x%08h (output_base_ptr  0x%08h)", output_ptr, output_base_ptr);
-  endtask
-
-
-  task automatic ita_reg_en_compute(
-    input   step_e  step,
-    input   integer tile,
-    output  logic   enable
-  );
-    enable = 1'b0;
-    // Write requantization parameters only in first two programming phases
-    if (step == Q) begin
-      if (tile == 0 || tile == 1)
-        enable = 1'b1;
-    end else if (step == K && N_TILES_OUTER_X[Q]*N_TILES_OUTER_Y[Q]*N_TILES_INNER_DIM[Q] == 1) begin
-      if (tile == 0)
-        enable = 1'b1;
-    end else if (step == F1) begin
-      if (tile == 0 || tile == 1)
-        enable = 1'b1;
-    end else if (step == F2 && N_TILES_OUTER_X[F1]*N_TILES_OUTER_Y[F1]*N_TILES_INNER_DIM[F1] == 1) begin
-      if (tile == 0)
-        enable = 1'b1;
-    end
   endtask
 
   task automatic ctrl_val_compute(

@@ -18,7 +18,7 @@ dependencies:
   common_cells:       { git: https://github.com/pulp-platform/common_cells, version: 1.23.0 }
   hwpe-stream:        { git: https://github.com/pulp-platform/hwpe-stream, rev: a20f35e62fe2842904797079dc7881e490ff7117 }
   hci:                { git: https://github.com/pulp-platform/hci, rev: 066c7ce7d24b61587e245decb592054669d7a2d1 }
-  hwpe-ctrl:          { git: https://github.com/pulp-platform/hwpe-ctrl, rev: 2926867cafb3fb518a1ae849675f281b79ecab8a }
+  hwpe-ctrl:          { git: https://github.com/pulp-platform/hwpe-ctrl, rev: 7ba707d837697c2c7c6ea1396ec4e4ab094054a2 }
   scm:                { git: https://github.com/pulp-platform/scm, rev: 998466d2a3c2d7d572e43d2666d93c4f767d8d60 }
   tech_cells_generic: { git: https://github.com/pulp-platform/tech_cells_generic, version:  0.2.11 }
 
