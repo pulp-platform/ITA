@@ -95,12 +95,7 @@ module ita_controller
     softmax_div_done_d = softmax_div_done_q;
     last_time          = 1'b0;
     requant_add        = {N {requant_add_i}};
-    mask_col_offset_d  = (step_q == QK || step_q == AV) ? mask_col_offset_q : ((ctrl_i.mask_start_index) & (N-1));
-    mask_pos_d         = (step_q == QK || step_q == AV) ? mask_pos_q : ((((ctrl_i.mask_start_index)/N)*M) & ((M*M/N)-1));
-    mask_tile_x_pos_d  = (step_q == QK || step_q == AV) ? mask_tile_x_pos_q : ((ctrl_i.mask_start_index) / M);
     inp_bias           = inp_bias_i;
-    mask_tile_y_pos_d  = mask_tile_y_pos_q;
-    mask_d             = mask_q;
 
     busy_d       = busy_q;
     softmax_fifo = 1'b0;
@@ -395,8 +390,6 @@ module ita_controller
     end
     inp_bias_padded = inp_bias;
 
-    
-    mask_d = '0;
     case (ctrl_i.mask_type)
       None: begin
         mask_col_offset_d = '0;
@@ -407,8 +400,10 @@ module ita_controller
       end
       UpperTriangular: begin
         mask_col_offset_d  = (step_q == QK || step_q == AV) ? mask_col_offset_q : ((ctrl_i.mask_start_index) & (N-1));
-        mask_pos_d         = (step_q == QK || step_q == AV) ? mask_pos_q : ((((ctrl_i.mask_start_index)/N)*M) & ((M*M/N)-1));
         mask_tile_x_pos_d  = (step_q == QK || step_q == AV) ? mask_tile_x_pos_q : ((ctrl_i.mask_start_index) / M);
+        mask_tile_y_pos_d  = mask_tile_y_pos_q;
+        mask_pos_d         = (step_q == QK || step_q == AV) ? mask_pos_q : ((((ctrl_i.mask_start_index)/N)*M) & ((M*M/N)-1));
+        mask_d             = '0;
 
         if (step_q == QK) begin      
           if (mask_tile_x_pos_q == tile_x_q && mask_tile_y_pos_q == tile_y_q && last_inner_tile_o == 1'b1) begin
@@ -457,8 +452,11 @@ module ita_controller
         end
       end
       LowerTriangular: begin
-        mask_pos_d         = (step_q == QK || step_q == AV) ? mask_pos_q : (ctrl_i.mask_start_index & (M-1));
+        mask_col_offset_d  = '0;
+        mask_tile_x_pos_d  = '0;
         mask_tile_y_pos_d  = (step_q == QK || step_q == AV) ? mask_tile_y_pos_q : ((ctrl_i.mask_start_index) / M);
+        mask_pos_d         = (step_q == QK || step_q == AV) ? mask_pos_q : (ctrl_i.mask_start_index & (M-1));
+        mask_d             = '0;
         
         if (step_q == QK) begin
           if (mask_tile_x_pos_q == tile_x_q && mask_tile_y_pos_q == tile_y_q && last_inner_tile_o == 1'b1) begin
@@ -505,6 +503,27 @@ module ita_controller
             end
           end   
         end
+      end
+      Strided: begin
+        mask_col_offset_d  = '0;
+        mask_tile_x_pos_d  = '0;
+        mask_tile_y_pos_d  = '0;
+        mask_pos_d         = '0;
+        mask_d             = '0;
+        
+        if (step_q == QK) begin
+          if (last_inner_tile_o == 1'b1) begin
+            for (int i = 0; i < N; i++) begin
+              //col_pos = count_q/M + i + mask_tile_x_pos_q * M
+              //row_pos = count_q & (M-1) + mask_tile_y_pos_q * M
+              if ((((((count_q / M) * N) + i + (tile_x_q * M)) - ((count_q & (M-1)) + (tile_y_q * M))) & (ctrl_i.mask_start_index-1)) == 0) begin
+                mask_d[i] = 1'b0;
+              end else begin
+                mask_d[i] = 1'b1;
+              end
+            end
+          end
+        end        
       end
     endcase
 

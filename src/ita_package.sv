@@ -41,7 +41,7 @@ package ita_package;
   typedef logic signed [GELU_OUT_WIDTH-1:0] gelu_out_t;
 
   // Masking
-  typedef enum {None=0, UpperTriangular=1, LowerTriangular=2} mask_e;
+  typedef enum {None=0, UpperTriangular=1, LowerTriangular=2, Strided=3, UpperStrided=4, LowerStrided=5} mask_e;
   typedef logic [WO-WI*2-2:0] mask_index_t;
 
   // IO

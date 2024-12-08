@@ -41,6 +41,12 @@ ifeq ($(mask), upper_triangular)
 	mask_int = 1
 else ifeq ($(mask), lower_triangular)
 	mask_int = 2
+else ifeq ($(mask), strided)
+	mask_int = 3
+else ifeq ($(mask), upper_strided)
+	mask_int = 4
+else ifeq ($(mask), lower_strided)
+	mask_int = 5
 else
 	mask_int = 0
 endif

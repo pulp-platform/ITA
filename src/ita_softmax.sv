@@ -273,6 +273,9 @@ module ita_softmax
             disable_col[i] = 1'b1;
           end else begin
             case (ctrl_i.mask_type)
+              None: begin
+                disable_col[i] = 1'b0;
+              end 
               UpperTriangular: begin
                 // (ctrl_i.mask_start_index / M) -> tile where the masking starts
                 if (mask_tile_x_q == mask_tile_y_q + (ctrl_i.mask_start_index / M)) begin
@@ -312,9 +315,15 @@ module ita_softmax
                   disable_col[i] = 1'b0;
                 end
               end 
-              None: begin
-                disable_col[i] = 1'b0;
-              end 
+              Strided: begin
+                //col_pos = i + mask_tile_x_q * M
+                //row_pos = count_soft_mask_q & (M-1) + mask_tile_y_pos_q * M
+                if ((((i + (mask_tile_x_q * M)) - ((count_soft_mask_q & (M-1)) + (mask_tile_y_q * M))) & (ctrl_i.mask_start_index-1)) == 0) begin
+                  disable_col[i] = 1'b0;
+                end else begin
+                  disable_col[i] = 1'b1;
+                end
+              end
             endcase          
           end
           

@@ -579,23 +579,42 @@ class Transformer:
         self.tiler_V(self.V, self.Wv, self.Bv, self.Vp_requant, "V", "Wv", "Bv", "Vp")
 
     def apply_mask(self, index):
-        self.Mask = np.full((self.H, self.S, self.S), fill_value=False, dtype='bool')
+        
         if (self.mask == 'upper_triangular'):
+            self.Mask = np.full((self.H, self.S, self.S), fill_value=False, dtype='bool')
             if (0 < index and index < self.S):
                 for h in range(self.Mask.shape[0]):
                     for i in range(self.Mask.shape[1]):
                         for j in range((i + index), self.Mask.shape[2]):
                             self.Mask[h][i][j] = True
             else:
-                raise ValueError("Index is out of bounds")
-        elif(self.mask == 'lower_triangular'):
+                raise ValueError(f"Index is out of bounds for {self.mask} mask")
+        elif (self.mask == 'lower_triangular'):
+            self.Mask = np.full((self.H, self.S, self.S), fill_value=False, dtype='bool')
             if (0 < index and index < self.S):
                 for h in range(self.Mask.shape[0]):
                     for i in range(index, self.Mask.shape[1]):
                         for j in range((i-(index-1))):
                             self.Mask[h][i][j] = True
             else:
-                raise ValueError("Index is out of bounds")
+                raise ValueError(f"Index is out of bounds for {self.mask} mask")
+        elif (self.mask == 'strided'):
+            self.Mask = np.full((self.H, self.S, self.S), fill_value=True, dtype='bool')
+            if (0 < index and index < self.S):
+                for h in range(self.Mask.shape[0]):
+                    for i in range(self.Mask.shape[1]):
+                        self.Mask[h][i][i] = False
+                        for j in range(i, self.Mask.shape[2], index):
+                            self.Mask[h][i][j] = False
+                            self.Mask[h][j][i] = False
+            else:
+                raise ValueError(f"Index is out of bounds for {self.mask} mask")
+        elif (self.mask == 'upper_strided'):
+            pass
+        elif (self.mask == 'lower_strided'):
+            pass
+        elif (self.mask == 'lower_local'):
+            pass
         elif(self.mask == 'none'):
             pass        
         else:
