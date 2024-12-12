@@ -187,6 +187,7 @@ module ita_softmax
       write_max_addr_o = count_q3;
       write_max_data_o = max_q;
       for (int i = 0; i < N; i++) begin
+        //Marcel Kant: This if statement is most likely not required
         if (shift_q[i] != 4'hF)
           exp_sum_d += unsigned'(9'h100)>>shift_q[i];
       end
@@ -317,7 +318,7 @@ module ita_softmax
               end 
               Strided: begin
                 //col_pos = i + mask_tile_x_q * M
-                //row_pos = count_soft_mask_q & (M-1) + mask_tile_y_pos_q * M
+                //row_pos = count_soft_mask_q & (M-1) + mask_tile_y_q * M
                 if ((((i + (mask_tile_x_q * M)) - ((count_soft_mask_q & (M-1)) + (mask_tile_y_q * M))) & (ctrl_i.mask_start_index-1)) == 0) begin
                   disable_col[i] = 1'b0;
                 end else begin

@@ -219,8 +219,7 @@ module ita
     .inp_bias_i           (inp_bias           ),
     .inp_bias_pad_o       (inp_bias_padded    ),
     .mask_o               (mask               ),
-    .busy_o               (busy_o             ),
-    .calc_en_q1_i         (calc_en_q1         )
+    .busy_o               (busy_o             )
   );
 
   ita_input_sampler i_input_sampler (

@@ -49,10 +49,11 @@ package ita_package;
   typedef logic       [N_REQUANT_CONSTS-1:0][EMS-1:0] requant_const_array_t;
   typedef logic signed      [WI-1:0] requant_t;
   typedef logic signed [N_REQUANT_CONSTS-1:0][WI-1:0] requant_array_t;
-  typedef logic [WO-WI*2-2:0] seq_length_t;
-  typedef logic [WO-WI*2-2:0] proj_space_t;
-  typedef logic [WO-WI*2-2:0] embed_size_t;
-  typedef logic [WO-WI*2-2:0] ff_size_t;
+  typedef logic [WO-WI*2-1:0] input_dim_t;
+  typedef input_dim_t seq_length_t;
+  typedef input_dim_t proj_space_t;
+  typedef input_dim_t embed_size_t;
+  typedef input_dim_t ff_size_t;
   typedef logic [            32-1:0] tile_t;
   typedef struct packed {
     logic                         start       ;
