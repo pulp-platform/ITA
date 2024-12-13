@@ -30,6 +30,9 @@ module ita_masking
   assign mask_o = mask_q;
 
   always_comb begin
+
+
+    
     case (ctrl_i.mask_type)
       None: begin
         mask_col_offset_d = '0;
@@ -41,9 +44,9 @@ module ita_masking
       UpperTriangular: begin
         mask_col_offset_d  = (step_i == QK || step_i == AV) ? mask_col_offset_q : ((ctrl_i.mask_start_index) & (N-1));
         mask_tile_x_pos_d  = (step_i == QK || step_i == AV) ? mask_tile_x_pos_q : ((ctrl_i.mask_start_index) / M);
-        mask_tile_y_pos_d = mask_tile_y_pos_q;
+        mask_tile_y_pos_d  = mask_tile_y_pos_q;
         mask_pos_d         = (step_i == QK || step_i == AV) ? mask_pos_q : ((((ctrl_i.mask_start_index)/N)*M) & ((M*M/N)-1));
-        mask_d = '0;
+        mask_d             = '0;
 
         if (step_i == QK) begin
           if (mask_tile_x_pos_q == tile_x_i && mask_tile_y_pos_q == tile_y_i && last_inner_tile_i == 1'b1) begin
@@ -92,11 +95,11 @@ module ita_masking
         end
       end
       LowerTriangular: begin
-        mask_col_offset_d = '0;
-        mask_tile_x_pos_d = '0;
+        mask_col_offset_d  = '0;
+        mask_tile_x_pos_d  = mask_tile_x_pos_q;
         mask_tile_y_pos_d  = (step_i == QK || step_i == AV) ? mask_tile_y_pos_q : ((ctrl_i.mask_start_index) / M);
         mask_pos_d         = (step_i == QK || step_i == AV) ? mask_pos_q : (ctrl_i.mask_start_index & (M-1));
-        mask_d = '0;
+        mask_d             = '0;
 
         if (step_i == QK) begin
           if (mask_tile_x_pos_q == tile_x_i && mask_tile_y_pos_q == tile_y_i && last_inner_tile_i == 1'b1) begin
@@ -165,6 +168,54 @@ module ita_masking
             end
           end
         end
+      end
+      UpperStrided: begin
+        mask_col_offset_d = '0;
+        mask_tile_x_pos_d = '0;
+        mask_tile_y_pos_d = '0;
+        mask_pos_d        = '0;
+        mask_d            = '0;
+
+        if (step_i == QK) begin
+          if (last_inner_tile_i == 1'b1) begin
+            for (int i = 0; i < N; i++) begin
+              //Marcel Kant: Does only work if ctrl_i.mask_start_index is a power of two
+              if ((((((count_i / M) * N) + i + (tile_x_i * M)) - ((count_i & (M-1)) + (tile_y_i * M))) & (ctrl_i.mask_start_index-1)) == 0 &&
+                      ((((count_i / M) * N) + i + (tile_x_i * M)) >= ((count_i & (M-1)) + (tile_y_i * M)))) begin
+                mask_d[i] = 1'b0;
+              end else begin
+                mask_d[i] = 1'b1;
+              end
+            end
+          end
+        end
+      end
+      LowerStrided: begin
+        mask_col_offset_d = '0;
+        mask_tile_x_pos_d = '0;
+        mask_tile_y_pos_d = '0;
+        mask_pos_d        = '0;
+        mask_d            = '0;
+
+        if (step_i == QK) begin
+          if (last_inner_tile_i == 1'b1) begin
+            for (int i = 0; i < N; i++) begin
+              //Marcel Kant: Does only work if ctrl_i.mask_start_index is a power of two
+              if ((((((count_i / M) * N) + i + (tile_x_i * M)) - ((count_i & (M-1)) + (tile_y_i * M))) & (ctrl_i.mask_start_index-1)) == 0 &&
+                      ((((count_i / M) * N) + i + (tile_x_i * M)) <= ((count_i & (M-1)) + (tile_y_i * M)))) begin
+                mask_d[i] = 1'b0;
+              end else begin
+                mask_d[i] = 1'b1;
+              end
+            end
+          end
+        end
+      end
+      SlidingWindow: begin
+        
+      end
+      StridedSlidingWindow: begin
+        
       end
     endcase
   end

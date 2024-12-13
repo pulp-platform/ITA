@@ -325,6 +325,28 @@ module ita_softmax
                   disable_col[i] = 1'b1;
                 end
               end
+              UpperStrided: begin
+                if ((((i + (mask_tile_x_q * M)) - ((count_soft_mask_q & (M-1)) + (mask_tile_y_q * M))) & (ctrl_i.mask_start_index-1)) == 0 &&
+                      ((i + (mask_tile_x_q * M)) >= ((count_soft_mask_q & (M-1)) + (mask_tile_y_q * M)))) begin
+                  disable_col[i] = 1'b0;
+                end else begin
+                  disable_col[i] = 1'b1;
+                end
+              end
+              LowerStrided: begin
+                if ((((i + (mask_tile_x_q * M)) - ((count_soft_mask_q & (M-1)) + (mask_tile_y_q * M))) & (ctrl_i.mask_start_index-1)) == 0 &&
+                      ((i + (mask_tile_x_q * M)) <= ((count_soft_mask_q & (M-1)) + (mask_tile_y_q * M)))) begin
+                  disable_col[i] = 1'b0;
+                end else begin
+                  disable_col[i] = 1'b1;
+                end
+              end
+              SlidingWindow: begin
+                
+              end
+              StridedSlidingWindow: begin
+                
+              end
             endcase          
           end
           

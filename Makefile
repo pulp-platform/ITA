@@ -47,6 +47,10 @@ else ifeq ($(mask), upper_strided)
 	mask_int = 4
 else ifeq ($(mask), lower_strided)
 	mask_int = 5
+else ifeq ($(mask), sliding_window_attention)
+	mask_int = 6
+else ifeq ($(mask), strided_sliding_window_attention)
+	mask_int = 7
 else
 	mask_int = 0
 endif

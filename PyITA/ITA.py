@@ -614,32 +614,59 @@ class Transformer:
         elif (self.mask == 'upper_strided'):
             self.Mask = np.full((self.H, self.S, self.S), fill_value=True, dtype='bool')
             if (0 < index and index < self.S):
-                for h in range(self.Mask.shape[0]):
-                    for i in range(self.Mask.shape[1]):
-                        for j in range(i, self.Mask.shape[2], index):
-                            self.Mask[h][i][j] = False
+                if (index % 2 == 0):
+                    for h in range(self.Mask.shape[0]):
+                        for i in range(self.Mask.shape[1]):
+                            for j in range(i, self.Mask.shape[2], index):
+                                self.Mask[h][i][j] = False
+                else:
+                    raise ValueError(f"Index has to be a power of two for {self.mask} mask")
             else:
                 raise ValueError(f"Index is out of bounds for {self.mask} mask")
         elif (self.mask == 'lower_strided'):
             self.Mask = np.full((self.H, self.S, self.S), fill_value=True, dtype='bool')
             if (0 < index and index < self.S):
-                for h in range(self.Mask.shape[0]):
-                    for i in range(self.Mask.shape[1]):
-                        for j in range(i, self.Mask.shape[2], index):
-                            self.Mask[h][j][i] = False
+                if (index % 2 == 0):
+                    for h in range(self.Mask.shape[0]):
+                        for i in range(self.Mask.shape[1]):
+                            for j in range(i, self.Mask.shape[2], index):
+                                self.Mask[h][j][i] = False
+                else:
+                    raise ValueError(f"Index has to be a power of two for {self.mask} mask")
             else:
                 raise ValueError(f"Index is out of bounds for {self.mask} mask")
-        elif (self.mask == 'sliding_window_attention'):
+        elif (self.mask == 'sliding_window'):
             self.Mask = np.full((self.H, self.S, self.S), fill_value=True, dtype='bool')
             if (0 < index and index < self.S):
-                for h in range(self.Mask.shape[0]):
-                    for i in range(self.Mask.shape[1]):
-                        for j in range(i, (index + i)):
-                            self.Mask[h][i][j] = False
-                            self.Mask[h][j][i] = False
+                if (index % 2 == 0):
+                    for h in range(self.Mask.shape[0]):
+                        for i in range(self.Mask.shape[1]):
+                            for j in range(i, (index + i)):
+                                self.Mask[h][i][j] = False
+                                self.Mask[h][j][i] = False
+                else:
+                    raise ValueError(f"Index has to be a power of two for {self.mask} mask")                
             else:
                 raise ValueError(f"Index is out of bounds for {self.mask} mask")
-        elif(self.mask == 'none'):
+        elif (self.mask == 'strided_sliding_window'):
+            self.Mask = np.full((self.H, self.S, self.S), fill_value=True, dtype='bool')
+            if (0 < index and index < self.S):
+                if (index % 2 == 0):
+                    for h in range(self.Mask.shape[0]):
+                        for i in range(self.Mask.shape[1]):
+                            for j in range(i, self.Mask.shape[2]):
+                                if (j > (index + i)):
+                                    if (j % index == 0):
+                                        self.Mask[h][i][j] = False
+                                        self.Mask[h][j][i] = False
+                                else:
+                                    self.Mask[h][i][j] = False
+                                    self.Mask[h][j][i] = False
+                else:
+                    raise ValueError(f"Index has to be a power of two for {self.mask} mask")                
+            else:
+                raise ValueError(f"Index is out of bounds for {self.mask} mask")
+        elif (self.mask == 'none'):
             pass        
         else:
             raise ValueError("Mask not supported")

@@ -108,7 +108,14 @@ class TestParser(argparse.ArgumentParser):
                                  default = 'none',
                                  type = str,
                                  help = 'Attention-Mask',
-                                 choices = ['none', 'upper_triangular', 'lower_triangular', 'strided', 'upper_strided', 'lower_strided'])
+                                 choices = ['none',
+                                            'upper_triangular', 
+                                            'lower_triangular', 
+                                            'strided', 
+                                            'upper_strided', 
+                                            'lower_strided',
+                                            'sliding_window',
+                                            'strided_sliding_window'])
         self.group1.add_argument('-I', default = 1, type = int, help = 'Masking starting index')
         self.group1.add_argument('--no-partial-softmax',
                                  action = 'store_true',
