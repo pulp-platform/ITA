@@ -212,10 +212,67 @@ module ita_masking
         end
       end
       SlidingWindow: begin
-        
+        mask_col_offset_d = '0;
+        mask_tile_x_pos_d = '0;
+        mask_tile_y_pos_d = '0;
+        mask_pos_d        = '0;
+        mask_d            = '0;
+
+        if (step_i == QK) begin
+          if (last_inner_tile_i == 1'b1) begin
+            for (int i = 0; i < N; i++) begin
+              if (((count_i & (M-1)) + (tile_y_i * M)) < ctrl_i.mask_start_index) begin
+                if ((((count_i / M) * N) + i + (tile_x_i * M)) < (ctrl_i.mask_start_index + ((count_i & (M-1)) + (tile_y_i * M)))) begin
+                  mask_d[i] = 1'b0;
+                end else begin
+                  mask_d[i] = 1'b1;
+                end
+              end else begin
+                if ((((count_i & (M-1)) + (tile_y_i * M) - (ctrl_i.mask_start_index-1)) <= (((count_i / M) * N) + i + (tile_x_i * M))) && 
+                    ((((count_i / M) * N) + i + (tile_x_i * M)) < ((count_i & (M-1)) + (tile_y_i * M) + ctrl_i.mask_start_index))) begin
+                  mask_d[i] = 1'b0;
+                end else begin
+                  mask_d[i] = 1'b1;
+                end
+              end     
+            end       
+          end
+        end
       end
       StridedSlidingWindow: begin
-        
+        mask_col_offset_d = '0;
+        mask_tile_x_pos_d = '0;
+        mask_tile_y_pos_d = '0;
+        mask_pos_d        = '0;
+        mask_d            = '0;
+
+        if (step_i == QK) begin
+          if (last_inner_tile_i == 1'b1) begin
+            for (int i = 0; i < N; i++) begin
+              //Strided logic
+              if ((((((count_i / M) * N) + i + (tile_x_i * M)) - ((count_i & (M-1)) + (tile_y_i * M))) & (ctrl_i.mask_start_index-1)) == 0) begin
+                mask_d[i] = 1'b0;
+              end else begin
+                mask_d[i] = 1'b1;
+              end
+              //Sliding window logic
+              if (((count_i & (M-1)) + (tile_y_i * M)) < ctrl_i.mask_start_index) begin
+                if ((((count_i / M) * N) + i + (tile_x_i * M)) < (ctrl_i.mask_start_index + ((count_i & (M-1)) + (tile_y_i * M)))) begin
+                  mask_d[i] = 1'b0;
+                end else begin
+                  mask_d[i] = 1'b1;
+                end
+              end else begin
+                if ((((count_i & (M-1)) + (tile_y_i * M) - (ctrl_i.mask_start_index-1)) <= (((count_i / M) * N) + i + (tile_x_i * M))) && 
+                    ((((count_i / M) * N) + i + (tile_x_i * M)) < ((count_i & (M-1)) + (tile_y_i * M) + ctrl_i.mask_start_index))) begin
+                  mask_d[i] = 1'b0;
+                end else begin
+                  mask_d[i] = 1'b1;
+                end
+              end     
+            end       
+          end
+        end
       end
     endcase
   end

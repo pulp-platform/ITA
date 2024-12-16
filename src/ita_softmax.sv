@@ -342,10 +342,43 @@ module ita_softmax
                 end
               end
               SlidingWindow: begin
-                
+                if (((count_soft_mask_q & (M-1)) + (mask_tile_y_q * M)) < ctrl_i.mask_start_index) begin
+                  if ((i + (mask_tile_x_q * M)) < ((count_soft_mask_q & (M-1)) + (mask_tile_y_q * M) + ctrl_i.mask_start_index)) begin
+                    disable_col[i] = 1'b0;
+                  end else begin
+                    disable_col[i] = 1'b1;
+                  end
+                end else begin
+                  if ((((count_soft_mask_q & (M-1)) + (mask_tile_y_q * M) - (ctrl_i.mask_start_index-1)) <= (i + (mask_tile_x_q * M))) &&
+                        ((i + (mask_tile_x_q * M)) < ((count_soft_mask_q & (M-1)) + (mask_tile_y_q * M) + ctrl_i.mask_start_index))) begin
+                    disable_col[i] = 1'b0;
+                  end else begin
+                    disable_col[i] = 1'b1;
+                  end
+                end
               end
               StridedSlidingWindow: begin
-                
+                //Strided logic
+                if ((((i + (mask_tile_x_q * M)) - ((count_soft_mask_q & (M-1)) + (mask_tile_y_q * M))) & (ctrl_i.mask_start_index-1)) == 0) begin
+                  disable_col[i] = 1'b0;
+                end else begin
+                  disable_col[i] = 1'b1;
+                end
+                //Sliding window logic
+                if (((count_soft_mask_q & (M-1)) + (mask_tile_y_q * M)) < ctrl_i.mask_start_index) begin
+                  if ((i + (mask_tile_x_q * M)) < ((count_soft_mask_q & (M-1)) + (mask_tile_y_q * M) + ctrl_i.mask_start_index)) begin
+                    disable_col[i] = 1'b0;
+                  end else begin
+                    disable_col[i] = 1'b1;
+                  end
+                end else begin
+                  if ((((count_soft_mask_q & (M-1)) + (mask_tile_y_q * M) - (ctrl_i.mask_start_index-1)) <= (i + (mask_tile_x_q * M))) &&
+                        ((i + (mask_tile_x_q * M)) < ((count_soft_mask_q & (M-1)) + (mask_tile_y_q * M) + ctrl_i.mask_start_index))) begin
+                    disable_col[i] = 1'b0;
+                  end else begin
+                    disable_col[i] = 1'b1;
+                  end
+                end
               end
             endcase          
           end

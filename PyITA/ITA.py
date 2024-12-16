@@ -641,7 +641,7 @@ class Transformer:
                 if (index % 2 == 0):
                     for h in range(self.Mask.shape[0]):
                         for i in range(self.Mask.shape[1]):
-                            for j in range(i, (index + i)):
+                            for j in range(i, min((index + i), self.Mask.shape[2])):
                                 self.Mask[h][i][j] = False
                                 self.Mask[h][j][i] = False
                 else:
@@ -655,11 +655,7 @@ class Transformer:
                     for h in range(self.Mask.shape[0]):
                         for i in range(self.Mask.shape[1]):
                             for j in range(i, self.Mask.shape[2]):
-                                if (j > (index + i)):
-                                    if (j % index == 0):
-                                        self.Mask[h][i][j] = False
-                                        self.Mask[h][j][i] = False
-                                else:
+                                if (j < (index + i) or ((j-i) % index == 0)):
                                     self.Mask[h][i][j] = False
                                     self.Mask[h][j][i] = False
                 else:
@@ -667,7 +663,7 @@ class Transformer:
             else:
                 raise ValueError(f"Index is out of bounds for {self.mask} mask")
         elif (self.mask == 'none'):
-            pass        
+            return        
         else:
             raise ValueError("Mask not supported")
         
