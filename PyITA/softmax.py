@@ -105,10 +105,6 @@ def streamingPartialSoftmax(x, mask, integerize = True):
 
         mask_slice = mask[... ,i*PE:(i*PE)+width]
         x_slice = x[..., 0 + i * PE:width + i * PE]
-        print(f"Mask Slice Shape: {mask_slice.shape}")
-        print(f"Mask Slice: {mask_slice}")
-        print(f"X Slice Shape: {x_slice.shape}")
-        print(f"X Slice: {x_slice}")
 
         # Find the maximum for each row in the current column block (consisting of 16 columns)
         if integerize:
@@ -129,15 +125,8 @@ def streamingPartialSoftmax(x, mask, integerize = True):
         else:
             max_shift = (current_max - global_max) * eps_max
 
-        print(f"Global Max: {global_max.shape}")
-        print(global_max)
-        print(f"Current Max: {current_max.shape}")
-        print(current_max)
-
         # Update all shift values where new maximum is larger
         shift_sum[current_max > global_max] = max_shift[current_max > global_max]
-
-        print(f"Shift sum: {shift_sum}")
 
         # Updated all maximums where they changed
         global_max[current_max > global_max] = current_max[current_max > global_max]
@@ -157,18 +146,8 @@ def streamingPartialSoftmax(x, mask, integerize = True):
         else:
             shift = diff * eps_max
 
-        print(f"Shift Shape: {shift.shape}")
-        print(f"Shift without mask: {shift}")
-
         # Set shift value so high that 2**8 >> shift gets zero for all masked values
         shift[mask_slice] = 32
-        print(f"Shift with mask: {shift}")
-        # # matrix = np.squeeze(shift)
-        # # import matplotlib.pyplot as plt
-        # # plt.imshow(matrix, cmap='viridis')
-        # # plt.colorbar()
-        # # plt.title("Shift Matrix")
-        # # plt.show()
 
         # Calculate exponential sum over the current part of the row and scale it by 2**10 to prevent underflow
         if integerize:
@@ -176,8 +155,6 @@ def streamingPartialSoftmax(x, mask, integerize = True):
             # exp_sum = np.floor(np.sum(2**8 / 2**shift, axis = -1))
         else:
             exp_sum = np.sum(1 / 2**shift, axis = -1)
-
-        print(f"Exp sum: {exp_sum}")
         
         # Update the accumulated sum and add the accumulation over the current part of the row
         if integerize:
@@ -185,7 +162,6 @@ def streamingPartialSoftmax(x, mask, integerize = True):
         else:
             exp_partial_sum = (exp_partial_sum / 2**(shift_sum.astype(np.float32))) + exp_sum
 
-        print(f"Exp parital sum: {exp_partial_sum}")
 
     ## STAGE 2: Calculate the softmax activation
     # Invert the partial sum
@@ -194,7 +170,6 @@ def streamingPartialSoftmax(x, mask, integerize = True):
     else:
         exp_partial_sum_inverse = 1 / exp_partial_sum
 
-    print(f"Exp parital sum inverse: {exp_partial_sum_inverse}")
 
     # Find the difference between the maximum and x
     diff = np.repeat(global_max, seq_length).reshape(n_heads, seq_length, seq_length) - x.astype(np.int32)
@@ -209,9 +184,6 @@ def streamingPartialSoftmax(x, mask, integerize = True):
         shift = np.floor(diff * eps_max + 0.5 + np.finfo(np.float32).eps).astype(np.int32)
     else:
         shift = diff * eps_max
-    
-    print(f"shift value before return shape: {shift.shape}")
-    print(f"shift value before return: {shift}")
 
     # Calculate the activation value
     if integerize:

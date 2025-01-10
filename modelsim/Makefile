@@ -11,8 +11,8 @@ VOPT        ?= $(QUESTA_SEPP) vopt
 VSIM        ?= $(QUESTA_SEPP) vsim
 VLIB        ?= $(QUESTA_SEPP) vlib
 VMAP        ?= $(QUESTA_SEPP) vmap
-VSIM_FLAGS  ?= -gui
-DEBUG       ?= ON
+VSIM_FLAGS  ?= -c # -gui
+DEBUG       ?= OFF # ON
 
 lib:
 	cd $(buildpath) && $(VLIB) work && $(VMAP) work work
@@ -21,7 +21,7 @@ build:
 	cd $(buildpath) && $(VSIM) -c -do 'source compile.tcl; quit'
 
 sim_ita_tb: lib build
-	cd $(buildpath) && $(VSIM) $(VSIM_FLAGS) -do 'source ../sim_ita_tb.tcl'
+	cd $(buildpath) && $(VSIM) $(VSIM_FLAGS) -do 'set DEBUG $(DEBUG); source ../sim_ita_tb.tcl'
 
 sim_ita_hwpe_tb: lib build
 	cd $(buildpath) && $(VSIM) $(VSIM_FLAGS) -do 'set DEBUG $(DEBUG); source ../sim_ita_hwpe_tb.tcl'

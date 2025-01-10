@@ -2,18 +2,12 @@
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 
-set DEBUG ON
-
 # Set working library.
 set LIB work
 
-if {$DEBUG == "ON"} {
-    set VOPT_ARG "+acc"
-    echo $VOPT_ARG
-    set DB_SW "-debugdb"
-} else {
-    set DB_SW ""
-}
+set VOPT_ARG "+acc"
+echo $VOPT_ARG
+set DB_SW "-debugdb"
 
 quit -sim
 
