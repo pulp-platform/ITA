@@ -30,9 +30,6 @@ module ita_masking
   assign mask_o = mask_q;
 
   always_comb begin
-
-
-    
     case (ctrl_i.mask_type)
       None: begin
         mask_col_offset_d = '0;
