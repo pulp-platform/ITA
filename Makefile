@@ -12,8 +12,8 @@ BENDER_INSTALL_DIR    = ${INSTALL_DIR}/bender
 VENV_BIN=venv/bin/
 
 BENDER_VERSION = 0.28.1
-SIM_FOLDER   ?= build
-SIM_PATH   ?= modelsim/${SIM_FOLDER}
+SIM_FOLDER  ?= build
+SIM_PATH    ?= modelsim/${SIM_FOLDER}
 SYNTH_PATH  = synopsys
 
 BENDER_TARGETS = -t rtl -t test
