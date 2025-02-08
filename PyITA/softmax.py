@@ -220,7 +220,7 @@ if __name__ == "__main__":
     # ITA sequence length
     parser.add_argument("-M", default = 64, type = int, help = "ITA sequence length")
 
-    # Quantiztion (float or int)
+    # Quantization (float or int)
     parser.add_argument("--int", action = "store_true", help = "Quantize to int")
     parser.add_argument('--seed', default = 0, type = int, help = 'Random seed')
 
