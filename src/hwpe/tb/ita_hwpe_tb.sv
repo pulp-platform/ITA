@@ -28,6 +28,9 @@ module ita_hwpe_tb;
   parameter integer FEEDFORWARD_SIZE = `ifdef FF_SIZE `FF_SIZE `else M_TILE_LEN `endif;
   parameter activation_e ACTIVATION = `ifdef ACTIVATION `ACTIVATION `else Identity `endif;
   parameter integer SINGLE_ATTENTION = `ifdef SINGLE_ATTENTION `SINGLE_ATTENTION `else 0 `endif;
+  parameter mask_e MASK = mask_e'(`ifdef MASK `MASK `else None `endif);
+  parameter integer MASK_START_INDEX = `ifdef MASK_INDEX `MASK_INDEX `else 1 `endif;
+
 
   integer N_TILES_SEQUENCE_DIM, N_TILES_EMBEDDING_DIM, N_TILES_PROJECTION_DIM, N_TILES_FEEDFORWARD_DIM;
   integer N_ELEMENTS_PER_TILE;
@@ -133,8 +136,13 @@ module ita_hwpe_tb;
       "_H1_B",
       $sformatf("%0d", `ifdef BIAS `BIAS `else 0 `endif),
       "_",
-      $sformatf( "%s", ACTIVATION)
+      $sformatf("%s", ACTIVATION),
+      "_",
+      $sformatf("%s", MASK),
+      "_I",
+      $sformatf("%0d", MASK_START_INDEX)
     };
+
     // Number of tiles in the sequence dimension
     N_TILES_SEQUENCE_DIM = SEQUENCE_LEN / M_TILE_LEN;
     // Number of tiles in the embedding dimension

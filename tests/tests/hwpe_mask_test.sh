@@ -22,7 +22,7 @@ export buildpath=build
 export SIM_PATH=modelsim/$buildpath
 
 # Set to -gui to use the GUI of QuestaSim
-export vsim_flags=-gui #-c
+export vsim_flags=-c #-gui
 
 # Set the no_stalls if not set
 if [ -z "$no_stalls" ]; then
@@ -136,7 +136,7 @@ for test_idx in $(seq 1 $n_tests); do
     echo "Testing ita_tb: S=$s E=$e P=$p F=$f Activation=$activation Masking=$masking I=$i Bias=$bias" >> $log_file
 
     # Run the test
-    make sim VSIM_FLAGS=$vsim_flags DEBUG=OFF target=sim_ita_tb \
+    make sim VSIM_FLAGS=$vsim_flags DEBUG=OFF target=sim_ita_hwpe_tb \
             no_stalls=$no_stalls s=$s e=$e p=$p f=$f bias=$bias \
             activation=$activation mask=$masking i=$i
 
@@ -153,6 +153,6 @@ for test_idx in $(seq 1 $n_tests); do
     # echo "simvectors/data_S${s}_E${e}_P${p}_F${f}_H1_B${bias}_${activation^}_${formatted_masking}_I${i}" >> $log_file
 
     # Remove the test vectors
-    rm -rf simvectors/data_S${s}_E${e}_P${p}_F${f}_H1_B${bias}_${activation^}_${formatted_masking}_I${i}
+    # rm -rf simvectors/data_S${s}_E${e}_P${p}_F${f}_H1_B${bias}_${activation^}_${formatted_masking}_I${i}
 
 done

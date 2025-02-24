@@ -11,7 +11,7 @@ VOPT        ?= $(QUESTA_SEPP) vopt
 VSIM        ?= $(QUESTA_SEPP) vsim
 VLIB        ?= $(QUESTA_SEPP) vlib
 VMAP        ?= $(QUESTA_SEPP) vmap
-VSIM_FLAGS  ?= -c # -gui
+VSIM_FLAGS  ?= -c #-gui
 DEBUG       ?= OFF # ON
 
 lib:
