@@ -104,6 +104,12 @@ module ita_hwpe_ctrl
     ctrl_stream_o.bias_disable  = reg_file.hwpe_params[ITA_REG_CTRL_STREAM][2];
     ctrl_stream_o.bias_direction = reg_file.hwpe_params[ITA_REG_CTRL_STREAM][3];
     ctrl_stream_o.output_disable = reg_file.hwpe_params[ITA_REG_CTRL_STREAM][4];
+    ctrl_engine_o.seq_length = reg_file.hwpe_params[ITA_REG_SEQ_PROJ_LENGTH][9:0];
+    ctrl_engine_o.proj_space = reg_file.hwpe_params[ITA_REG_SEQ_PROJ_LENGTH][19:10];
+    ctrl_engine_o.embed_size = reg_file.hwpe_params[ITA_REG_EMBED_FF_SIZE][9:0];
+    ctrl_engine_o.ff_size = reg_file.hwpe_params[ITA_REG_EMBED_FF_SIZE][19:10];
+    ctrl_engine_o.mask_type = reg_file.hwpe_params[ITA_REG_MASK][2:0]; 
+    ctrl_engine_o.mask_start_index = reg_file.hwpe_params[ITA_REG_MASK][12:3];
   end
 
   logic [31:0] input_addr, bias_addr, output_addr;
