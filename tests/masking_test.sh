@@ -41,9 +41,9 @@ echo "no_stalls=$no_stalls" >> $log_file
 echo "n_tests=$n_tests" >> $log_file
 
 # List of masking names
- masking_names=("upper_triangular" "lower_triangular" "strided"
-                "upper_strided" "lower_strided"
-                "sliding_window" "strided_sliding_window")
+masking_names=("upper_triangular" "lower_triangular" "strided"
+               "upper_strided" "lower_strided"
+               "sliding_window" "strided_sliding_window")
 
 # List of activation names
 activation_names=("identity" "relu" "gelu")
@@ -123,7 +123,6 @@ for test_idx in $(seq 1 $n_tests); do
     echo "Index is: $i  (Masking = $masking, s=$s)"
 
     # Create test vectors (no-bias and bias)
-    echo "creating test vectors"
     if [ "$bias" -eq 1 ]; then
         python testGenerator.py -H 1 -S $s -P $p -E $e -F $f \
             --activation "$activation" --mask "$masking" -I "$i"
