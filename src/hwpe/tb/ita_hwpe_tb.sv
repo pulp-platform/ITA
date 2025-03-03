@@ -28,6 +28,9 @@ module ita_hwpe_tb;
   parameter integer FEEDFORWARD_SIZE = `ifdef FF_SIZE `FF_SIZE `else M_TILE_LEN `endif;
   parameter activation_e ACTIVATION = `ifdef ACTIVATION `ACTIVATION `else Identity `endif;
   parameter integer SINGLE_ATTENTION = `ifdef SINGLE_ATTENTION `SINGLE_ATTENTION `else 0 `endif;
+  parameter mask_e MASK = mask_e'(`ifdef MASK `MASK `else None `endif);
+  parameter integer MASK_START_INDEX = `ifdef MASK_INDEX `MASK_INDEX `else 1 `endif;
+
 
   integer N_TILES_SEQUENCE_DIM, N_TILES_EMBEDDING_DIM, N_TILES_PROJECTION_DIM, N_TILES_FEEDFORWARD_DIM;
   integer N_ELEMENTS_PER_TILE;
@@ -133,8 +136,13 @@ module ita_hwpe_tb;
       "_H1_B",
       $sformatf("%0d", `ifdef BIAS `BIAS `else 0 `endif),
       "_",
-      $sformatf( "%s", ACTIVATION)
+      $sformatf("%s", ACTIVATION),
+      "_",
+      $sformatf("%s", MASK),
+      "_I",
+      $sformatf("%0d", MASK_START_INDEX)
     };
+
     // Number of tiles in the sequence dimension
     N_TILES_SEQUENCE_DIM = SEQUENCE_LEN / M_TILE_LEN;
     // Number of tiles in the embedding dimension
@@ -333,6 +341,8 @@ endfunction
     logic [5:0][31:0] ita_reg_rqs_val;
     logic [31:0] ita_reg_gelu_b_c_val;
     logic [31:0] ita_reg_activation_rqs_val;
+    logic [1:0][31:0] ita_reg_dims_val;
+    logic [31:0] ita_reg_mask_val;
 
     $timeformat(-9, 2, " ns", 10);
 
@@ -346,6 +356,8 @@ endfunction
     ita_reg_tiles_val_compute(N_TILES_SEQUENCE_DIM, N_TILES_EMBEDDING_DIM, N_TILES_PROJECTION_DIM, N_TILES_FEEDFORWARD_DIM, ita_reg_tiles_val);
     ita_reg_eps_mult_val_compute(ita_reg_rqs_val);
     ita_reg_activation_constants_compute(ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val);
+    ita_reg_dims_compute(SEQUENCE_LEN, EMBEDDING_SIZE, PROJECTION_SPACE, FEEDFORWARD_SIZE, ita_reg_dims_val);
+    ita_reg_mask_compute(MASK, MASK_START_INDEX, ita_reg_mask_val);
 
     // soft clear
     PERIPH_WRITE( 32'h14, 32'h0, 32'h0,  clk);
@@ -356,7 +368,7 @@ endfunction
       PERIPH_READ( 32'h04, 32'h0, status, clk);
 
     // 1: Step Q
-    ita_compute_step(Q, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
+    ita_compute_step(Q, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, ita_reg_dims_val, ita_reg_mask_val, clk);
 
     // 2: Step K
     if (SINGLE_ATTENTION == 1) begin
@@ -365,7 +377,7 @@ endfunction
       ita_reg_rqs_val[2] = ita_reg_rqs_val[2] >> 8;
       ita_reg_rqs_val[4] = ita_reg_rqs_val[4] >> 8;
     end
-    ita_compute_step(K, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
+    ita_compute_step(K, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, ita_reg_dims_val, ita_reg_mask_val, clk);
 
     // 3: Step V
     if (SINGLE_ATTENTION == 1) begin
@@ -374,7 +386,7 @@ endfunction
       ita_reg_rqs_val[2] = ita_reg_rqs_val[2] >> 8;
       ita_reg_rqs_val[4] = ita_reg_rqs_val[4] >> 8;
     end
-    ita_compute_step(V, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
+    ita_compute_step(V, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, ita_reg_dims_val, ita_reg_mask_val, clk);
 
     if (SINGLE_ATTENTION == 1) begin
       // Reset the RQS values
@@ -389,7 +401,7 @@ endfunction
       BASE_PTR_OUTPUT[AV] = BASE_PTR[19] + group * N_TILES_OUTER_X[AV] * N_ELEMENTS_PER_TILE;
 
       // 4: Step QK
-      ita_compute_step(QK, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
+      ita_compute_step(QK, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, ita_reg_dims_val, ita_reg_mask_val, clk);
 
       // WIESEP: Hack to ensure that during the last tile of AV, the weight pointer is set correctly
       if (group == N_TILES_SEQUENCE_DIM-1) begin
@@ -397,7 +409,7 @@ endfunction
       end
 
       // 5: Step AV
-      ita_compute_step(AV, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
+      ita_compute_step(AV, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, ita_reg_dims_val, ita_reg_mask_val, clk);
     end
 
     // 6: Step OW
@@ -409,7 +421,7 @@ endfunction
       ita_reg_rqs_val[2] = ita_reg_rqs_val[3] >> 8;
       ita_reg_rqs_val[4] = ita_reg_rqs_val[5] >> 8;
     end
-    ita_compute_step(OW, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
+    ita_compute_step(OW, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, ita_reg_dims_val, ita_reg_mask_val, clk);
 
     // 7: Step FF1
     if (SINGLE_ATTENTION == 1) begin
@@ -420,7 +432,7 @@ endfunction
       ita_reg_rqs_val[2] = ita_reg_rqs_val[3] >> 16;
       ita_reg_rqs_val[4] = ita_reg_rqs_val[5] >> 16;
     end
-    ita_compute_step(F1, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
+    ita_compute_step(F1, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, ita_reg_dims_val, ita_reg_mask_val, clk);
 
     // 8: Step FF2
     if (SINGLE_ATTENTION == 1) begin
@@ -431,7 +443,7 @@ endfunction
       ita_reg_rqs_val[2] = ita_reg_rqs_val[3] >> 24;
       ita_reg_rqs_val[4] = ita_reg_rqs_val[5] >> 24;
     end
-    ita_compute_step(F2, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, clk);
+    ita_compute_step(F2, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, ita_reg_dims_val, ita_reg_mask_val, clk);
 
     // Wait for the last step to finish
     wait(evt);
@@ -460,6 +472,8 @@ endfunction
     input  logic [5:0][31:0] ita_reg_rqs_val,
     input  logic [31:0] ita_reg_gelu_b_c_val,
     input  logic [31:0] ita_reg_activation_rqs_val,
+    input  logic [1:0][31:0] ita_reg_dims_val,
+    input  logic [31:0] ita_reg_mask_val,
     ref    logic        clk_i
   );
 
@@ -510,7 +524,7 @@ endfunction
           $display(" - ITA Reg En 0x%0h, Ctrl Stream Val 0x%0h, Weight Ptr En %0d, Bias Ptr En %0d", ita_reg_en, ctrl_stream_val, weight_ptr_en, bias_ptr_en);
 
           // Program ITA
-          PROGRAM_ITA(input_ptr, weight_ptr0, weight_ptr1, weight_ptr_en, bias_ptr, bias_ptr_en, output_ptr, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, ita_reg_en, ctrl_engine_val, ctrl_stream_val, clk_i);
+          PROGRAM_ITA(input_ptr, weight_ptr0, weight_ptr1, weight_ptr_en, bias_ptr, bias_ptr_en, output_ptr, ita_reg_tiles_val, ita_reg_rqs_val, ita_reg_gelu_b_c_val, ita_reg_activation_rqs_val, ita_reg_en, ctrl_engine_val, ctrl_stream_val, ita_reg_dims_val, ita_reg_mask_val, clk_i);
 
           // Wait for ITA to finish
           @(posedge clk_i);
@@ -736,6 +750,25 @@ endfunction
     activation_requant_reg = activation_requant_mult | activation_requant_shift << 8 | activation_requant_add << 16;
   endtask
 
+  task automatic ita_reg_dims_compute(
+    input integer seq_length,
+    input integer proj_space,
+    input integer embed_size,
+    input integer ff_size,
+    output logic [1:0][31:0] reg_val
+  );
+    reg_val[0] = seq_length | proj_space << 10;
+    reg_val[1] = embed_size | ff_size << 10;
+  endtask
+
+  task automatic ita_reg_mask_compute(
+    input mask_e mask_type,
+    input integer mask_start_index,
+    output logic [31:0] reg_val
+  );
+    reg_val = mask_type | mask_start_index << 3;
+  endtask
+
   task automatic read_activation_constants(
     output gelu_const_t gelu_b,
     output gelu_const_t gelu_c,
@@ -854,6 +887,8 @@ endfunction
     input  logic        ita_reg_en,
     input  logic [31:0] ctrl_engine_val,
     input  logic [31:0] ctrl_stream_val,
+    input  logic [2:0][31:0]  ita_reg_dims_val,
+    input  logic [31:0] ita_reg_mask_val,
     ref    logic        clk_i
   );
     PERIPH_WRITE( 4*ITA_REG_INPUT_PTR,   ITA_REG_OFFSET, input_ptr, clk_i);
@@ -874,6 +909,9 @@ endfunction
       PERIPH_WRITE( 4*ITA_REG_ADD1,        ITA_REG_OFFSET, ita_reg_rqs_val[5], clk_i);
       PERIPH_WRITE( 4*ITA_REG_GELU_B_C,    ITA_REG_OFFSET, ita_reg_gelu_b_c_val, clk_i);
       PERIPH_WRITE( 4*ITA_REG_ACTIVATION_REQUANT, ITA_REG_OFFSET, ita_reg_activation_rqs_val, clk_i);
+      PERIPH_WRITE( 4*ITA_REG_SEQ_PROJ_LENGTH, ITA_REG_OFFSET, ita_reg_dims_val[0], clk_i);
+      PERIPH_WRITE( 4*ITA_REG_EMBED_FF_SIZE, ITA_REG_OFFSET, ita_reg_dims_val[1], clk_i);
+      PERIPH_WRITE( 4*ITA_REG_MASK, ITA_REG_OFFSET, ita_reg_mask_val, clk_i);
     end
 
     PERIPH_WRITE( 4*ITA_REG_CTRL_ENGINE, ITA_REG_OFFSET, ctrl_engine_val, clk_i);

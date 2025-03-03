@@ -18,3 +18,4 @@ add wave -noupdate /ita_tb/dut/inp2_q
 add wave -group {Controller} /ita_tb/dut/i_controller/*
 add wave -group {Softmax Controller} ita_tb/dut/i_softmax_top/i_softmax/*
 add wave -group {Accumulator} ita_tb/dut/i_accumulator/*
+add wave -group {Masking} ita_tb/dut/i_controller/i_masking/*
