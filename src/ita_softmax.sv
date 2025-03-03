@@ -62,11 +62,11 @@ module ita_softmax
   requant_oup_t requant_oup_q;
   requant_t max_d, max_q;
 
-  logic unsigned [N-1:0][3:0] shift_d, shift_q;
+  logic unsigned [N-1:0][WI-SoftmaxShift:0] shift_d, shift_q;
   logic [N-1:0][WI-1:0] shift_diff;
-  logic unsigned [3:0] shift_sum_d, shift_sum_q;
+  logic unsigned [WI-SoftmaxShift:0] shift_sum_d, shift_sum_q;
   logic [WI-1:0] max_diff;
-  logic unsigned [M-1:0][3:0] shift_inp;
+  logic unsigned [M-1:0][WI-SoftmaxShift:0] shift_inp;
   logic [M-1:0][WI-1:0] shift_inp_diff;
 
   logic calc_stream_soft_en_q;
@@ -163,9 +163,9 @@ module ita_softmax
           shift_d[i] = 4'hF;
         end else begin
           max_o[i] = requant_oup_q[i];
-          shift_d[i]    = unsigned'(shift_diff[i]) >> 5;
-          if (shift_diff[i][4])
-            shift_d[i] = (unsigned'(shift_diff[i]) >> 5) + 1;
+          shift_d[i]    = unsigned'(shift_diff[i]) >> SoftmaxShift;
+          if (SoftmaxShift != 0 && shift_diff[i][SoftmaxShift-1])
+            shift_d[i] = (unsigned'(shift_diff[i]) >> SoftmaxShift) + 1;
         end
       end
       if (tile_q2 != '0 || count_q2>=M) begin // If not first part of the first row, normalize previous sum
@@ -173,9 +173,9 @@ module ita_softmax
         read_acc_addr_o[0] = count_q2;
         prev_max_o  = read_max_data_i[0];
         max_diff    = max_i - prev_max_o;
-        shift_sum_d = max_diff >> 5;
-        if (max_diff[4])
-          shift_sum_d = (max_diff >> 5) + 1;
+        shift_sum_d = max_diff >> SoftmaxShift;
+        if (SoftmaxShift != 0 && max_diff[SoftmaxShift-1])
+          shift_sum_d = (max_diff >> SoftmaxShift) + 1;
       end else begin
         prev_max_o = 8'h80;
       end
@@ -386,9 +386,9 @@ module ita_softmax
             inp_stream_soft_o[i] = '0;
           end else begin
             shift_inp_diff[i] = read_max_data_i[1]-inp_i[i];
-            shift_inp[i]      = unsigned'(shift_inp_diff[i]) >> 5;
-            if (shift_inp_diff[i][4])
-              shift_inp[i] = (unsigned'(shift_inp_diff[i]) >> 5) + 1;
+            shift_inp[i]      = unsigned'(shift_inp_diff[i]) >> SoftmaxShift;
+            if (SoftmaxShift != 0 && shift_inp_diff[i][SoftmaxShift-1])
+              shift_inp[i] = (unsigned'(shift_inp_diff[i]) >> SoftmaxShift) + 1;
             inp_stream_soft_o[i] = read_acc_data_i[1] >> shift_inp[i];
           end
         end

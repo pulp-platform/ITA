@@ -10,7 +10,7 @@ package ita_hwpe_package;
 
   // HWPE Configuration
   parameter int unsigned N_CORES     = 9;
-  parameter int unsigned N_CONTEXT   = 2;
+  parameter int unsigned N_CONTEXT   = 4;
   parameter int unsigned ID_WIDTH    = 2;
   parameter int unsigned ITA_IO_REGS = 20; // 5 address + 11 parameters + 1 sync + 2 length + 1 mask
 

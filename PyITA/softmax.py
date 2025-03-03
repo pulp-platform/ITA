@@ -32,7 +32,8 @@ def fastSoftmax(x, integerize = True):
     B = 8
 
     # Scaling factor
-    eps_max = B / (2**B)
+    range_scale = 32
+    eps_max = range_scale * B / (2**B)
 
     # Find the maximum for each row in the current column block (consisting of 16 columns)
     max = np.repeat(np.max(x, axis = -1), seq_length).reshape(n_heads, seq_length, seq_length)
@@ -79,7 +80,8 @@ def streamingPartialSoftmax(x, mask, integerize = True):
     B = 8
 
     # Scaling factor
-    eps_max = B / (2**B)
+    range_scale = 32
+    eps_max = range_scale * B / (2**B)
 
     if integerize:
         x = x
@@ -151,14 +153,14 @@ def streamingPartialSoftmax(x, mask, integerize = True):
 
         # Calculate exponential sum over the current part of the row and scale it by 2**10 to prevent underflow
         if integerize:
-            exp_sum = np.sum(2**8 >> shift, -1) # or
-            # exp_sum = np.floor(np.sum(2**8 / 2**shift, axis = -1))
+            # exp_sum = np.sum(2**8 >> shift, -1) # or
+            exp_sum = np.floor(np.sum(2**8 >> shift, axis = -1))
         else:
             exp_sum = np.sum(1 / 2**shift, axis = -1)
         
         # Update the accumulated sum and add the accumulation over the current part of the row
         if integerize:
-            exp_partial_sum = np.floor((exp_partial_sum / 2**shift_sum)) + exp_sum
+            exp_partial_sum = np.floor((exp_partial_sum.astype(np.int32) >> shift_sum)) + exp_sum
         else:
             exp_partial_sum = (exp_partial_sum / 2**(shift_sum.astype(np.float32))) + exp_sum
 
@@ -166,7 +168,7 @@ def streamingPartialSoftmax(x, mask, integerize = True):
     ## STAGE 2: Calculate the softmax activation
     # Invert the partial sum
     if integerize:
-        exp_partial_sum_inverse = np.floor((2**8 - 1) * 2**8 / exp_partial_sum).astype(np.int32)
+        exp_partial_sum_inverse = np.floor((2**8 - 1) * 2**8 // exp_partial_sum).astype(np.int32)
     else:
         exp_partial_sum_inverse = 1 / exp_partial_sum
 
@@ -189,7 +191,7 @@ def streamingPartialSoftmax(x, mask, integerize = True):
     if integerize:
         # A_partial_softmax[0] = np.repeat(exp_partial_sum_inverse, seq_length).reshape(seq_length, seq_length) >> shift
         return np.floor(
-            np.repeat(exp_partial_sum_inverse, seq_length).reshape(n_heads, seq_length, seq_length) / 2**shift).astype(
+            np.repeat(exp_partial_sum_inverse, seq_length).reshape(n_heads, seq_length, seq_length) >> shift).astype(
                 np.uint8)
     else:
         return np.repeat(exp_partial_sum_inverse, seq_length).reshape(n_heads, seq_length, seq_length) / 2**shift
@@ -200,7 +202,8 @@ def realSoftmax(A_requant, integerize = True):
 
     B = 8
     log2e = np.log2(np.exp(1))
-    eps_x = B / (2**B * log2e)
+    range_scale = 32
+    eps_x = range_scale * B / (2**B * log2e)
 
     if integerize:
         x = A_requant * eps_x
