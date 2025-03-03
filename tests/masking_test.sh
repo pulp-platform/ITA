@@ -22,7 +22,7 @@ export buildpath=build
 export SIM_PATH=modelsim/$buildpath
 
 # Set to -gui to use the GUI of QuestaSim
-export vsim_flags=-gui #-c
+export vsim_flags=-c
 
 # Set the no_stalls if not set
 if [ -z "$no_stalls" ]; then
@@ -41,9 +41,9 @@ echo "no_stalls=$no_stalls" >> $log_file
 echo "n_tests=$n_tests" >> $log_file
 
 # List of masking names
-masking_names=("upper_triangular" "lower_triangular" "strided"
-               "upper_strided" "lower_strided"
-               "sliding_window" "strided_sliding_window")
+ masking_names=("upper_triangular" "lower_triangular" "strided"
+                "upper_strided" "lower_strided"
+                "sliding_window" "strided_sliding_window")
 
 # List of activation names
 activation_names=("identity" "relu" "gelu")
