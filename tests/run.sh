@@ -12,7 +12,7 @@ export buildpath=build
 export SIM_PATH=modelsim/$buildpath
 
 # Set to -gui to use the GUI of QuestaSim
-export vsim_flags=-gui #-c
+export vsim_flags=-c
 
 export target=ita_tb
 export no_stalls=0
@@ -35,5 +35,5 @@ then
 fi
 
 # Run the test
-make sim VSIM_FLAGS=$vsim_flags DEBUG=ON target=sim_$target no_stalls=$no_stalls s=$s e=$e p=$p f=$f bias=$bias activation=$activation
+make sim VSIM_FLAGS=$vsim_flags DEBUG=OFF target=sim_$target no_stalls=$no_stalls s=$s e=$e p=$p f=$f bias=$bias activation=$activation
 ./modelsim/return_status.sh ${SIM_PATH}/transcript $s $e $p $f $target
