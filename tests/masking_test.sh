@@ -21,6 +21,11 @@ source venv/bin/activate
 export buildpath=build
 export SIM_PATH=modelsim/$buildpath
 
+if [ -z "$target" ]; then
+    no_stalls=0
+    echo "Target not set. Using default value: $target"
+fi
+
 # Set to -gui to use the GUI of QuestaSim
 export vsim_flags=-c
 
@@ -135,7 +140,7 @@ for test_idx in $(seq 1 $n_tests); do
     echo "Testing ita_tb: S=$s E=$e P=$p F=$f Activation=$activation Masking=$masking I=$i Bias=$bias" >> $log_file
 
     # Run the test
-    make sim VSIM_FLAGS=$vsim_flags DEBUG=OFF target=sim_ita_tb \
+    make sim VSIM_FLAGS=$vsim_flags DEBUG=OFF target=sim_$target \
             no_stalls=$no_stalls s=$s e=$e p=$p f=$f bias=$bias \
             activation=$activation mask=$masking i=$i
 

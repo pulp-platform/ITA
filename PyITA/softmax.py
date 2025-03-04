@@ -32,7 +32,7 @@ def fastSoftmax(x, integerize = True):
     B = 8
 
     # Scaling factor
-    range_scale = 32
+    range_scale = 1
     eps_max = range_scale * B / (2**B)
 
     # Find the maximum for each row in the current column block (consisting of 16 columns)
@@ -80,7 +80,7 @@ def streamingPartialSoftmax(x, mask, integerize = True):
     B = 8
 
     # Scaling factor
-    range_scale = 32
+    range_scale = 1
     eps_max = range_scale * B / (2**B)
 
     if integerize:

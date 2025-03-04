@@ -1364,7 +1364,7 @@ def generateTestVectors(path, **kwargs):
 def util_main(**kwargs):
     B = 8
     log2e = np.log2(np.exp(1))
-    range_scale = 32
+    range_scale = 1
     eps_max = range_scale * B / (2**B)
 
     N = 1024
