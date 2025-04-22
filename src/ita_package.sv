@@ -40,18 +40,36 @@ package ita_package;
   typedef logic signed [GELU_CONSTANTS_WIDTH-1:0] gelu_const_t;
   typedef logic signed [GELU_OUT_WIDTH-1:0] gelu_out_t;
 
+  // Masking
+  typedef enum {None=0, 
+                UpperTriangular=1, 
+                LowerTriangular=2, 
+                Strided=3, 
+                UpperStrided=4, 
+                LowerStrided=5,
+                SlidingWindow=6,
+                StridedSlidingWindow=7} mask_e;
+  typedef logic [WO-WI*2-2:0] mask_index_t;
+
   // IO
   typedef logic            [EMS-1:0] requant_const_t;
   typedef logic       [N_REQUANT_CONSTS-1:0][EMS-1:0] requant_const_array_t;
   typedef logic signed      [WI-1:0] requant_t;
   typedef logic signed [N_REQUANT_CONSTS-1:0][WI-1:0] requant_array_t;
-  typedef logic [idx_width(S+1)-1:0] seq_length_t;
-  typedef logic [idx_width(P+1)-1:0] proj_space_t;
-  typedef logic [idx_width(E+1)-1:0] embed_size_t;
-  typedef logic [idx_width(H+1)-1:0] n_heads_t;
+  typedef logic [WO-WI*2-1:0] input_dim_t;
+  typedef input_dim_t seq_length_t;
+  typedef input_dim_t proj_space_t;
+  typedef input_dim_t embed_size_t;
+  typedef input_dim_t ff_size_t;
   typedef logic [            32-1:0] tile_t;
   typedef struct packed {
     logic                         start       ;
+    seq_length_t                  seq_length  ;
+    proj_space_t                  proj_space  ;
+    embed_size_t                  embed_size  ;
+    ff_size_t                     ff_size     ;
+    mask_e                        mask_type   ;
+    mask_index_t                  mask_start_index;
     layer_e                       layer       ;
     activation_e                  activation  ;
     requant_const_array_t         eps_mult    ;
@@ -96,7 +114,7 @@ package ita_package;
 
   // Softmax
   localparam int unsigned SoftmaxScalar = 65280; // (2**8-1) * 2**8
-  localparam int unsigned SoftmaxShift = 0;
+  localparam int unsigned SoftmaxShift = 5;
   localparam int unsigned SoftmaxAccDataWidth = 19; // Up to S = 2048
   localparam int unsigned SoftFifoDepth = 12;
   typedef logic [idx_width(SoftFifoDepth)-1:0] soft_fifo_usage_t;

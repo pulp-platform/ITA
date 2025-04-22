@@ -52,6 +52,15 @@ def write_matrix(matrix: np.ndarray, name: str, path: Union[str, os.PathLike]):
         name (str): The name of the file.
         path (Union[str, os.PathLike]): The path to the directory where the file will be saved.
     """
+    # output_files = ["Qp_0", "Kp_0", "Vp_0", "A_0", "Out_soft_0", "FFp_0", "FF2p_0"]
+    # if name in output_files:
+    #     import matplotlib.pyplot as plt
+    #     heatmap = np.squeeze(matrix)
+    #     plt.imshow(heatmap, cmap='viridis')
+    #     plt.colorbar()
+    #     plt.title(f"{name}")
+    #     plt.show()
+
     with open('%s%s.txt' % (path, name), "wb+") as f:
         for row in matrix:
             np.savetxt(f, row, fmt = '%d')

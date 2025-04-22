@@ -17,6 +17,7 @@
                 "-S${input:seq_len}",
                 "-E${input:emb_len}",
                 "-P${input:prj_len}",
+                "--no-bias"
             ],
         }
     ],

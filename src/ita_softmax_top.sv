@@ -19,7 +19,12 @@ module ita_softmax_top
   output counter_t     soft_addr_div_o      ,
   output logic         softmax_done_o       ,
   output logic         pop_softmax_fifo_o   ,
-  output inp_t         inp_stream_soft_o
+  output inp_t         inp_stream_soft_o    ,
+  input  counter_t     tile_x_i             ,
+  input  counter_t     tile_y_i             ,
+  input  counter_t     inner_tile_i         ,
+  input  logic [N-1:0] mask_i
+
 );
 
   logic          [1:0]                                       read_acc_en;
@@ -34,7 +39,7 @@ module ita_softmax_top
   logic unsigned [             NumDiv-1:0][DividerWidth-1:0] div_oup      ;
   logic unsigned [       DividerWidth-1:0]                   val          ;
 
-  requant_oup_t max_in  ;
+  requant_oup_t max_in;
   requant_t     prev_max, max_out;
 
   ita_max_finder i_max_finder (
@@ -113,7 +118,12 @@ module ita_softmax_top
 
     .write_max_en_o       (write_max_en         ),
     .write_max_addr_o     (write_max_addr       ),
-    .write_max_data_o     (write_max_data       )
+    .write_max_data_o     (write_max_data       ),
+
+    .tile_x_i             (tile_x_i             ),
+    .tile_y_i             (tile_y_i             ),
+    .inner_tile_i         (inner_tile_i         ),
+    .mask_i               (mask_i               )
   );
 
   ita_register_file_1w_multi_port_read #(

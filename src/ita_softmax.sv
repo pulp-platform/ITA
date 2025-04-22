@@ -39,14 +39,22 @@ module ita_softmax
   input  requant_t [1:0]                      read_max_data_i,
   output logic                                write_max_en_o,
   output logic [InputAddrWidth-1:0]           write_max_addr_o,
-  output requant_t                            write_max_data_o
+  output requant_t                            write_max_data_o,
+  input  counter_t                            tile_x_i,
+  input  counter_t                            tile_y_i,
+  input  counter_t                            inner_tile_i,
+  input  logic [N-1:0]                        mask_i
 );
 
   counter_t tile_d, tile_q1, tile_q2, tile_q3, tile_q4;
   counter_t count_d, count_q1, count_q2, count_q3, count_q4;
+  counter_t inner_tile_q;
+  counter_t tile_x_q, tile_y_q;
+  counter_t mask_tile_x_d, mask_tile_x_q, mask_tile_y_d, mask_tile_y_q;
+  counter_t mask_tile_outer_dim_d, mask_tile_outer_dim_q;
 
   logic unsigned [SoftmaxAccDataWidth-1:0] exp_sum_d, exp_sum_q;
-  counter_t count_soft_d, count_soft_q;
+  counter_t count_soft_d, count_soft_q1, count_soft_q2, count_soft_mask_q;
 
   counter_t count_div_d, count_div_q, addr_div_d, addr_div_q;
   logic [NumDiv-1:0] div_read_d, div_read_q, div_write_d, div_write_q;
@@ -69,13 +77,19 @@ module ita_softmax
   logic [SoftmaxAccDataWidth-1:0]  data_to_fifo, data_from_fifo;
   soft_fifo_usage_t fifo_usage  ;
 
+  logic [N-1:0] disable_shift;
+  logic disable_row;
+  logic [M-1:0]disable_col;
+
+  assign disable_row = ((count_soft_q2 & (M-1)) + tile_y_q * M) > (ctrl_i.seq_length - 1);
+
   assign pop_softmax_fifo_o = pop_from_fifo;
   assign soft_addr_div_o    = addr_div_q;
 
   always_comb begin
     tile_d            = tile_q1;
     count_d           = count_q1;
-    count_soft_d      = count_soft_q;
+    count_soft_d      = count_soft_q1;
     count_div_d       = count_div_q;
     div_read_d        = div_read_q;
     div_write_d       = div_write_q;
@@ -109,6 +123,10 @@ module ita_softmax
     shift_inp_diff    = '0;
     inp_stream_soft_o = '0;
     softmax_done_o    = 0;
+    mask_tile_x_d     = mask_tile_x_q;
+    mask_tile_y_d     = mask_tile_y_q;
+    mask_tile_outer_dim_d       = mask_tile_outer_dim_q;
+    
 
     //************ Accumulation ************//
     case (step_i)
@@ -135,13 +153,20 @@ module ita_softmax
 
     //************ Pipeline Stage 1 ************//
     if (calc_en_q1) begin // Find max and accumulate
-      max_o = requant_oup_q;
       max_d = max_i;
       for (int i = 0; i < N; i++) begin
         shift_diff[i] = max_i - requant_oup_q[i];
-        shift_d[i]    = unsigned'(shift_diff[i]) >> SoftmaxShift;
-        if (SoftmaxShift != 0 && shift_diff[i][SoftmaxShift-1])
-          shift_d[i] = (unsigned'(shift_diff[i]) >> SoftmaxShift) + 1;
+        disable_shift[i] = ((tile_q2*M+N*(count_q2 >> $clog2(M))+i ) >= ctrl_i.seq_length);
+
+        if (disable_shift[i] || mask_i[i]) begin
+          max_o[i] = 8'h80;
+          shift_d[i] = 4'hF;
+        end else begin
+          max_o[i] = requant_oup_q[i];
+          shift_d[i]    = unsigned'(shift_diff[i]) >> SoftmaxShift;
+          if (SoftmaxShift != 0 && shift_diff[i][SoftmaxShift-1])
+            shift_d[i] = (unsigned'(shift_diff[i]) >> SoftmaxShift) + 1;
+        end
       end
       if (tile_q2 != '0 || count_q2>=M) begin // If not first part of the first row, normalize previous sum
         read_acc_en_o[0]   = 1;
@@ -162,10 +187,12 @@ module ita_softmax
       write_max_addr_o = count_q3;
       write_max_data_o = max_q;
       for (int i = 0; i < N; i++) begin
-        exp_sum_d += unsigned'(9'h100)>>shift_q[i];
+        //Marcel Kant: This if statement is most likely not required
+        if (shift_q[i] != 4'hF)
+          exp_sum_d += unsigned'(9'h100)>>shift_q[i];
       end
       if (tile_q3 != '0 || count_q3>=M) begin // If not first part of the first row
-        exp_sum_d += ( unsigned'(read_acc_data_i[0]) >> shift_sum_q);
+        exp_sum_d += (unsigned'(read_acc_data_i[0]) >> shift_sum_q);
       end
     end
 
@@ -211,28 +238,172 @@ module ita_softmax
     //*********** Stream Softmax ***********//
     // Main controller checks if division is ready
     if (calc_stream_soft_en_i) begin
-      count_soft_d    = count_soft_q + 1;
+      count_soft_d    = count_soft_q1 + 1;
       read_acc_en_o[1]   = 1;
-      read_acc_addr_o[1] = count_soft_q[5:0];
+      read_acc_addr_o[1] = count_soft_q1[5:0];
       read_max_en_o[1]   = 1;
-      read_max_addr_o[1] = count_soft_q[5:0];
+      read_max_addr_o[1] = count_soft_q1[5:0];
       if (count_soft_d == M*M/N) begin
         count_soft_d = '0;
       end
     end
     if (calc_stream_soft_en_q) begin
-      for (int i = 0; i < M; i++) begin
-        shift_inp_diff[i] = read_max_data_i[1]-inp_i[i];
-        shift_inp[i]      = unsigned'(shift_inp_diff[i]) >> SoftmaxShift;
-        if (SoftmaxShift != 0 && shift_inp_diff[i][SoftmaxShift-1])
-          shift_inp[i] = (unsigned'(shift_inp_diff[i]) >> SoftmaxShift) + 1;
-        inp_stream_soft_o[i] = read_acc_data_i[1] >> shift_inp[i];
+      if (count_soft_mask_q == (((M*M)/N)-1)) begin
+        if (mask_tile_x_q == (ctrl_i.tile_s - 1)) begin
+          mask_tile_x_d = '0;
+          mask_tile_outer_dim_d = mask_tile_outer_dim_q + 1;
+          if (mask_tile_outer_dim_q == (ctrl_i.tile_p - 1)) begin
+            mask_tile_outer_dim_d = '0;
+            mask_tile_y_d = mask_tile_y_q + 1;
+          end
+        end else begin
+          mask_tile_x_d = mask_tile_x_q + 1;
+        end
+        if (mask_tile_y_q == ctrl_i.tile_s) begin
+          mask_tile_outer_dim_d = '0;
+          mask_tile_x_d = '0;
+          mask_tile_y_d = '0;
+        end
+      end
+
+      if (disable_row) begin
+        inp_stream_soft_o = { M { '0 } };
+      end else begin
+        for (int i = 0; i < M; i++) begin
+          if ((inner_tile_q*M + i) >= ctrl_i.seq_length) begin
+            disable_col[i] = 1'b1;
+          end else begin
+            case (ctrl_i.mask_type)
+              None: begin
+                disable_col[i] = 1'b0;
+              end 
+              UpperTriangular: begin
+                // (ctrl_i.mask_start_index / M) -> tile where masking starts
+                if (mask_tile_x_q == mask_tile_y_q + (ctrl_i.mask_start_index / M)) begin
+                  if (i >= ((count_soft_mask_q & (M-1)) + (ctrl_i.mask_start_index & (M-1)))) begin
+                    disable_col[i] = 1'b1;
+                  end else begin
+                    disable_col[i] = 1'b0;
+                  end
+                end else if (mask_tile_x_q == ((ctrl_i.mask_start_index / M) + 1'b1 + mask_tile_y_q)) begin
+                  if (i < signed'((count_soft_mask_q & (M-1)) - (M - (ctrl_i.mask_start_index & (M-1))))) begin
+                    disable_col[i] = 1'b0;
+                  end else begin
+                    disable_col[i] = 1'b1;
+                  end
+                end else if (mask_tile_x_q > ((ctrl_i.mask_start_index / M) + 1'b1 + mask_tile_y_q)) begin
+                  disable_col[i] = 1'b1;
+                end else begin
+                  disable_col[i] = 1'b0;
+                end
+              end
+              LowerTriangular: begin
+                if (mask_tile_y_q == mask_tile_x_q + (ctrl_i.mask_start_index / M)) begin
+                  if (i <= signed'((count_soft_mask_q & (M-1)) - (ctrl_i.mask_start_index & (M-1)))) begin
+                    disable_col[i] = 1'b1;
+                  end else begin
+                    disable_col[i] = 1'b0;
+                  end
+                end else if (mask_tile_y_q == ((ctrl_i.mask_start_index / M) + 1'b1 + mask_tile_x_q)) begin
+                  if (i <= ((count_soft_mask_q & (M-1)) + (M - (ctrl_i.mask_start_index & (M-1))))) begin
+                    disable_col[i] = 1'b1;
+                  end else begin
+                    disable_col[i] = 1'b0;
+                  end 
+                end else if (mask_tile_y_q > ((ctrl_i.mask_start_index / M) + 1'b1 + mask_tile_x_q)) begin
+                  disable_col[i] = 1'b1;
+                end else begin
+                  disable_col[i] = 1'b0;
+                end
+              end 
+              Strided: begin
+                //col_pos = i + mask_tile_x_q * M
+                //row_pos = count_soft_mask_q & (M-1) + mask_tile_y_q * M
+                if ((((i + (mask_tile_x_q * M)) - ((count_soft_mask_q & (M-1)) + (mask_tile_y_q * M))) & (ctrl_i.mask_start_index-1)) == 0) begin
+                  disable_col[i] = 1'b0;
+                end else begin
+                  disable_col[i] = 1'b1;
+                end
+              end
+              UpperStrided: begin
+                if ((((i + (mask_tile_x_q * M)) - ((count_soft_mask_q & (M-1)) + (mask_tile_y_q * M))) & (ctrl_i.mask_start_index-1)) == 0 &&
+                      ((i + (mask_tile_x_q * M)) >= ((count_soft_mask_q & (M-1)) + (mask_tile_y_q * M)))) begin
+                  disable_col[i] = 1'b0;
+                end else begin
+                  disable_col[i] = 1'b1;
+                end
+              end
+              LowerStrided: begin
+                if ((((i + (mask_tile_x_q * M)) - ((count_soft_mask_q & (M-1)) + (mask_tile_y_q * M))) & (ctrl_i.mask_start_index-1)) == 0 &&
+                      ((i + (mask_tile_x_q * M)) <= ((count_soft_mask_q & (M-1)) + (mask_tile_y_q * M)))) begin
+                  disable_col[i] = 1'b0;
+                end else begin
+                  disable_col[i] = 1'b1;
+                end
+              end
+              SlidingWindow: begin
+                if (((count_soft_mask_q & (M-1)) + (mask_tile_y_q * M)) < ctrl_i.mask_start_index) begin
+                  if ((i + (mask_tile_x_q * M)) < ((count_soft_mask_q & (M-1)) + (mask_tile_y_q * M) + ctrl_i.mask_start_index)) begin
+                    disable_col[i] = 1'b0;
+                  end else begin
+                    disable_col[i] = 1'b1;
+                  end
+                end else begin
+                  if ((((count_soft_mask_q & (M-1)) + (mask_tile_y_q * M) - (ctrl_i.mask_start_index-1)) <= (i + (mask_tile_x_q * M))) &&
+                        ((i + (mask_tile_x_q * M)) < ((count_soft_mask_q & (M-1)) + (mask_tile_y_q * M) + ctrl_i.mask_start_index))) begin
+                    disable_col[i] = 1'b0;
+                  end else begin
+                    disable_col[i] = 1'b1;
+                  end
+                end
+              end
+              StridedSlidingWindow: begin
+                //Strided logic
+                if ((((i + (mask_tile_x_q * M)) - ((count_soft_mask_q & (M-1)) + (mask_tile_y_q * M))) & (ctrl_i.mask_start_index-1)) == 0) begin
+                  disable_col[i] = 1'b0;
+                end else begin
+                  //Sliding window logic
+                  if (((count_soft_mask_q & (M-1)) + (mask_tile_y_q * M)) < ctrl_i.mask_start_index) begin
+                    if ((i + (mask_tile_x_q * M)) < ((count_soft_mask_q & (M-1)) + (mask_tile_y_q * M) + ctrl_i.mask_start_index)) begin
+                      disable_col[i] = 1'b0;
+                    end else begin
+                      disable_col[i] = 1'b1;
+                    end
+                  end else begin
+                    if ((((count_soft_mask_q & (M-1)) + (mask_tile_y_q * M) - (ctrl_i.mask_start_index-1)) <= (i + (mask_tile_x_q * M))) &&
+                          ((i + (mask_tile_x_q * M)) < ((count_soft_mask_q & (M-1)) + (mask_tile_y_q * M) + ctrl_i.mask_start_index))) begin
+                      disable_col[i] = 1'b0;
+                    end else begin
+                      disable_col[i] = 1'b1;
+                    end
+                  end
+                end
+              end
+            endcase          
+          end
+          
+          if (disable_col[i]) begin
+            inp_stream_soft_o[i] = '0;
+          end else begin
+            shift_inp_diff[i] = read_max_data_i[1]-inp_i[i];
+            shift_inp[i]      = unsigned'(shift_inp_diff[i]) >> SoftmaxShift;
+            if (SoftmaxShift != 0 && shift_inp_diff[i][SoftmaxShift-1])
+              shift_inp[i] = (unsigned'(shift_inp_diff[i]) >> SoftmaxShift) + 1;
+            inp_stream_soft_o[i] = read_acc_data_i[1] >> shift_inp[i];
+          end
+        end
       end
     end
   end
 
   always_ff @(posedge clk_i or negedge rst_ni) begin
     if(~rst_ni) begin
+      inner_tile_q          <= '0;
+      tile_x_q              <= '0;
+      tile_y_q              <= '0;
+      mask_tile_x_q         <= '0;
+      mask_tile_y_q         <= '0;
+      mask_tile_outer_dim_q <= '0;
       tile_q4               <= '0;
       tile_q3               <= '0;
       tile_q2               <= '0;
@@ -240,8 +411,10 @@ module ita_softmax
       count_q4              <= M*M/N;
       count_q3              <= M*M/N;
       count_q2              <= M*M/N;
-      count_q1               <= M*M/N;
-      count_soft_q          <= '0;
+      count_q1              <= M*M/N;
+      count_soft_q1         <= '0;
+      count_soft_q2         <= '0;
+      count_soft_mask_q     <= '0;    
       count_div_q           <= '0;
       div_read_q            <= '0;
       div_write_q           <= '0;
@@ -253,6 +426,9 @@ module ita_softmax
       shift_q               <= '0;
       shift_sum_q           <= '0;
     end else begin
+      inner_tile_q          <= inner_tile_i;
+      tile_x_q              <= tile_x_i;
+      tile_y_q              <= tile_y_i;
       tile_q4               <= tile_q3;
       tile_q3               <= tile_q2;
       tile_q2               <= tile_q1;
@@ -261,7 +437,14 @@ module ita_softmax
       count_q3              <= count_q2;
       count_q2              <= count_q1;
       count_q1              <= count_d;
-      count_soft_q          <= count_soft_d;
+      count_soft_q1         <= count_soft_d;
+      count_soft_q2         <= count_soft_q1;
+      if (calc_stream_soft_en_i) begin
+        count_soft_mask_q   <= count_soft_q1;
+      end
+      mask_tile_x_q       <= mask_tile_x_d;
+      mask_tile_y_q       <= mask_tile_y_d;
+      mask_tile_outer_dim_q <= mask_tile_outer_dim_d;
       count_div_q           <= count_div_d;
       div_read_q            <= div_read_d;
       div_write_q           <= div_write_d;

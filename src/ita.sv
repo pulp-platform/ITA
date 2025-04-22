@@ -40,13 +40,16 @@ module ita
   logic         weight_valid, weight_ready;
   inp_t         inp, inp_stream_soft;
   weight_t      inp1, inp1_q, inp2, inp2_q;
-  bias_t        inp_bias, inp_bias_q1, inp_bias_q2;
+  bias_t        inp_bias, inp_bias_padded, inp_bias_q1, inp_bias_q2;
   oup_t         oup, oup_q, accumulator_oup;
   requant_const_t    requant_mult, requant_shift, activation_requant_mult, activation_requant_shift;
   requant_oup_t requant_oup;
   requant_t         requant_add, activation_requant_add;
   requant_mode_e    requant_mode, activation_requant_mode;
   requant_oup_t post_activation;
+
+  //Masking
+  logic [N-1:0] mask, mask_q1, mask_q2, mask_q3, mask_q4, mask_q5, mask_q6;
 
   // FIFO signals
   logic        fifo_full, fifo_empty, push_to_fifo, pop_from_fifo;
@@ -106,6 +109,12 @@ module ita
       activation_q3         <= Identity;
       activation_q2         <= Identity;
       activation_q1         <= Identity;
+      mask_q6               <= '0;
+      mask_q5               <= '0;
+      mask_q4               <= '0;
+      mask_q3               <= '0;
+      mask_q2               <= '0;
+      mask_q1               <= '0;
     end else begin
       calc_en_q10           <= calc_en_q9;
       calc_en_q9            <= calc_en_q8;
@@ -146,6 +155,12 @@ module ita
       activation_q3         <= activation_q2;
       activation_q2         <= activation_q1;
       activation_q1         <= ctrl_i.activation;
+      mask_q6               <= mask_q5;
+      mask_q5               <= mask_q4;
+      mask_q4               <= mask_q3;
+      mask_q3               <= mask_q2;
+      mask_q2               <= mask_q1;
+      mask_q1               <= mask;
     end
   end
 
@@ -153,8 +168,8 @@ module ita
     if (!rst_ni) begin
       inp1_q      <= '0;
       inp2_q      <= '0;
-      inp_bias_q2 <= '0;
       inp_bias_q1 <= '0;
+      inp_bias_q2 <= '0;
       oup_q       <= '0;
     end else begin
       if (calc_en_q2) begin
@@ -162,7 +177,7 @@ module ita
         oup_q       <= oup;
       end
       if (calc_en_q1) begin
-        inp_bias_q1 <= inp_bias;
+        inp_bias_q1 <= inp_bias_padded;
         inp1_q      <= inp1;
         inp2_q      <= inp2;
       end
@@ -170,6 +185,12 @@ module ita
   end
 
   assign oup_o = valid_o ? data_from_fifo : '0;
+
+  requant_oup_t requant_add_o;
+
+  counter_t inner_tile;
+  counter_t tile_x;
+  counter_t tile_y;
 
   ita_controller i_controller (
     .clk_i                (clk_i              ),
@@ -190,6 +211,14 @@ module ita
     .calc_en_o            (calc_en            ),
     .first_inner_tile_o   (first_inner_tile   ),
     .last_inner_tile_o    (last_inner_tile    ),
+    .tile_x_o             (tile_x             ),
+    .tile_y_o             (tile_y             ),
+    .inner_tile_o         (inner_tile         ),
+    .requant_add_i        (requant_add        ),
+    .requant_add_o        (requant_add_o      ),
+    .inp_bias_i           (inp_bias           ),
+    .inp_bias_pad_o       (inp_bias_padded    ),
+    .mask_o               (mask               ),
     .busy_o               (busy_o             )
   );
 
@@ -255,13 +284,17 @@ module ita
     .soft_addr_div_o      (soft_addr_div                   ),
     .softmax_done_o       (softmax_done                    ),
     .pop_softmax_fifo_o   (pop_softmax_fifo                ),
-    .inp_stream_soft_o    (inp_stream_soft                 )
+    .inp_stream_soft_o    (inp_stream_soft                 ),
+    .tile_x_i             (tile_x                          ),
+    .tile_y_i             (tile_y                          ),
+    .inner_tile_i         (inner_tile                      ),
+    .mask_i               (mask_q6                         )
   );
 
 
   ita_requatization_controller i_requantization_controller (
     .ctrl_i             (ctrl_i            ),
-    .requantizer_step_i (step_q4         ),
+    .requantizer_step_i (step_q4          ),
     .requant_mult_o     (requant_mult     ),
     .requant_shift_o    (requant_shift    ),
     .requant_add_o      (requant_add      ),
@@ -283,7 +316,7 @@ module ita
     .calc_en_i    ( calc_en_q4 && last_inner_tile_q4       ),
     .calc_en_q_i  ( calc_en_q5 && last_inner_tile_q5       ),
     .result_i     ( accumulator_oup    ),
-    .add_i        ( {N {requant_add}} ),
+    .add_i        ( requant_add_o     ),
     .requant_oup_o( requant_oup       )
   );
 

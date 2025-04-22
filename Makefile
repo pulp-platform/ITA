@@ -12,7 +12,8 @@ BENDER_INSTALL_DIR    = ${INSTALL_DIR}/bender
 VENV_BIN=venv/bin/
 
 BENDER_VERSION = 0.28.1
-SIM_PATH   ?= modelsim/build
+SIM_FOLDER   ?= build
+SIM_PATH   ?= modelsim/${SIM_FOLDER}
 SYNTH_PATH  = synopsys
 
 BENDER_TARGETS = -t rtl -t test
@@ -34,7 +35,29 @@ else ifeq ($(activation), relu)
 else
 	activation_int = 0
 endif
-vlog_defs += -DNO_STALLS=$(no_stalls) -DSINGLE_ATTENTION=$(single_attention) -DSEQ_LENGTH=$(s) -DEMBED_SIZE=$(e) -DPROJ_SPACE=$(p) -DFF_SIZE=$(f) -DBIAS=$(bias) -DACTIVATION=$(activation_int)
+
+mask ?= none
+ifeq ($(mask), upper_triangular)
+	mask_int = 1
+else ifeq ($(mask), lower_triangular)
+	mask_int = 2
+else ifeq ($(mask), strided)
+	mask_int = 3
+else ifeq ($(mask), upper_strided)
+	mask_int = 4
+else ifeq ($(mask), lower_strided)
+	mask_int = 5
+else ifeq ($(mask), sliding_window)
+	mask_int = 6
+else ifeq ($(mask), strided_sliding_window)
+	mask_int = 7
+else
+	mask_int = 0
+endif
+
+i ?= 1
+
+vlog_defs += -DNO_STALLS=$(no_stalls) -DSINGLE_ATTENTION=$(single_attention) -DSEQ_LENGTH=$(s) -DEMBED_SIZE=$(e) -DPROJ_SPACE=$(p) -DFF_SIZE=$(f) -DBIAS=$(bias) -DACTIVATION=$(activation_int) -DMASK=$(mask_int) -DMASK_INDEX=$(i)
 
 ifeq ($(target), sim_ita_hwpe_tb)
 	BENDER_TARGETS += -t ita_hwpe -t ita_hwpe_test

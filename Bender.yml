@@ -32,6 +32,7 @@ sources:
   # Individual source files are simple string entries:
   - src/ita_package.sv
   - src/ita_accumulator.sv
+  - src/ita_masking.sv
   - src/ita_controller.sv
   - src/ita_dotp.sv
   - src/ita_fifo_controller.sv

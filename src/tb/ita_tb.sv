@@ -46,6 +46,8 @@ module ita_tb;
   integer N_TILES_INNER_DIM_LINEAR_PROJECTION[N_PHASES];
   integer N_ATTENTION_TILE_ROWS, N_GROUPS;
   activation_e ACTIVATION;
+  mask_e MASK;
+  integer MASK_START_INDEX;
 
   // Signals
   logic         clk, rst_n;
@@ -76,6 +78,8 @@ module ita_tb;
     EMBEDDING_SIZE = `ifdef EMBED_SIZE `EMBED_SIZE `else M_TILE_LEN `endif;
     FEEDFORWARD_SIZE = `ifdef FF_SIZE `FF_SIZE `else M_TILE_LEN `endif;
     ACTIVATION = activation_e'(`ifdef ACTIVATION `ACTIVATION `else Identity `endif);
+    MASK = mask_e'(`ifdef MASK `MASK `else None `endif);
+    MASK_START_INDEX = `ifdef MASK_INDEX `MASK_INDEX `else 1 `endif;
 
     simdir = {
       "../../simvectors/data_S",
@@ -89,11 +93,17 @@ module ita_tb;
       "_H1_B",
       $sformatf("%0d", `ifdef BIAS `BIAS `else 0 `endif),
       "_",
-      $sformatf( "%s", ACTIVATION)
+      $sformatf("%s", ACTIVATION),
+      "_",
+      $sformatf("%s", MASK),
+      "_I",
+      $sformatf("%0d", MASK_START_INDEX)
     };
-    N_TILES_SEQUENCE_DIM = SEQUENCE_LEN / M_TILE_LEN;
-    N_TILES_EMBEDDING_DIM = EMBEDDING_SIZE / M_TILE_LEN;
-    N_TILES_PROJECTION_DIM = PROJECTION_SPACE / M_TILE_LEN;
+    // Round up
+    N_TILES_SEQUENCE_DIM = (SEQUENCE_LEN + M_TILE_LEN -1 ) / M_TILE_LEN;
+    N_TILES_EMBEDDING_DIM = (EMBEDDING_SIZE+ M_TILE_LEN -1 ) / M_TILE_LEN;
+    N_TILES_PROJECTION_DIM = (PROJECTION_SPACE + M_TILE_LEN -1 ) / M_TILE_LEN;
+    N_TILES_FEEDFORWARD = (FEEDFORWARD_SIZE + M_TILE_LEN -1) / M_TILE_LEN;
     N_TILES_LINEAR_PROJECTION = N_TILES_SEQUENCE_DIM * N_TILES_EMBEDDING_DIM * N_TILES_PROJECTION_DIM;
     N_TILES_ATTENTION = N_TILES_SEQUENCE_DIM * N_TILES_PROJECTION_DIM;
     N_ENTRIES_PER_TILE = M_TILE_LEN * M_TILE_LEN / N_PE;
@@ -103,7 +113,6 @@ module ita_tb;
     N_ENTRIES_PER_SEQUENCE_DIM = N_ENTRIES_PER_TILE * N_TILES_SEQUENCE_DIM;
     N_ATTENTION_TILE_ROWS = N_TILES_SEQUENCE_DIM;
     N_GROUPS = 2 * N_ATTENTION_TILE_ROWS;
-    N_TILES_FEEDFORWARD = FEEDFORWARD_SIZE / M_TILE_LEN;
     N_TILES_INNER_DIM_LINEAR_PROJECTION[0] = N_TILES_EMBEDDING_DIM;
     N_TILES_INNER_DIM_LINEAR_PROJECTION[1] = N_TILES_EMBEDDING_DIM;
     N_TILES_INNER_DIM_LINEAR_PROJECTION[2] = N_TILES_EMBEDDING_DIM;
@@ -489,6 +498,12 @@ task automatic apply_ITA_weights(input integer phase);
     ita_ctrl.tile_p = N_TILES_PROJECTION_DIM;
     ita_ctrl.tile_s = N_TILES_SEQUENCE_DIM;
     ita_ctrl.tile_f = N_TILES_FEEDFORWARD;
+    ita_ctrl.seq_length = SEQUENCE_LEN;
+    ita_ctrl.proj_space = PROJECTION_SPACE;
+    ita_ctrl.embed_size = EMBEDDING_SIZE;
+    ita_ctrl.ff_size    = FEEDFORWARD_SIZE;
+    ita_ctrl.mask_type  = MASK;
+    ita_ctrl.mask_start_index = MASK_START_INDEX;
 
     read_activation_constants(ita_ctrl.gelu_b, ita_ctrl.gelu_c, ita_ctrl.activation_requant_mult, ita_ctrl.activation_requant_shift, ita_ctrl.activation_requant_add);
 
